@@ -9,9 +9,9 @@ PuntoCheck es una aplicación móvil desarrollada para la empresa Punto Pymes, q
 El sistema está diseñado para optimizar el control de asistencia, garantizar la verificación de presencia en tiempo real y mejorar la comunicación entre supervisores y trabajadores
 
 <h2 align="center"> Problematica </center></h2>
-*Registro de personal con el GPS del dispositivo 
-*Uso de sensores para mayor control
-*Escalable para comunicación
+# Registro de personal con el GPS del dispositivo 
+# Uso de sensores para mayor control
+# Escalable para comunicación
 
 
 
@@ -42,6 +42,6 @@ El sistema está diseñado para optimizar el control de asistencia, garantizar l
 
 El desarrollo de **PuntoCheck** se organiza en 9 Sprints bajo la metodología Scrum, distribuidos a lo largo de 13 semanas.
 
-🔗 [Ver planificación detallada de Sprints en la Wiki](../../wiki/Planificación-de-Sprints)
+🔗 [Ver planificación detallada de Sprints en la Wiki](https://github.com/RDenis19/PuntoCheck/wiki/Planificaci%C3%B3n)
 
 
