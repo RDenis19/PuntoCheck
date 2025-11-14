@@ -9,29 +9,43 @@ class UserModel extends AppUser {
     required super.createdAt,
     required super.updatedAt,
     super.fotoUrl,
+    super.role,
   });
 
   factory UserModel.fromMap(Map<String, dynamic> map) {
+    String parseString(dynamic v) => v == null ? '' : v.toString();
+
+    dynamic createdVal = map['createdAt'] ?? map['created_at'] ?? map['created_at_tz'];
+    dynamic updatedVal = map['updatedAt'] ?? map['updated_at'] ?? map['updated_at_tz'];
+
+    DateTime parseDate(dynamic v) {
+      if (v == null) return DateTime.now();
+      if (v is DateTime) return v;
+      return DateTime.parse(v.toString());
+    }
+
     return UserModel(
-      id: map['id'] as String,
-      nombreCompleto: map['nombreCompleto'] as String,
-      email: map['email'] as String,
-      telefono: map['telefono'] as String,
-      fotoUrl: map['fotoUrl'] as String?,
-      createdAt: DateTime.parse(map['createdAt'] as String),
-      updatedAt: DateTime.parse(map['updatedAt'] as String),
+      id: parseString(map['id']),
+      nombreCompleto: parseString(map['nombreCompleto'] ?? map['nombre_completo'] ?? map['full_name']),
+      email: parseString(map['email']),
+      telefono: parseString(map['telefono'] ?? map['phone'] ?? map['telefono']),
+      fotoUrl: map['fotoUrl'] ?? map['foto_url'] as String?,
+      role: map['role'] as String?,
+      createdAt: parseDate(createdVal),
+      updatedAt: parseDate(updatedVal),
     );
   }
 
   Map<String, dynamic> toMap() {
     return {
+      // Use snake_case / DB column names
       'id': id,
-      'nombreCompleto': nombreCompleto,
+      'full_name': nombreCompleto,
       'email': email,
       'telefono': telefono,
-      'fotoUrl': fotoUrl,
-      'createdAt': createdAt.toIso8601String(),
-      'updatedAt': updatedAt.toIso8601String(),
+      'foto_url': fotoUrl,
+      'role': role,
+      'created_at': createdAt.toIso8601String(),
     };
   }
 

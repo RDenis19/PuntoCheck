@@ -4,6 +4,7 @@ class AppUser {
   final String email;
   final String telefono;
   final String? fotoUrl;
+  final String? role;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -15,6 +16,7 @@ class AppUser {
     required this.createdAt,
     required this.updatedAt,
     this.fotoUrl,
+    this.role,
   });
 
   AppUser copyWith({
@@ -22,6 +24,7 @@ class AppUser {
     String? telefono,
     String? fotoUrl,
     DateTime? updatedAt,
+    String? role,
   }) {
     return AppUser(
       id: id,
@@ -31,6 +34,7 @@ class AppUser {
       createdAt: createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       fotoUrl: fotoUrl ?? this.fotoUrl,
+      role: role ?? this.role,
     );
   }
 }

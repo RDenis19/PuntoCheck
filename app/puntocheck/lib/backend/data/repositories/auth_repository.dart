@@ -1,6 +1,6 @@
-import 'package:puntocheck/backend/data/datasources/firebase_auth_datasource.dart';
-import 'package:puntocheck/backend/data/datasources/firebase_storage_datasource.dart';
-import 'package:puntocheck/backend/data/datasources/firebase_user_datasource.dart';
+import 'package:puntocheck/backend/data/datasources/supabase_auth_datasource.dart';
+import 'package:puntocheck/backend/data/datasources/supabase_storage_datasource.dart';
+import 'package:puntocheck/backend/data/datasources/supabase_user_datasource.dart';
 import 'package:puntocheck/backend/data/models/user_model.dart';
 import 'package:puntocheck/backend/domain/entities/app_user.dart';
 
@@ -11,9 +11,9 @@ class AuthRepository {
     required this.storageDatasource,
   });
 
-  final FirebaseAuthDatasource authDatasource;
-  final FirebaseUserDatasource userDatasource;
-  final FirebaseStorageDatasource storageDatasource;
+  final SupabaseAuthDatasource authDatasource;
+  final SupabaseUserDatasource userDatasource;
+  final SupabaseStorageDatasource storageDatasource;
 
   Future<AppUser> login({required String email, required String password}) async {
     final uid = await authDatasource.signIn(email, password);
@@ -49,7 +49,13 @@ class AuthRepository {
     required String password,
     String? photoPath,
   }) async {
-    final uid = await authDatasource.signUp(email, password);
+    // Create the auth user and pass `full_name` in user metadata so
+    // the DB trigger `handle_new_user` can populate `profiles`.
+    final uid = await authDatasource.signUp(
+      email,
+      password,
+      userMetadata: {'full_name': nombreCompleto},
+    );
     final now = DateTime.now();
     final fotoUrl = await storageDatasource.uploadProfilePhoto(uid, localPath: photoPath);
     final user = UserModel(
@@ -61,11 +67,19 @@ class AuthRepository {
       createdAt: now,
       updatedAt: now,
     );
-    await userDatasource.createUser(user);
+    // If the trigger already created a profile for this user, don't insert again.
+    final existing = await userDatasource.getUser(uid);
+    if (existing == null) {
+      await userDatasource.createUser(user);
+    }
     return user;
   }
 
   Future<void> sendResetEmail(String email) => authDatasource.sendResetEmail(email);
+
+  Future<void> logout() async => await authDatasource.signOut();
+
+  Future<void> refreshSession() async => await authDatasource.refreshSession();
 
   Future<void> updatePassword(String newPassword) async {
     final uid = authDatasource.currentUserId;

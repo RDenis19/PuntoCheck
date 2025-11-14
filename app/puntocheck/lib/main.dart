@@ -1,17 +1,13 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:puntocheck/app.dart';
+import 'package:puntocheck/core/utils/supabase_bootstrap.dart';
 
 /// Entrada principal de la aplicacion.
-/// 
-/// NOTA: Esta es una implementacion MOCK de autenticacion solo para frontend.
-/// TODO(backend): Reemplazar la lógica de main para:
-/// - Inicializar Firebase (si se usa)
-/// - Configurar autenticación real con backend
-/// - Implementar persistencia de sesión (shared_preferences, secure_storage, etc.)
-/// - Añadir manejo de errores y logging
-/// 
-/// Por ahora, simplemente iniciamos la app con rutas basadas en credenciales mock.
-void main() {
+/// Inicializa Supabase usando variables de entorno `--dart-define`:
+///  flutter run --dart-define=SUPABASE_URL=https://... --dart-define=SUPABASE_ANON_KEY=key
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await SupabaseBootstrap.initialize();
   runApp(const PuntoCheckApp());
 }
 

@@ -6,6 +6,7 @@ import 'package:puntocheck/backend/data/repositories/auth_repository.dart';
 import 'package:puntocheck/backend/domain/entities/app_user.dart';
 import 'package:puntocheck/backend/domain/services/biometric_service.dart';
 import 'package:puntocheck/backend/domain/services/secure_storage_service.dart';
+import 'package:puntocheck/frontend/rutas/app_router.dart';
 
 // TODO(backend): este punto se conecta con backend usando backend/data o backend/domain.
 // Motivo: desacoplar UI de la lógica de datos.
@@ -45,7 +46,7 @@ class AuthController extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<Result<void>> login(String email, String password) async {
+  Future<Result<void>> login(String email, String password, {BuildContext? context}) async {
     _setLoading(true);
     try {
       final user = await _repository.login(email: email.trim(), password: password);
@@ -54,6 +55,8 @@ class AuthController extends ChangeNotifier {
       await _secureStorage.write(SecureStorageService.keyRememberedEmail, user.email);
       await _secureStorage.write(SecureStorageService.keySessionToken, _generateSessionToken());
       errorMessage = null;
+      // Navegar según rol si se proporcionó el contexto
+      if (context != null) _navigateAfterAuth(context, user);
       return Result.success();
     } catch (error) {
       errorMessage = error.toString();
@@ -97,6 +100,7 @@ class AuthController extends ChangeNotifier {
     required String telefono,
     required String password,
     String? photoPath,
+    BuildContext? context,
   }) async {
     _setLoading(true);
     try {
@@ -112,12 +116,31 @@ class AuthController extends ChangeNotifier {
       await _secureStorage.write(SecureStorageService.keyRememberedEmail, user.email);
       await _secureStorage.write(SecureStorageService.keySessionToken, _generateSessionToken());
       errorMessage = null;
+      if (context != null) _navigateAfterAuth(context, user);
       return Result.success();
     } catch (error) {
       errorMessage = error.toString();
       return Result.failure(errorMessage!);
     } finally {
       _setLoading(false);
+    }
+  }
+
+  void _navigateAfterAuth(BuildContext context, AppUser user) {
+    final role = (user.role ?? '').toLowerCase();
+    switch (role) {
+      case 'employee':
+        Navigator.pushReplacementNamed(context, AppRouter.employeeHome);
+        return;
+      case 'admin':
+        Navigator.pushReplacementNamed(context, AppRouter.adminHome);
+        return;
+      case 'superadmin':
+        Navigator.pushReplacementNamed(context, AppRouter.superAdminHome);
+        return;
+      default:
+        // Si no hay rol, redirige a employee por defecto
+        Navigator.pushReplacementNamed(context, AppRouter.employeeHome);
     }
   }
 
