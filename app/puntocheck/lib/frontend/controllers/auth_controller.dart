@@ -6,7 +6,6 @@ import 'package:puntocheck/backend/data/repositories/auth_repository.dart';
 import 'package:puntocheck/backend/domain/entities/app_user.dart';
 import 'package:puntocheck/backend/domain/services/biometric_service.dart';
 import 'package:puntocheck/backend/domain/services/secure_storage_service.dart';
-import 'package:puntocheck/frontend/rutas/app_router.dart';
 
 // TODO(backend): este punto se conecta con backend usando backend/data o backend/domain.
 // Motivo: desacoplar UI de la lógica de datos.
@@ -46,7 +45,7 @@ class AuthController extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<Result<void>> login(String email, String password, {BuildContext? context}) async {
+  Future<Result<void>> login(String email, String password) async {
     _setLoading(true);
     try {
       final user = await _repository.login(email: email.trim(), password: password);
@@ -55,12 +54,11 @@ class AuthController extends ChangeNotifier {
       await _secureStorage.write(SecureStorageService.keyRememberedEmail, user.email);
       await _secureStorage.write(SecureStorageService.keySessionToken, _generateSessionToken());
       errorMessage = null;
-      // Navegar según rol si se proporcionó el contexto
-      if (context != null) _navigateAfterAuth(context, user);
       return Result.success();
     } catch (error) {
-      errorMessage = error.toString();
-      return Result.failure(errorMessage!);
+      final friendly = _mapErrorToMessage(error);
+      errorMessage = friendly;
+      return Result.failure(friendly);
     } finally {
       _setLoading(false);
     }
@@ -87,8 +85,9 @@ class AuthController extends ChangeNotifier {
       errorMessage = null;
       return Result.success();
     } catch (error) {
-      errorMessage = error.toString();
-      return Result.failure(errorMessage!);
+      final friendly = _mapErrorToMessage(error);
+      errorMessage = friendly;
+      return Result.failure(friendly);
     } finally {
       _setLoading(false);
     }
@@ -100,7 +99,6 @@ class AuthController extends ChangeNotifier {
     required String telefono,
     required String password,
     String? photoPath,
-    BuildContext? context,
   }) async {
     _setLoading(true);
     try {
@@ -116,31 +114,13 @@ class AuthController extends ChangeNotifier {
       await _secureStorage.write(SecureStorageService.keyRememberedEmail, user.email);
       await _secureStorage.write(SecureStorageService.keySessionToken, _generateSessionToken());
       errorMessage = null;
-      if (context != null) _navigateAfterAuth(context, user);
       return Result.success();
     } catch (error) {
-      errorMessage = error.toString();
-      return Result.failure(errorMessage!);
+      final friendly = _mapErrorToMessage(error);
+      errorMessage = friendly;
+      return Result.failure(friendly);
     } finally {
       _setLoading(false);
-    }
-  }
-
-  void _navigateAfterAuth(BuildContext context, AppUser user) {
-    final role = (user.role ?? '').toLowerCase();
-    switch (role) {
-      case 'employee':
-        Navigator.pushReplacementNamed(context, AppRouter.employeeHome);
-        return;
-      case 'admin':
-        Navigator.pushReplacementNamed(context, AppRouter.adminHome);
-        return;
-      case 'superadmin':
-        Navigator.pushReplacementNamed(context, AppRouter.superAdminHome);
-        return;
-      default:
-        // Si no hay rol, redirige a employee por defecto
-        Navigator.pushReplacementNamed(context, AppRouter.employeeHome);
     }
   }
 
@@ -150,7 +130,8 @@ class AuthController extends ChangeNotifier {
       await _repository.sendResetEmail(email.trim());
       return Result.success();
     } catch (error) {
-      return Result.failure(error.toString());
+      final friendly = _mapErrorToMessage(error);
+      return Result.failure(friendly);
     } finally {
       _setLoading(false);
     }
@@ -198,10 +179,38 @@ class AuthController extends ChangeNotifier {
       await _secureStorage.write(SecureStorageService.keySessionToken, _generateSessionToken());
       return Result.success();
     } catch (error) {
-      return Result.failure(error.toString());
+      final friendly = _mapErrorToMessage(error);
+      return Result.failure(friendly);
     } finally {
       _setLoading(false);
     }
+  }
+
+  String _mapErrorToMessage(Object? error) {
+    final text = error?.toString() ?? 'Error desconocido';
+
+    final lower = text.toLowerCase();
+
+    if (lower.contains('invalid login credentials') || lower.contains('invalid_credentials') || lower.contains('credenciales inválidas') || lower.contains('invalid email or password') || lower.contains('wrong-password')) {
+      return 'Correo o contraseña incorrectos';
+    }
+
+    if (lower.contains('user not found') || lower.contains('no se pudo encontrar') || lower.contains('not found')) {
+      return 'No existe una cuenta con ese correo';
+    }
+
+    if (lower.contains('failed host lookup') || lower.contains('socketexception') || lower.contains('network')) {
+      return 'Sin conexión. Revisa tu conexión a Internet';
+    }
+
+    if (lower.contains('invalid')) {
+      return 'Entrada inválida. Revisa los datos ingresados';
+    }
+
+    // Fallback: devuelve el mensaje original pero más corto
+    // Quitar prefijos de excepciones comunes (AuthApiException(...))
+    final cleaned = text.replaceAll(RegExp(r'^.*?:\s*'), '');
+    return cleaned;
   }
 
   Future<void> logout() async {

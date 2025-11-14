@@ -27,7 +27,7 @@ class SuperAdminHomeView extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(
+            Icon(
               Icons.security_outlined,
               size: 80,
               color: AppTheme.primaryColor,

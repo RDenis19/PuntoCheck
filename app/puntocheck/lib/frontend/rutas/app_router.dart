@@ -3,14 +3,19 @@ import 'package:puntocheck/frontend/rutas/app_router_mock.dart' as mock;
 
 /// Encapsula el router principal. Por ahora delega al mock.
 abstract final class AppRouter {
-  static const String splash = mock.AppRouterMock.splash;
-  static const String login = mock.AppRouterMock.login;
-  static const String register = mock.AppRouterMock.register;
-  static const String forgot = mock.AppRouterMock.forgotPassword;
+  static const splash = '/';
+  static const login = '/login';
+  static const register = '/register';
 
-  static const String employeeHome = mock.AppRouterMock.employeeHome;
-  static const String adminHome = mock.AppRouterMock.adminHome;
-  static const String superAdminHome = mock.AppRouterMock.superAdminHome;
+  static const forgotEmail = '/forgot/email';
+  static const forgotCode = '/forgot/code';
+  static const resetPassword = '/forgot/reset';
+  static const resetPasswordSuccess = '/forgot/success';
+
+  // Homes por rol (si ya existen)
+  static const employeeHome = '/employee/home';
+  static const adminHome = '/admin/home';
+  static const superAdminHome = '/superadmin/home';
 
   static Route<dynamic> onGenerateRoute(RouteSettings settings) => mock.AppRouterMock.onGenerateRoute(settings);
 }

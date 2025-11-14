@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:puntocheck/core/theme/app_colors.dart';
+import 'package:puntocheck/frontend/rutas/app_router.dart';
 import 'package:provider/provider.dart';
-import 'package:puntocheck/core/constants/strings.dart';
-import 'package:puntocheck/core/theme/app_theme.dart';
-import 'package:puntocheck/frontend/vistas/auth/widgets/auth_text_field.dart';
-import 'package:puntocheck/frontend/vistas/auth/widgets/auth_buttons.dart';
-import 'package:puntocheck/frontend/widgets/circle_logo_asset.dart';
 import 'package:puntocheck/frontend/controllers/auth_controller.dart';
+import 'package:puntocheck/frontend/widgets/outlined_dark_button.dart';
+import 'package:puntocheck/frontend/widgets/primary_button.dart';
+import 'package:puntocheck/frontend/widgets/text_field_icon.dart';
 
 class RegisterView extends StatefulWidget {
   const RegisterView({super.key});
@@ -20,173 +20,260 @@ class _RegisterViewState extends State<RegisterView> {
   final _phoneController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
-  final _formKey = GlobalKey<FormState>();
-
-  @override
-  void dispose() {
-    _nameController.dispose();
-    _emailController.dispose();
-    _phoneController.dispose();
-    _passwordController.dispose();
-    _confirmPasswordController.dispose();
-    super.dispose();
-  }
-
-  String? _validateName(String? value) {
-    if (value == null || value.isEmpty) {
-      return AppStrings.emptyFullName;
-    }
-    return null;
-  }
-
-  String? _validateEmail(String? value) {
-    if (value == null || value.isEmpty) {
-      return AppStrings.emptyEmail;
-    }
-    if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(value)) {
-      return AppStrings.invalidEmail;
-    }
-    return null;
-  }
-
-  String? _validatePhone(String? value) {
-    if (value == null || value.isEmpty) {
-      return AppStrings.emptyPhone;
-    }
-    return null;
-  }
-
-  String? _validatePassword(String? value) {
-    if (value == null || value.isEmpty) {
-      return AppStrings.emptyPassword;
-    }
-    return null;
-  }
-
-  String? _validateConfirmPassword(String? value) {
-    if (value == null || value.isEmpty) {
-      return AppStrings.emptyConfirmPassword;
-    }
-    if (value != _passwordController.text) {
-      return AppStrings.passwordMismatch;
-    }
-    return null;
-  }
-
-  void _onRegister() async {
-    if (!_formKey.currentState!.validate()) {
-      return;
-    }
-
-    if (!mounted) return;
-    final authController = context.read<AuthController>();
-    final nombreCompleto = _nameController.text.trim();
-    final email = _emailController.text.trim();
-    final telefono = _phoneController.text.trim();
-    final password = _passwordController.text;
-
-    final result = await authController.register(
-      nombreCompleto: nombreCompleto,
-      email: email,
-      telefono: telefono,
-      password: password,
-      photoPath: null,
-      context: context,
-    );
-
-    if (!result.isSuccess) {
-      if (!mounted) return;
-      _showError(result.message ?? 'Error al registrarse');
-    }
-  }
-
-  void _showError(String message) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.red,
-        duration: const Duration(seconds: 3),
-      ),
-    );
-  }
+  bool _obscurePassword = true;
+  bool _obscureConfirmPassword = true;
+  bool _accepted = false;
 
   @override
   Widget build(BuildContext context) {
+    Future<void> _onRegister() async {
+      final nombreCompleto = _nameController.text.trim();
+      final email = _emailController.text.trim();
+      final telefono = _phoneController.text.trim();
+      final password = _passwordController.text;
+      final confirm = _confirmPasswordController.text;
+
+      if (nombreCompleto.isEmpty || email.isEmpty || telefono.isEmpty || password.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Completa todos los campos')), 
+        );
+        return;
+      }
+      if (password != confirm) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Las contraseñas no coinciden')),
+        );
+        return;
+      }
+      if (!_accepted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Debes aceptar términos y condiciones')),
+        );
+        return;
+      }
+
+      final authController = context.read<AuthController>();
+      final result = await authController.register(
+        nombreCompleto: nombreCompleto,
+        email: email,
+        telefono: telefono,
+        password: password,
+        photoPath: null,
+      );
+
+      if (!result.isSuccess) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(result.message ?? 'Error al registrarse')),
+        );
+        return;
+      }
+
+      final role = authController.currentUser?.role ?? 'employee';
+      if (!mounted) return;
+      if (role == 'admin') {
+        Navigator.pushReplacementNamed(context, AppRouter.adminHome);
+        return;
+      }
+      if (role == 'superadmin') {
+        Navigator.pushReplacementNamed(context, AppRouter.superAdminHome);
+        return;
+      }
+      Navigator.pushReplacementNamed(context, AppRouter.employeeHome);
+    }
     return Scaffold(
-      backgroundColor: AppTheme.backgroundColor,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
-          child: Consumer<AuthController>(
-            builder: (context, authController, _) {
-              return Form(
-                key: _formKey,
-                child: Column(
-                  children: [
-                    const SizedBox(height: 16),
-                    const CircleLogoAsset(size: 100),
-                    const SizedBox(height: 24),
-                    Text(AppStrings.registerTitle, style: AppTheme.title),
-                    const SizedBox(height: 8),
-                    Text('Completa tu perfil', style: AppTheme.subtitle),
-                    const SizedBox(height: 32),
-                    AuthTextField(
-                      hintText: AppStrings.fullName,
-                      controller: _nameController,
-                      validator: _validateName,
-                      icon: Icons.person_outline,
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+      ),
+      backgroundColor: Colors.white,
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const SizedBox(height: 20),
+              GestureDetector(
+                onTap: () {
+                  // TODO(backend): aquí se integraría la selección de imagen (cámara/galería)
+                  // y el upload al storage del backend.
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Función de agregar foto no implementada.'),
                     ),
-                    const SizedBox(height: 14),
-                    AuthTextField(
-                      hintText: AppStrings.email,
-                      controller: _emailController,
-                      validator: _validateEmail,
-                      icon: Icons.email_outlined,
-                      keyboardType: TextInputType.emailAddress,
-                    ),
-                    const SizedBox(height: 14),
-                    AuthTextField(
-                      hintText: AppStrings.phone,
-                      controller: _phoneController,
-                      validator: _validatePhone,
-                      icon: Icons.phone_outlined,
-                      keyboardType: TextInputType.phone,
-                    ),
-                    const SizedBox(height: 14),
-                    AuthTextField(
-                      hintText: AppStrings.password,
-                      controller: _passwordController,
-                      validator: _validatePassword,
-                      icon: Icons.lock_outline,
-                      obscureText: true,
-                    ),
-                    const SizedBox(height: 14),
-                    AuthTextField(
-                      hintText: AppStrings.confirmPassword,
-                      controller: _confirmPasswordController,
-                      validator: _validateConfirmPassword,
-                      icon: Icons.lock_outline,
-                      obscureText: true,
-                    ),
-                    const SizedBox(height: 24),
-                    SizedBox(
-                      width: double.infinity,
-                      child: AuthButtons.primary(
-                        label: AppStrings.registerButton,
-                        onPressed: _onRegister,
-                        isLoading: authController.isLoading,
+                  );
+                },
+                child: const CircleAvatar(
+                  radius: 60,
+                  backgroundColor: AppColors.primaryRed,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.camera_alt, color: Colors.white, size: 30),
+                      SizedBox(height: 4),
+                      Text(
+                        'Agregar Foto',
+                        style: TextStyle(color: Colors.white, fontSize: 12),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 32),
+              const Text(
+                'Nombre Completo',
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+              ),
+              const SizedBox(height: 8),
+              TextFieldIcon(
+                controller: _nameController,
+                hintText: 'Ingresa su nombre completo',
+                prefixIcon: Icons.person_outline,
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Correo Electrónico',
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+              ),
+              const SizedBox(height: 8),
+              TextFieldIcon(
+                controller: _emailController,
+                hintText: 'ejemplo@correo.com',
+                prefixIcon: Icons.email_outlined,
+                keyboardType: TextInputType.emailAddress,
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Número Telefónico',
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+              ),
+              const SizedBox(height: 8),
+              TextFieldIcon(
+                controller: _phoneController,
+                hintText: '+593 985676289',
+                prefixIcon: Icons.phone_outlined,
+                keyboardType: TextInputType.phone,
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Contraseña',
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+              ),
+              const SizedBox(height: 8),
+              TextFieldIcon(
+                controller: _passwordController,
+                hintText: 'Mínimo 8 caracteres',
+                prefixIcon: Icons.lock_outline,
+                obscure: _obscurePassword,
+                suffix: IconButton(
+                  icon: Icon(
+                    _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                  ),
+                  onPressed: () {
+                    setState(() {
+                      _obscurePassword = !_obscurePassword;
+                    });
+                  },
+                ),
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Confirmar contraseña',
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+              ),
+              const SizedBox(height: 8),
+              TextFieldIcon(
+                controller: _confirmPasswordController,
+                hintText: 'Repita contraseña',
+                prefixIcon: Icons.lock_outline,
+                obscure: _obscureConfirmPassword,
+                suffix: IconButton(
+                  icon: Icon(
+                    _obscureConfirmPassword
+                        ? Icons.visibility_off
+                        : Icons.visibility,
+                  ),
+                  onPressed: () {
+                    setState(() {
+                      _obscureConfirmPassword = !_obscureConfirmPassword;
+                    });
+                  },
+                ),
+              ),
+              const SizedBox(height: 24),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Checkbox(
+                    value: _accepted,
+                    onChanged: (value) => setState(() => _accepted = value ?? false),
+                  ),
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Términos y Privacidad (mock)')),
+                        );
+                      },
+                      child: RichText(
+                        text: const TextSpan(
+                          style: TextStyle(fontSize: 12, color: Colors.grey),
+                          children: [
+                            TextSpan(text: 'Acepto los '),
+                            TextSpan(
+                              text: 'Términos y Condiciones',
+                              style: TextStyle(color: Colors.blue),
+                            ),
+                            TextSpan(text: ' y la '),
+                            TextSpan(
+                              text: 'Política de Privacidad',
+                              style: TextStyle(color: Colors.blue),
+                            ),
+                            TextSpan(text: ' de PuntoCheck.'),
+                          ],
+                        ),
                       ),
                     ),
-                    const SizedBox(height: 16),
-                    AuthButtons.textButton(
-                      label: AppStrings.backToLogin,
-                      onPressed: () => Navigator.pop(context),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+              PrimaryButton(
+                text: 'Registrar Empleado',
+                onPressed: _onRegister,
+              ),
+              const SizedBox(height: 16),
+              OutlinedDarkButton(
+                text: 'Cancelar',
+                onPressed: () {
+                  Navigator.pop(context);
+                },
+              ),
+              const SizedBox(height: 24),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    '¿Ya tienes cuenta? ',
+                    style: TextStyle(color: Colors.black.withValues(alpha: 0.3)),
+                  ),
+                  TextButton(
+                    onPressed: () {
+                      Navigator.pushReplacementNamed(context, AppRouter.login);
+                    },
+                    child: const Text(
+                      'Iniciar sesión',
+                      style: TextStyle(color: Colors.blueAccent),
                     ),
-                  ],
-                ),
-              );
-            },
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+            ],
           ),
         ),
       ),

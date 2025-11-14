@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:puntocheck/frontend/vistas/admin/admin_home_view.dart';
-import 'package:puntocheck/frontend/vistas/auth/forgot_password_view.dart';
+import 'package:puntocheck/frontend/vistas/auth/forgot_password_email_view.dart';
 import 'package:puntocheck/frontend/vistas/auth/login_view.dart';
 import 'package:puntocheck/frontend/vistas/auth/register_view.dart';
 import 'package:puntocheck/frontend/vistas/empleado/employee_home_view.dart';
 import 'package:puntocheck/frontend/vistas/splash/splash_view.dart';
+import 'package:puntocheck/frontend/vistas/auth/forgot_password_code_view.dart';
+import 'package:puntocheck/frontend/vistas/auth/reset_password_view.dart';
+import 'package:puntocheck/frontend/vistas/auth/reset_password_success_view.dart';
 import 'package:puntocheck/frontend/vistas/superadmin/super_admin_home_view.dart';
 
 /// Rutas nombradas para la navegación de la aplicación (mock).
@@ -13,7 +16,10 @@ abstract final class AppRouterMock {
   static const String splash = '/';
   static const String login = '/login';
   static const String register = '/register';
-  static const String forgotPassword = '/forgot-password';
+  static const String forgotEmail = '/forgot/email';
+  static const String forgotCode = '/forgot/code';
+  static const String resetPassword = '/forgot/reset';
+  static const String resetPasswordSuccess = '/forgot/success';
 
   // Rutas de roles
   static const String employeeHome = '/employee/home';
@@ -32,8 +38,14 @@ abstract final class AppRouterMock {
         return MaterialPageRoute(builder: (_) => const LoginView());
       case register:
         return MaterialPageRoute(builder: (_) => const RegisterView());
-      case forgotPassword:
-        return MaterialPageRoute(builder: (_) => const ForgotPasswordView());
+      case forgotEmail:
+        return MaterialPageRoute(builder: (_) => const ForgotPasswordEmailView());
+      case forgotCode:
+        return MaterialPageRoute(builder: (_) => const ForgotPasswordCodeView());
+      case resetPassword:
+        return MaterialPageRoute(builder: (_) => const ResetPasswordView());
+      case resetPasswordSuccess:
+        return MaterialPageRoute(builder: (_) => const ResetPasswordSuccessView());
       case employeeHome:
         return MaterialPageRoute(builder: (_) => const EmployeeHomeView());
       case adminHome:

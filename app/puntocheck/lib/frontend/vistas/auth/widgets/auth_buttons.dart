@@ -7,14 +7,10 @@ class AuthButtons {
   static Widget primary({
     required String label,
     required VoidCallback onPressed,
-    bool isLoading = false,
-    IconData? icon,
   }) {
     return PrimaryButton(
-      label: label,
+      text: label,
       onPressed: onPressed,
-      isLoading: isLoading,
-      icon: icon,
     );
   }
 

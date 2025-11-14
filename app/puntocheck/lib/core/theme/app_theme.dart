@@ -1,35 +1,36 @@
 ﻿import 'package:flutter/material.dart';
+import 'package:puntocheck/core/theme/app_colors.dart';
 
 class AppTheme {
-  static const Color primaryColor = Color(0xFFE8313B);
-  static const Color backgroundColor = Color(0xFFF5F5F5);
-  static const Color darkTextColor = Color(0xFF1F1F1F);
-  static const Color lightTextColor = Color(0xFF8C8C8C);
-
+  static Color get primaryColor => AppColors.primaryRed;
+  static Color get backgroundColor => AppColors.backgroundDark;
+  static Color get darkTextColor => AppColors.white;
   static ThemeData get lightTheme {
     final base = ThemeData.light(useMaterial3: true);
     return base.copyWith(
       colorScheme: ColorScheme.fromSeed(
-        seedColor: primaryColor,
-        primary: primaryColor,
-        secondary: const Color(0xFF303342),
+        seedColor: AppColors.primaryRed,
+        primary: AppColors.primaryRed,
+        secondary: AppColors.accentGold,
+        surface: AppColors.white,
       ),
-      scaffoldBackgroundColor: backgroundColor,
+      // Keep scaffold background white so most screens (login, forms, etc.) remain on a light background.
+      scaffoldBackgroundColor: AppColors.white,
       textTheme: base.textTheme.copyWith(
         displayLarge: base.textTheme.displayLarge?.copyWith(
           fontWeight: FontWeight.bold,
-          color: darkTextColor,
+          color: AppColors.white,
         ),
         titleLarge: base.textTheme.titleLarge?.copyWith(
           fontWeight: FontWeight.w600,
-          color: darkTextColor,
+          color: AppColors.white,
         ),
-        bodyMedium: base.textTheme.bodyMedium?.copyWith(color: lightTextColor),
+        bodyMedium: base.textTheme.bodyMedium?.copyWith(color: AppColors.white.withAlpha((0.7 * 255).round())),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: primaryColor,
-          foregroundColor: Colors.white,
+          backgroundColor: AppColors.primaryRed,
+          foregroundColor: AppColors.white,
           minimumSize: const Size.fromHeight(52),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
           textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
@@ -37,7 +38,7 @@ class AppTheme {
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: Colors.white,
+        fillColor: AppColors.white,
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
@@ -49,13 +50,13 @@ class AppTheme {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(color: primaryColor, width: 2),
+          borderSide: const BorderSide(color: AppColors.primaryRed, width: 2),
         ),
       ),
       snackBarTheme: const SnackBarThemeData(
         behavior: SnackBarBehavior.floating,
-        backgroundColor: darkTextColor,
-        contentTextStyle: TextStyle(color: Colors.white),
+        backgroundColor: AppColors.black,
+        contentTextStyle: TextStyle(color: AppColors.white),
       ),
     );
   }
@@ -63,12 +64,12 @@ class AppTheme {
   static TextStyle get title => const TextStyle(
         fontSize: 32,
         fontWeight: FontWeight.bold,
-        color: darkTextColor,
+        color: AppColors.white,
       );
 
-  static TextStyle get subtitle => const TextStyle(
+  static TextStyle get subtitle => TextStyle(
         fontSize: 18,
         fontWeight: FontWeight.w500,
-        color: lightTextColor,
+      color: AppColors.white.withAlpha((0.7 * 255).round()),
       );
 }
