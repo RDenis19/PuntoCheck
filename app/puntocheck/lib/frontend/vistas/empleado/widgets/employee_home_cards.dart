@@ -92,7 +92,10 @@ class CurrentLocationCard extends StatelessWidget {
         children: [
           const Text(
             'Dirección',
-            style: TextStyle(color: AppColors.white, fontWeight: FontWeight.w600),
+            style: TextStyle(
+              color: AppColors.white,
+              fontWeight: FontWeight.w600,
+            ),
           ),
           const SizedBox(height: 4),
           Text(
@@ -108,12 +111,17 @@ class CurrentLocationCard extends StatelessWidget {
                   children: [
                     const Text(
                       'Coordenadas',
-                      style: TextStyle(color: AppColors.white, fontWeight: FontWeight.w600),
+                      style: TextStyle(
+                        color: AppColors.white,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       'Latitud: -3.9935\nLongitud: -79.2046',
-                      style: TextStyle(color: Colors.white.withValues(alpha: 0.8)),
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.8),
+                      ),
                     ),
                   ],
                 ),
@@ -124,12 +132,17 @@ class CurrentLocationCard extends StatelessWidget {
                   children: [
                     const Text(
                       'Precisión',
-                      style: TextStyle(color: AppColors.white, fontWeight: FontWeight.w600),
+                      style: TextStyle(
+                        color: AppColors.white,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       '±5 m (metros)',
-                      style: TextStyle(color: Colors.white.withValues(alpha: 0.8)),
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.8),
+                      ),
                     ),
                   ],
                 ),
@@ -141,11 +154,18 @@ class CurrentLocationCard extends StatelessWidget {
       footer: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.touch_app, color: Colors.white.withValues(alpha: 0.9), size: 18),
+          Icon(
+            Icons.touch_app,
+            color: Colors.white.withValues(alpha: 0.9),
+            size: 18,
+          ),
           const SizedBox(width: 6),
           Text(
             'Toca para ver el mapa',
-            style: TextStyle(color: Colors.white.withValues(alpha: 0.9), fontWeight: FontWeight.w500),
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.9),
+              fontWeight: FontWeight.w500,
+            ),
           ),
         ],
       ),
@@ -154,7 +174,9 @@ class CurrentLocationCard extends StatelessWidget {
 }
 
 class TodayStatsCard extends StatelessWidget {
-  const TodayStatsCard({super.key});
+  const TodayStatsCard({super.key, this.onFooterTap});
+
+  final VoidCallback? onFooterTap;
 
   @override
   Widget build(BuildContext context) {
@@ -166,7 +188,11 @@ class TodayStatsCard extends StatelessWidget {
           SizedBox(width: 8),
           Text(
             'Estadísticas de Hoy',
-            style: TextStyle(color: AppColors.white, fontWeight: FontWeight.w600, fontSize: 16),
+            style: TextStyle(
+              color: AppColors.white,
+              fontWeight: FontWeight.w600,
+              fontSize: 16,
+            ),
           ),
         ],
       ),
@@ -189,15 +215,24 @@ class TodayStatsCard extends StatelessWidget {
       ),
       footer: Center(
         child: TextButton.icon(
-          onPressed: () {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Horarios de trabajo (mock)')),
-            );
-          },
-          icon: const Icon(Icons.calendar_today, color: Colors.white70, size: 18),
+          onPressed:
+              onFooterTap ??
+              () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Horarios de trabajo (mock)')),
+                );
+              },
+          icon: const Icon(
+            Icons.calendar_today,
+            color: Colors.white70,
+            size: 18,
+          ),
           label: const Text(
             'Horarios de trabajo',
-            style: TextStyle(color: Colors.white70, fontWeight: FontWeight.w600),
+            style: TextStyle(
+              color: Colors.white70,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ),
       ),
@@ -223,7 +258,11 @@ class TodayStatsCard extends StatelessWidget {
             const SizedBox(height: 4),
             Text(
               value,
-              style: const TextStyle(color: AppColors.white, fontWeight: FontWeight.w700, fontSize: 16),
+              style: const TextStyle(
+                color: AppColors.white,
+                fontWeight: FontWeight.w700,
+                fontSize: 16,
+              ),
             ),
           ],
         ),
@@ -245,7 +284,11 @@ class RecentActivityCard extends StatelessWidget {
           SizedBox(width: 8),
           Text(
             'Actividad Reciente',
-            style: TextStyle(color: AppColors.white, fontWeight: FontWeight.w600, fontSize: 16),
+            style: TextStyle(
+              color: AppColors.white,
+              fontWeight: FontWeight.w600,
+              fontSize: 16,
+            ),
           ),
         ],
       ),
@@ -307,7 +350,10 @@ class _ActivityItem extends StatelessWidget {
                 children: [
                   Text(
                     title,
-                    style: const TextStyle(color: AppColors.white, fontWeight: FontWeight.w600),
+                    style: const TextStyle(
+                      color: AppColors.white,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                   Text(
                     time,

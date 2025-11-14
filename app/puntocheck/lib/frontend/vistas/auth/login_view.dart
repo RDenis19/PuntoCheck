@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:puntocheck/core/theme/app_colors.dart';
 import 'package:puntocheck/frontend/rutas/app_router.dart';
@@ -18,6 +19,14 @@ class _LoginViewState extends State<LoginView> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
+
+  @override
+  void initState() {
+    super.initState();
+    // TODO(backend): quitar credenciales mock cuando el backend entregue datos reales o se use env seguro.
+    _emailController.text = 'admin@puntocheck.com';
+    _passwordController.text = 'Admin123!';
+  }
 
   Future<void> _onLogin() async {
     final email = _emailController.text.trim();
@@ -80,10 +89,7 @@ class _LoginViewState extends State<LoginView> {
               Text(
                 'Control de Asistencia',
                 textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.blue.shade600,
-                ),
+                style: TextStyle(fontSize: 14, color: Colors.blue.shade600),
               ),
               const SizedBox(height: 40),
               TextFieldIcon(
@@ -125,11 +131,47 @@ class _LoginViewState extends State<LoginView> {
               const SizedBox(height: 24),
               Consumer<AuthController>(
                 builder: (context, authController, _) => PrimaryButton(
-                  text: authController.isLoading ? 'Ingresando...' : 'Iniciar Sesión',
+                  text: authController.isLoading
+                      ? 'Ingresando...'
+                      : 'Iniciar Sesión',
                   enabled: !authController.isLoading,
                   onPressed: _onLogin,
                 ),
               ),
+              const SizedBox(height: 8),
+              Text(
+                'Mock admin: admin@puntocheck.com / Admin123!\nMock super admin: super@puntocheck.com / Super123!',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Colors.black.withValues(alpha: 0.4),
+                  fontSize: 12,
+                ),
+              ),
+              if (kDebugMode) ...[
+                const SizedBox(height: 8),
+                // TODO(backend): eliminar accesos directos manuales cuando el backend gestione roles reales.
+                Wrap(
+                  alignment: WrapAlignment.center,
+                  spacing: 12,
+                  runSpacing: 8,
+                  children: [
+                    OutlinedButton(
+                      onPressed: () => Navigator.pushReplacementNamed(
+                        context,
+                        AppRouter.adminHome,
+                      ),
+                      child: const Text('Ir al Panel Admin'),
+                    ),
+                    OutlinedButton(
+                      onPressed: () => Navigator.pushReplacementNamed(
+                        context,
+                        AppRouter.superAdminHome,
+                      ),
+                      child: const Text('Ir al Panel SuperAdmin'),
+                    ),
+                  ],
+                ),
+              ],
               const SizedBox(height: 24),
               Row(
                 children: [
@@ -182,7 +224,9 @@ class _LoginViewState extends State<LoginView> {
                 children: [
                   Text(
                     '¿Nuevo usuario? ',
-                    style: TextStyle(color: Colors.black.withValues(alpha: 0.3)),
+                    style: TextStyle(
+                      color: Colors.black.withValues(alpha: 0.3),
+                    ),
                   ),
                   TextButton(
                     onPressed: () {
