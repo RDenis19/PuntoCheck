@@ -1,7 +1,7 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:puntocheck/core/theme/app_theme.dart';
-import 'package:puntocheck/frontend/rutas/app_router.dart';
+import 'package:puntocheck/frontend/routes/app_router.dart';
 import 'package:puntocheck/backend/config/provider_setup.dart';
 
 class PuntoCheckApp extends StatelessWidget {
@@ -21,3 +21,4 @@ class PuntoCheckApp extends StatelessWidget {
     );
   }
 }
+

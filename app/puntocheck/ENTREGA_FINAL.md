@@ -46,20 +46,20 @@ IMPLEMENTATION_CHECKLIST.md (NUEVO)                ← Checklist de verificació
 6. **`lib/backend/domain/entities/app_user.dart`**
    - Agregado campo `role` opcional
 
-7. **`lib/frontend/controllers/auth_controller.dart`**
+7. **`lib/frontend/features/auth/controllers/auth_controller.dart`**
    - Actualizado para navegar automáticamente según rol si se pasa el contexto
    - Métodos: `login()`, `register()`, `sendResetEmail()`, `updatePassword()`, `logout()`
 
-8. **`lib/frontend/vistas/auth/login_view.dart`** (REESCRITA)
+8. **`lib/frontend/features/auth/views/login_view.dart`** (REESCRITA)
    - Usa `Consumer<AuthController>` del Provider
    - Llama `authController.login(email, password, context: context)`
    - Manejo de loading y errores automático
 
-9. **`lib/frontend/vistas/auth/register_view.dart`** (REESCRITA)
+9. **`lib/frontend/features/auth/views/register_view.dart`** (REESCRITA)
    - Usa `Consumer<AuthController>` del Provider
    - Llama `authController.register(..., context: context)`
 
-10. **`lib/frontend/vistas/auth/forgot_password_view.dart`** (REESCRITA)
+10. **`lib/frontend/features/auth/views/forgot_password_view.dart`** (REESCRITA)
     - Usa `Consumer<AuthController>` del Provider
     - Llama `authController.sendResetEmail(email)`
 
@@ -214,3 +214,5 @@ Ahora solo necesitas:
 4. Ejecutar la app
 
 **Fecha**: 13 de noviembre, 2025
+
+

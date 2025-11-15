@@ -1,12 +1,12 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:puntocheck/core/theme/app_colors.dart';
+import 'package:puntocheck/frontend/routes/app_router.dart';
 import 'package:provider/provider.dart';
 import 'package:puntocheck/frontend/features/auth/controllers/auth_controller.dart';
 import 'package:puntocheck/frontend/features/shared/widgets/circle_logo_asset.dart';
+import 'package:puntocheck/frontend/features/shared/widgets/primary_button.dart';
 import 'package:puntocheck/frontend/features/shared/widgets/text_field_icon.dart';
-import 'package:puntocheck/frontend/routes/app_router.dart';
-
 
 class LoginView extends StatefulWidget {
   const LoginView({super.key});
@@ -247,3 +247,6 @@ class _LoginViewState extends State<LoginView> {
     );
   }
 }
+
+
+

@@ -6,7 +6,7 @@ import 'package:puntocheck/backend/data/datasources/supabase_user_datasource.dar
 import 'package:puntocheck/backend/data/repositories/auth_repository.dart';
 import 'package:puntocheck/backend/domain/services/biometric_service.dart';
 import 'package:puntocheck/backend/domain/services/secure_storage_service.dart';
-import 'package:puntocheck/frontend/controllers/auth_controller.dart';
+import 'package:puntocheck/frontend/features/auth/controllers/auth_controller.dart';
 
 /// Configura todos los providers necesarios para la aplicación.
 /// Retorna una lista de providers para envolver MaterialApp con MultiProvider.
@@ -48,3 +48,4 @@ List<SingleChildWidget> buildAuthProviders() {
     ),
   ];
 }
+

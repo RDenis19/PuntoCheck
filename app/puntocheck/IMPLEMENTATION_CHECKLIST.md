@@ -12,10 +12,10 @@
 - [x] `lib/backend/data/repositories/auth_repository.dart` — Conecta datasources
 - [x] `lib/backend/data/models/user_model.dart` — Mapea datos + role
 - [x] `lib/backend/domain/entities/app_user.dart` — Entidad base + role
-- [x] `lib/frontend/controllers/auth_controller.dart` — Lógica de negocio + navegación
-- [x] `lib/frontend/vistas/auth/login_view.dart` — Usa `Consumer<AuthController>`
-- [x] `lib/frontend/vistas/auth/register_view.dart` — Usa `Consumer<AuthController>`
-- [x] `lib/frontend/vistas/auth/forgot_password_view.dart` — Usa `Consumer<AuthController>`
+- [x] `lib/frontend/features/auth/controllers/auth_controller.dart` — Lógica de negocio + navegación
+- [x] `lib/frontend/features/auth/views/login_view.dart` — Usa `Consumer<AuthController>`
+- [x] `lib/frontend/features/auth/views/register_view.dart` — Usa `Consumer<AuthController>`
+- [x] `lib/frontend/features/auth/views/forgot_password_view.dart` — Usa `Consumer<AuthController>`
 
 ## Dependencias
 
@@ -129,3 +129,5 @@ O si prefieres configurar en VS Code `.vscode/launch.json` con los defines.
 
 **Estado**: ✅ Backend Supabase v2 completamente generado e integrado
 **Último update**: Noviembre 13, 2025
+
+
