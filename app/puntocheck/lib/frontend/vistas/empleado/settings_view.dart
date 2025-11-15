@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:puntocheck/core/theme/app_colors.dart';
 import 'package:puntocheck/frontend/rutas/app_router.dart';
+import 'package:puntocheck/frontend/widgets/outlined_dark_button.dart';
 
 class SettingsView extends StatelessWidget {
   const SettingsView({super.key, this.embedded = false});
@@ -55,6 +56,18 @@ class SettingsView extends StatelessWidget {
           onTap: () {
             // TODO(backend): integrar biometría nativa y sincronizar la preferencia desde backend/Auth.
             _showSnackBar(context, 'Huella dactilar (mock).');
+          },
+        ),
+        const SizedBox(height: 24),
+        OutlinedDarkButton(
+          text: 'Cerrar sesión',
+          onPressed: () {
+            // TODO(backend): cerrar la sesión real limpiando tokens y actualizando backend.
+            Navigator.pushNamedAndRemoveUntil(
+              context,
+              AppRouter.login,
+              (_) => false,
+            );
           },
         ),
       ],

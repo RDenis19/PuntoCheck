@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:puntocheck/frontend/vistas/admin/admin_home_view.dart';
+import 'package:puntocheck/frontend/vistas/admin/admin_shell_view.dart';
 import 'package:puntocheck/frontend/vistas/admin/anuncios_admin_view.dart';
 import 'package:puntocheck/frontend/vistas/admin/apariencia_app_view.dart';
 import 'package:puntocheck/frontend/vistas/admin/empleado_detalle_view.dart';
@@ -21,7 +21,11 @@ import 'package:puntocheck/frontend/vistas/splash/splash_view.dart';
 import 'package:puntocheck/frontend/vistas/auth/forgot_password_code_view.dart';
 import 'package:puntocheck/frontend/vistas/auth/reset_password_view.dart';
 import 'package:puntocheck/frontend/vistas/auth/reset_password_success_view.dart';
+import 'package:puntocheck/frontend/vistas/superadmin/config_global_view.dart';
+import 'package:puntocheck/frontend/vistas/superadmin/organizacion_detalle_view.dart';
+import 'package:puntocheck/frontend/vistas/superadmin/organizaciones_list_view.dart';
 import 'package:puntocheck/frontend/vistas/superadmin/super_admin_home_view.dart';
+import 'package:puntocheck/frontend/vistas/superadmin/super_admin_shell_view.dart';
 
 /// Rutas nombradas para la navegación de la aplicación (mock).
 abstract final class AppRouterMock {
@@ -52,6 +56,10 @@ abstract final class AppRouterMock {
   static const String adminNuevoAnuncio = '/admin/anuncios/nuevo';
   static const String adminAparienciaApp = '/admin/apariencia-app';
   static const String superAdminHome = '/superadmin/home';
+  static const String superAdminOrganizaciones = '/superadmin/organizaciones';
+  static const String superAdminOrganizacionDetalle =
+      '/superadmin/organizacion-detalle';
+  static const String superAdminConfigGlobal = '/superadmin/config-global';
 
   /// Generador de rutas para MaterialApp.
   ///
@@ -96,7 +104,7 @@ abstract final class AppRouterMock {
       case employeePersonalInfo:
         return MaterialPageRoute(builder: (_) => const PersonalInfoView());
       case adminHome:
-        return MaterialPageRoute(builder: (_) => const AdminHomeView());
+        return MaterialPageRoute(builder: (_) => const AdminShellView());
       case adminNuevoEmpleado:
         return MaterialPageRoute(builder: (_) => const NuevoEmpleadoView());
       case adminEmpleadosList:
@@ -112,7 +120,17 @@ abstract final class AppRouterMock {
       case adminAparienciaApp:
         return MaterialPageRoute(builder: (_) => const AparienciaAppView());
       case superAdminHome:
-        return MaterialPageRoute(builder: (_) => const SuperAdminHomeView());
+        return MaterialPageRoute(builder: (_) => const SuperAdminShellView());
+      case superAdminOrganizaciones:
+        return MaterialPageRoute(
+          builder: (_) => const OrganizacionesListView(),
+        );
+      case superAdminOrganizacionDetalle:
+        return MaterialPageRoute(
+          builder: (_) => const OrganizacionDetalleView(),
+        );
+      case superAdminConfigGlobal:
+        return MaterialPageRoute(builder: (_) => const ConfigGlobalView());
       default:
         return MaterialPageRoute(
           builder: (_) => Scaffold(

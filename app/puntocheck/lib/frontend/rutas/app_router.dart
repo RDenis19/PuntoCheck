@@ -29,6 +29,10 @@ abstract final class AppRouter {
   static const adminNuevoAnuncio = '/admin/anuncios/nuevo';
   static const adminAparienciaApp = '/admin/apariencia-app';
   static const superAdminHome = '/superadmin/home';
+  static const superAdminOrganizaciones = '/superadmin/organizaciones';
+  static const superAdminOrganizacionDetalle =
+      '/superadmin/organizacion-detalle';
+  static const superAdminConfigGlobal = '/superadmin/config-global';
 
   static Route<dynamic> onGenerateRoute(RouteSettings settings) =>
       mock.AppRouterMock.onGenerateRoute(settings);
