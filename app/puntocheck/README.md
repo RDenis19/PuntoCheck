@@ -123,3 +123,5 @@ Esta sección resume cómo se utilizan las vistas para cada rol, de modo que bac
 - `mock/organizations_mock.dart` es la única fuente de datos quemada. Sustituirla por endpoints reales cuando estén listos.
 - Los puntos `// TODO(backend)` ya explican qué se espera (ej. GPS, reportes, impersonación, feature flags).
 - Las rutas principales están en `frontend/routes/app_router.dart`; cada rol navega primero a su `ShellView` correspondiente.
+
+```

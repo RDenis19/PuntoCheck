@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:puntocheck/core/theme/app_theme.dart';
-import 'package:puntocheck/frontend/routes/app_router.dart';
-import 'package:puntocheck/backend/config/provider_setup.dart';
+import 'package:puntocheck/utils/theme/app_theme.dart';
+import 'package:puntocheck/routes/app_router.dart';
+import 'package:puntocheck/providers/provider_setup.dart';
 
 class PuntoCheckApp extends StatelessWidget {
   const PuntoCheckApp({super.key});
