@@ -1,19 +1,22 @@
 ﻿import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:puntocheck/utils/theme/app_colors.dart';
 import 'package:puntocheck/routes/app_router.dart';
 import 'package:puntocheck/presentation/employee/views/avisos_view.dart';
 import 'package:puntocheck/presentation/employee/views/historial_view.dart';
 import 'package:puntocheck/presentation/employee/views/settings_view.dart';
 import 'package:puntocheck/presentation/employee/widgets/employee_home_cards.dart';
+import 'package:puntocheck/providers/auth_provider.dart';
+import 'package:puntocheck/providers/attendance_provider.dart';
 
-class EmployeeHomeView extends StatefulWidget {
+class EmployeeHomeView extends ConsumerStatefulWidget {
   const EmployeeHomeView({super.key});
 
   @override
-  State<EmployeeHomeView> createState() => _EmployeeHomeViewState();
+  ConsumerState<EmployeeHomeView> createState() => _EmployeeHomeViewState();
 }
 
-class _EmployeeHomeViewState extends State<EmployeeHomeView> {
+class _EmployeeHomeViewState extends ConsumerState<EmployeeHomeView> {
   int _currentIndex = 0;
 
   @override
@@ -47,7 +50,6 @@ class _EmployeeHomeViewState extends State<EmployeeHomeView> {
             const CurrentLocationCard(),
             TodayStatsCard(
               onFooterTap: () {
-                // TODO(backend): decidir si se abre horario diario/semanal según la situación real.
                 Navigator.pushNamed(context, AppRouter.employeeHorarioTrabajo);
               },
             ),
@@ -60,6 +62,8 @@ class _EmployeeHomeViewState extends State<EmployeeHomeView> {
   }
 
   Widget _buildHeader(BuildContext context) {
+    final profileAsync = ref.watch(currentUserProfileProvider);
+
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 20, 16, 24),
       decoration: const BoxDecoration(
@@ -84,28 +88,32 @@ class _EmployeeHomeViewState extends State<EmployeeHomeView> {
               shape: BoxShape.circle,
               border: Border.all(color: Colors.white.withValues(alpha: 0.3)),
             ),
+            // TODO: Mostrar avatar real si existe
             child: const Icon(Icons.person, color: Colors.white, size: 30),
           ),
           const SizedBox(width: 12),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: const [
-                // TODO(backend): cargar nombre del usuario autenticado y fecha actual.
-                Text(
-                  'Hola Pablo Criollo!',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.white,
+            child: profileAsync.when(
+              data: (profile) => Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Hola ${profile?.fullName ?? 'Usuario'}!',
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.white,
+                    ),
                   ),
-                ),
-                SizedBox(height: 4),
-                Text(
-                  'Empleado · 18/10/2025',
-                  style: TextStyle(fontSize: 12, color: Colors.white70),
-                ),
-              ],
+                  const SizedBox(height: 4),
+                  Text(
+                    '${profile?.jobTitle ?? 'Empleado'} · ${DateTime.now().toString().split(' ')[0]}',
+                    style: const TextStyle(fontSize: 12, color: Colors.white70),
+                  ),
+                ],
+              ),
+              loading: () => const Center(child: CircularProgressIndicator(color: Colors.white)),
+              error: (_, __) => const Text('Error cargando perfil', style: TextStyle(color: Colors.white)),
             ),
           ),
           const SizedBox(width: 12),
@@ -141,43 +149,62 @@ class _EmployeeHomeViewState extends State<EmployeeHomeView> {
   }
 
   Widget _buildRegisterButton(BuildContext context) {
-    return Center(
-      child: GestureDetector(
-        onTap: () {
-          // TODO(backend): decidir si corresponde registrar entrada o salida según reglas activas.
-          Navigator.pushNamed(context, AppRouter.employeeRegistroAsistencia);
-        },
-        child: Container(
-          width: 120,
-          height: 120,
-          decoration: const BoxDecoration(
-            color: AppColors.primaryRed,
-            shape: BoxShape.circle,
-            boxShadow: [
-              BoxShadow(
-                color: Color(0x33000000),
-                blurRadius: 12,
-                offset: Offset(0, 6),
+    // Verificar si ya tiene turno activo
+    final activeShiftAsync = ref.watch(activeShiftProvider);
+
+    return activeShiftAsync.when(
+      data: (activeShift) {
+        final isCheckIn = activeShift == null;
+        return Center(
+          child: GestureDetector(
+            onTap: () {
+              // Si es check-in, vamos a registro
+              // Si es check-out, también vamos a registro (o una vista de salida específica)
+              // Por ahora reusamos la vista, pero pasamos argumento o manejamos estado
+              // Idealmente RegistroAsistenciaView debería saber si es entrada o salida
+              // O pasamos un argumento.
+              // Por simplicidad, vamos a la misma vista y ella decide (o le pasamos param)
+              Navigator.pushNamed(context, AppRouter.employeeRegistroAsistencia);
+            },
+            child: Container(
+              width: 120,
+              height: 120,
+              decoration: BoxDecoration(
+                color: isCheckIn ? AppColors.primaryRed : Colors.orange,
+                shape: BoxShape.circle,
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color(0x33000000),
+                    blurRadius: 12,
+                    offset: Offset(0, 6),
+                  ),
+                ],
               ),
-            ],
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: const [
-              Icon(Icons.arrow_forward, color: AppColors.white, size: 32),
-              SizedBox(height: 6),
-              Text(
-                'Registrar\nEntrada',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: AppColors.white,
-                  fontWeight: FontWeight.w600,
-                ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    isCheckIn ? Icons.login : Icons.logout, 
+                    color: AppColors.white, 
+                    size: 32
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    isCheckIn ? 'Registrar\nEntrada' : 'Registrar\nSalida',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      color: AppColors.white,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
-        ),
-      ),
+        );
+      },
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (_, __) => const SizedBox.shrink(),
     );
   }
 
@@ -293,7 +320,6 @@ class _MapPlaceholder extends StatelessWidget {
             const SizedBox(height: 24),
             OutlinedButton(
               onPressed: () {
-                // TODO(backend): reemplazar por mapa real conectado al backend o SDK de mapas.
                 ScaffoldMessenger.of(
                   context,
                 ).showSnackBar(const SnackBar(content: Text('Mapa (mock).')));
@@ -317,6 +343,3 @@ class _MapPlaceholder extends StatelessWidget {
     );
   }
 }
-
-
-

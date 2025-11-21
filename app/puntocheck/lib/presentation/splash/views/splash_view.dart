@@ -1,15 +1,17 @@
 ﻿import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:puntocheck/utils/theme/app_colors.dart';
 import 'package:puntocheck/routes/app_router.dart';
+import 'package:puntocheck/providers/auth_provider.dart';
 
-class SplashView extends StatefulWidget {
+class SplashView extends ConsumerStatefulWidget {
   const SplashView({super.key});
 
   @override
-  State<SplashView> createState() => _SplashViewState();
+  ConsumerState<SplashView> createState() => _SplashViewState();
 }
 
-class _SplashViewState extends State<SplashView> with SingleTickerProviderStateMixin {
+class _SplashViewState extends ConsumerState<SplashView> with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
   late final Animation<double> _opacity;
   late final Animation<Offset> _offset;
@@ -48,12 +50,43 @@ class _SplashViewState extends State<SplashView> with SingleTickerProviderStateM
 
     _controller.forward();
 
-    // TODO(backend): en el futuro, aquí se puede verificar si el usuario ya tiene sesión
-    // iniciada y redirigirlo directamente a su vista (empleado/admin/superadmin).
-    Future.delayed(const Duration(seconds: 3), () {
-      if (!mounted) return;
-      Navigator.pushReplacementNamed(context, AppRouter.login);
-    });
+    _checkSession();
+  }
+
+  Future<void> _checkSession() async {
+    // Esperar animación mínima
+    await Future.delayed(const Duration(seconds: 2));
+    if (!mounted) return;
+
+    // Verificar sesión
+    // Leemos el estado actual de auth
+    final authState = await ref.read(authStateProvider.future);
+    final user = authState.session?.user;
+
+    if (user != null) {
+      // Usuario autenticado, obtener perfil para saber rol
+      try {
+        final profile = await ref.read(currentUserProfileProvider.future);
+        if (!mounted) return;
+        
+        if (profile != null) {
+          if (profile.isSuperAdmin) {
+            Navigator.pushReplacementNamed(context, AppRouter.superAdminHome);
+          } else if (profile.isOrgAdmin) {
+            Navigator.pushReplacementNamed(context, AppRouter.adminHome);
+          } else {
+            Navigator.pushReplacementNamed(context, AppRouter.employeeHome);
+          }
+          return;
+        }
+      } catch (e) {
+        // Error obteniendo perfil, tal vez internet o data corrupta
+        // Fallback a login
+      }
+    }
+
+    if (!mounted) return;
+    Navigator.pushReplacementNamed(context, AppRouter.login);
   }
 
   @override
@@ -65,7 +98,7 @@ class _SplashViewState extends State<SplashView> with SingleTickerProviderStateM
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.backgroundDark, // ONLY for splash
+      backgroundColor: AppColors.backgroundDark,
       body: Center(
         child: FadeTransition(
           opacity: _opacity,

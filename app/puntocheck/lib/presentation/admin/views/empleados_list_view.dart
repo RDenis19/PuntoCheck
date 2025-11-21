@@ -5,43 +5,21 @@ import 'package:puntocheck/presentation/admin/widgets/employee_list_item.dart';
 import 'package:puntocheck/presentation/admin/widgets/employee_stats_cards.dart';
 import 'package:puntocheck/presentation/shared/widgets/text_field_icon.dart';
 
-class EmpleadosListView extends StatefulWidget {
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:puntocheck/providers/admin_provider.dart';
+
+class EmpleadosListView extends ConsumerStatefulWidget {
   const EmpleadosListView({super.key});
 
   @override
-  State<EmpleadosListView> createState() => _EmpleadosListViewState();
+  ConsumerState<EmpleadosListView> createState() => _EmpleadosListViewState();
 }
 
-class _EmpleadosListViewState extends State<EmpleadosListView> {
+class _EmpleadosListViewState extends ConsumerState<EmpleadosListView> {
   final _searchController = TextEditingController();
   int _selectedFilter = 0;
 
-  final List<Map<String, dynamic>> _employees = [
-    {
-      'name': 'Pablo Criollo',
-      'role': 'Empleado',
-      'active': true,
-      'entry': '08:45',
-      'exit': '17:30',
-      'date': '31/10/2025',
-    },
-    {
-      'name': 'Ana Ramirez',
-      'role': 'Admin',
-      'active': true,
-      'entry': '08:10',
-      'exit': '17:15',
-      'date': '31/10/2025',
-    },
-    {
-      'name': 'Luis Salinas',
-      'role': 'Empleado',
-      'active': false,
-      'entry': '--',
-      'exit': '--',
-      'date': '29/10/2025',
-    },
-  ];
+  // final List<Map<String, dynamic>> _employees = []; // Eliminado mock
 
   @override
   void dispose() {
@@ -51,24 +29,7 @@ class _EmpleadosListViewState extends State<EmpleadosListView> {
 
   @override
   Widget build(BuildContext context) {
-    final stats = [
-      const EmployeeStatData(label: 'Total', value: '6'),
-      const EmployeeStatData(label: 'Activos', value: '5'),
-      const EmployeeStatData(label: 'Prom. asistencia', value: '89.4%'),
-    ];
-
-    final filtered = _employees.where((employee) {
-      final matchesSearch = (employee['name']! as String)
-          .toLowerCase()
-          .contains(_searchController.text.toLowerCase());
-      final matchesFilter = switch (_selectedFilter) {
-        0 => true,
-        1 => employee['active'] == true,
-        2 => employee['active'] == false,
-        _ => true,
-      };
-      return matchesSearch && matchesFilter;
-    }).toList();
+    final employeesAsync = ref.watch(orgEmployeesProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -78,50 +39,67 @@ class _EmpleadosListViewState extends State<EmpleadosListView> {
         elevation: 0,
         iconTheme: const IconThemeData(color: AppColors.black),
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          EmployeeStatsCards(stats: stats),
-          const SizedBox(height: 20),
-          TextFieldIcon(
-            controller: _searchController,
-            hintText: 'Buscar por nombre o email…',
-            prefixIcon: Icons.search,
-            keyboardType: TextInputType.text,
-          ),
-          const SizedBox(height: 12),
-          _buildFilters(),
-          const SizedBox(height: 12),
-          for (final employee in filtered)
-            Card(
-              margin: const EdgeInsets.symmetric(vertical: 6),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
+      body: employeesAsync.when(
+        data: (employees) {
+          final filtered = employees.where((employee) {
+            final matchesSearch = (employee.fullName ?? '')
+                .toLowerCase()
+                .contains(_searchController.text.toLowerCase());
+            // TODO: Implementar filtro de activos/inactivos real si tuviéramos ese campo en Profile o cruzando con Shifts
+            return matchesSearch;
+          }).toList();
+
+          return ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              EmployeeStatsCards(stats: [
+                 EmployeeStatData(label: 'Total', value: '${employees.length}'),
+                 const EmployeeStatData(label: 'Activos', value: '--'), // Requiere cruce con shifts
+                 const EmployeeStatData(label: 'Promedio', value: '--'),
+              ]),
+              const SizedBox(height: 20),
+              TextFieldIcon(
+                controller: _searchController,
+                hintText: 'Buscar por nombre...',
+                prefixIcon: Icons.search,
+                keyboardType: TextInputType.text,
+                onChanged: (_) => setState(() {}),
               ),
-              child: EmployeeListItem(
-                name: employee['name']! as String,
-                role: employee['role']! as String,
-                active: employee['active']! as bool,
-                lastEntry: employee['entry']! as String,
-                lastExit: employee['exit']! as String,
-                lastDate: employee['date']! as String,
-                onTap: () {
-                  // TODO(backend): pasar ID del empleado para cargar detalle desde backend.
-                  Navigator.pushNamed(
-                    context,
-                    AppRouter.adminEmpleadoDetalle,
-                    arguments: employee,
-                  );
-                },
-              ),
-            ),
-          if (filtered.isEmpty)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 40),
-              child: Center(child: Text('Sin resultados')),
-            ),
-          // TODO(backend): la búsqueda y filtros deben llamar a endpoints paginados.
-        ],
+              const SizedBox(height: 12),
+              _buildFilters(),
+              const SizedBox(height: 12),
+              if (filtered.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 40),
+                  child: Center(child: Text('Sin resultados')),
+                )
+              else
+                ...filtered.map((employee) => Card(
+                  margin: const EdgeInsets.symmetric(vertical: 6),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: EmployeeListItem(
+                    name: employee.fullName ?? 'Sin Nombre',
+                    role: employee.jobTitle,
+                    active: false, // TODO: Real time status
+                    lastEntry: '--',
+                    lastExit: '--',
+                    lastDate: '--',
+                    onTap: () {
+                      Navigator.pushNamed(
+                        context,
+                        AppRouter.adminEmpleadoDetalle,
+                        arguments: employee, // Pasamos el objeto Profile real
+                      );
+                    },
+                  ),
+                )),
+            ],
+          );
+        },
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (err, stack) => Center(child: Text('Error: $err')),
       ),
     );
   }

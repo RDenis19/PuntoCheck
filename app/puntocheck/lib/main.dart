@@ -1,5 +1,6 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:puntocheck/app.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:puntocheck/services/supabase_client.dart';
 
 /// Entrada principal de la aplicacion.
@@ -8,6 +9,10 @@ import 'package:puntocheck/services/supabase_client.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await SupabaseClient.initialize();
-  runApp(const PuntoCheckApp());
+  runApp(
+    const ProviderScope(
+      child: PuntoCheckApp(),
+    ),
+  );
 }
 

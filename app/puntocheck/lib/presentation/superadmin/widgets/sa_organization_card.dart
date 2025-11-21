@@ -1,6 +1,7 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:puntocheck/utils/theme/app_colors.dart';
-import 'package:puntocheck/presentation/superadmin/mock/organizations_mock.dart';
+import 'package:puntocheck/models/organization_model.dart';
+import 'package:puntocheck/models/enums.dart';
 
 class SaOrganizationCard extends StatelessWidget {
   const SaOrganizationCard({
@@ -9,16 +10,15 @@ class SaOrganizationCard extends StatelessWidget {
     required this.onTap,
   });
 
-  final MockOrganization organization;
+  final Organization organization;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    final Color statusColor = switch (organization.estado) {
-      'activa' => AppColors.successGreen,
-      'prueba' => AppColors.warningOrange,
-      'suspendida' => AppColors.primaryRed,
-      _ => AppColors.grey,
+    final Color statusColor = switch (organization.status) {
+      OrgStatus.activa => AppColors.successGreen,
+      OrgStatus.prueba => AppColors.warningOrange,
+      OrgStatus.suspendida => AppColors.primaryRed,
     };
 
     return Card(
@@ -42,7 +42,7 @@ class SaOrganizationCard extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          organization.nombre,
+                          organization.name,
                           style: const TextStyle(
                             fontWeight: FontWeight.w700,
                             fontSize: 16,
@@ -51,7 +51,7 @@ class SaOrganizationCard extends StatelessWidget {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          'Admin: ${organization.adminNombre} · ${organization.adminEmail}',
+                          'Contacto: ${organization.contactEmail ?? 'N/A'}',
                           style: TextStyle(
                             color: AppColors.black.withValues(alpha: 0.6),
                             fontSize: 12,
@@ -60,7 +60,7 @@ class SaOrganizationCard extends StatelessWidget {
                       ],
                     ),
                   ),
-                  _StatusChip(color: statusColor, text: organization.estado),
+                  _StatusChip(color: statusColor, text: organization.status.name),
                 ],
               ),
               const SizedBox(height: 12),
@@ -68,22 +68,21 @@ class SaOrganizationCard extends StatelessWidget {
                 children: [
                   _InfoColumn(
                     label: 'Empleados',
-                    value: '${organization.empleados}',
+                    value: '--', // TODO: Fetch count
                   ),
                   _InfoColumn(
                     label: 'Activos hoy',
-                    value: '${organization.activosHoy}',
+                    value: '--', // TODO: Fetch active
                   ),
                   _InfoColumn(
                     label: 'Promedio',
-                    value:
-                        '${organization.promedioAsistencia.toStringAsFixed(1)}%',
+                    value: '--', // TODO: Fetch avg
                   ),
                 ],
               ),
               const SizedBox(height: 8),
               Text(
-                'Desde ${_formatDate(organization.creadaEl)} · Último acceso: ${_formatDateTime(organization.ultimoAcceso)}',
+                'Desde ${_formatDate(organization.createdAt)}',
                 style: TextStyle(
                   color: AppColors.black.withValues(alpha: 0.5),
                   fontSize: 12,
@@ -97,12 +96,12 @@ class SaOrganizationCard extends StatelessWidget {
   }
 
   Widget _buildLogo() {
-    if (organization.logoUrl.isEmpty) {
+    if (organization.logoUrl == null || organization.logoUrl!.isEmpty) {
       return CircleAvatar(
         radius: 28,
         backgroundColor: AppColors.primaryRed.withValues(alpha: 0.15),
         child: Text(
-          organization.nombre.substring(0, 1),
+          organization.name.substring(0, 1),
           style: const TextStyle(
             color: AppColors.primaryRed,
             fontWeight: FontWeight.w700,
@@ -114,7 +113,7 @@ class SaOrganizationCard extends StatelessWidget {
 
     return CircleAvatar(
       radius: 28,
-      backgroundImage: NetworkImage(organization.logoUrl),
+      backgroundImage: NetworkImage(organization.logoUrl!),
     );
   }
 

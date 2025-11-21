@@ -1,16 +1,19 @@
 ﻿import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:puntocheck/utils/theme/app_colors.dart';
 import 'package:puntocheck/presentation/shared/widgets/outlined_dark_button.dart';
 import 'package:puntocheck/presentation/shared/widgets/primary_button.dart';
+import 'package:puntocheck/providers/organization_provider.dart';
+import 'package:puntocheck/providers/auth_provider.dart';
 
-class AparienciaAppView extends StatefulWidget {
+class AparienciaAppView extends ConsumerStatefulWidget {
   const AparienciaAppView({super.key});
 
   @override
-  State<AparienciaAppView> createState() => _AparienciaAppViewState();
+  ConsumerState<AparienciaAppView> createState() => _AparienciaAppViewState();
 }
 
-class _AparienciaAppViewState extends State<AparienciaAppView> {
+class _AparienciaAppViewState extends ConsumerState<AparienciaAppView> {
   final _nombreAppController = TextEditingController(text: 'PuntoCheck');
   final _colorController = TextEditingController(text: '#EB283D');
 
@@ -21,8 +24,45 @@ class _AparienciaAppViewState extends State<AparienciaAppView> {
     super.dispose();
   }
 
+  Future<void> _saveAppearance() async {
+    final profile = await ref.read(currentUserProfileProvider.future);
+    if (profile == null || profile.organizationId == null) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Error: No se pudo obtener la organización')),
+      );
+      return;
+    }
+
+    // Preparar datos de configuración
+    final updates = {
+      'brand_name': _nombreAppController.text,
+      'brand_color': _colorController.text,
+      // 'logo_url': // TODO: Implementar upload de logo con StorageService
+    };
+
+    final controller = ref.read(organizationControllerProvider.notifier);
+    await controller.updateConfig(profile.organizationId!, updates);
+
+    final state = ref.read(organizationControllerProvider);
+    if (!mounted) return;
+
+    if (state.hasError) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: ${state.error}')),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Apariencia guardada exitosamente.')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final orgState = ref.watch(organizationControllerProvider);
+    final isLoading = orgState.isLoading;
+    
     return Scaffold(
       appBar: AppBar(
         title: const Text('Apariencia App'),
@@ -54,9 +94,9 @@ class _AparienciaAppViewState extends State<AparienciaAppView> {
                 const SizedBox(height: 12),
                 GestureDetector(
                   onTap: () {
-                    // TODO(backend): abrir selector de archivos y subir el logo a storage seguro.
+                    // TODO: Implementar upload de logo usando StorageService
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Subir logo (mock).')),
+                      const SnackBar(content: Text('Función de subir logo en desarrollo.')),
                     );
                   },
                   child: Container(
@@ -174,13 +214,9 @@ class _AparienciaAppViewState extends State<AparienciaAppView> {
           ),
           const SizedBox(height: 12),
           PrimaryButton(
-            text: 'Guardar Cambios',
-            onPressed: () {
-              // TODO(backend): guardar logo, nombre y color en configuración de marca del backend.
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Apariencia guardada (mock).')),
-              );
-            },
+            text: isLoading ? 'Guardando...' : 'Guardar Cambios',
+            enabled: !isLoading,
+            onPressed: _saveAppearance,
           ),
         ],
       ),

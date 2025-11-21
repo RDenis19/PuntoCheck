@@ -1,31 +1,24 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:puntocheck/utils/theme/app_colors.dart';
 import 'package:puntocheck/routes/app_router.dart';
-import 'package:puntocheck/presentation/superadmin/mock/organizations_mock.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:puntocheck/providers/super_admin_provider.dart';
 import 'package:puntocheck/presentation/superadmin/widgets/sa_kpi_card.dart';
 import 'package:puntocheck/presentation/superadmin/widgets/sa_organization_card.dart';
 import 'package:puntocheck/presentation/superadmin/widgets/sa_section_title.dart';
 
-class SuperAdminHomeView extends StatelessWidget {
+class SuperAdminHomeView extends ConsumerWidget {
   const SuperAdminHomeView({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final totalOrgs = mockOrganizations.length;
-    final totalEmployees = mockOrganizations.fold<int>(
-      0,
-      (total, org) => total + org.empleados,
-    );
-    final totalActive = mockOrganizations.fold<int>(
-      0,
-      (total, org) => total + org.activosHoy,
-    );
-    final promedioGlobal =
-        mockOrganizations.fold<double>(
-          0,
-          (total, org) => total + org.promedioAsistencia,
-        ) /
-        totalOrgs;
+  Widget build(BuildContext context, WidgetRef ref) {
+    final orgsAsync = ref.watch(allOrganizationsProvider);
+    final statsAsync = ref.watch(superAdminStatsProvider);
+
+    // Valores por defecto o de carga
+    final totalOrgs = statsAsync.value?['organizations'] ?? 0;
+    final totalUsers = statsAsync.value?['users'] ?? 0;
+    final activePlans = statsAsync.value?['active_plans'] ?? 0;
 
     return Scaffold(
       backgroundColor: AppColors.white,
@@ -37,9 +30,8 @@ class SuperAdminHomeView extends StatelessWidget {
               _buildHeader(context),
               _buildKpiSection(
                 totalOrgs,
-                totalEmployees,
-                totalActive,
-                promedioGlobal,
+                totalUsers,
+                activePlans,
               ),
               SaSectionTitle(
                 title: 'Organizaciones recientes',
@@ -51,18 +43,23 @@ class SuperAdminHomeView extends StatelessWidget {
                   child: const Text('Ver todas'),
                 ),
               ),
-              ...mockOrganizations
-                  .map(
-                    (org) => SaOrganizationCard(
+              orgsAsync.when(
+                data: (orgs) {
+                  final recent = orgs.take(3).toList();
+                  return Column(
+                    children: recent.map((org) => SaOrganizationCard(
                       organization: org,
                       onTap: () => Navigator.pushNamed(
                         context,
                         AppRouter.superAdminOrganizacionDetalle,
                         arguments: org,
                       ),
-                    ),
-                  )
-                  .toList(),
+                    )).toList(),
+                  );
+                },
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (_, __) => const Text('Error cargando organizaciones'),
+              ),
               const SizedBox(height: 32),
             ],
           ),
@@ -154,9 +151,8 @@ class SuperAdminHomeView extends StatelessWidget {
 
   Widget _buildKpiSection(
     int totalOrgs,
-    int totalEmployees,
-    int totalActive,
-    double promedioGlobal,
+    int totalUsers,
+    int activePlans,
   ) {
     return Container(
       margin: const EdgeInsets.all(16),
@@ -178,19 +174,14 @@ class SuperAdminHomeView extends StatelessWidget {
             icon: Icons.apartment_outlined,
           ),
           SaKpiCard(
-            label: 'Empleados totales',
-            value: '$totalEmployees',
+            label: 'Usuarios totales',
+            value: '$totalUsers',
             icon: Icons.people_outline,
           ),
           SaKpiCard(
-            label: 'Activos hoy',
-            value: '$totalActive',
+            label: 'Planes Activos',
+            value: '$activePlans',
             icon: Icons.flash_on_outlined,
-          ),
-          SaKpiCard(
-            label: 'Promedio global asistencia',
-            value: '${promedioGlobal.toStringAsFixed(1)}%',
-            icon: Icons.pie_chart_outline,
           ),
           // TODO(backend): traer KPIs reales desde endpoint agregado (no calcular en cliente).
         ],

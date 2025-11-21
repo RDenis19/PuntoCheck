@@ -1,24 +1,19 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:puntocheck/utils/theme/app_theme.dart';
 import 'package:puntocheck/routes/app_router.dart';
-import 'package:puntocheck/providers/provider_setup.dart';
 
-class PuntoCheckApp extends StatelessWidget {
+class PuntoCheckApp extends ConsumerWidget {
   const PuntoCheckApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return MultiProvider(
-      providers: buildAuthProviders(),
-      child: MaterialApp(
-        title: 'PuntoCheck',
-        debugShowCheckedModeBanner: false,
-        theme: AppTheme.lightTheme,
-        initialRoute: AppRouter.splash,
-        onGenerateRoute: AppRouter.onGenerateRoute,
-      ),
+  Widget build(BuildContext context, WidgetRef ref) {
+    return MaterialApp(
+      title: 'PuntoCheck',
+      debugShowCheckedModeBanner: false,
+      theme: AppTheme.lightTheme,
+      initialRoute: AppRouter.splash,
+      onGenerateRoute: AppRouter.onGenerateRoute,
     );
   }
 }
-

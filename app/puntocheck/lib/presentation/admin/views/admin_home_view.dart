@@ -4,21 +4,39 @@ import 'package:puntocheck/routes/app_router.dart';
 import 'package:puntocheck/presentation/admin/widgets/admin_dashboard_header.dart';
 import 'package:puntocheck/presentation/admin/widgets/admin_quick_action_button.dart';
 
-class AdminHomeView extends StatelessWidget {
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:puntocheck/providers/auth_provider.dart';
+import 'package:puntocheck/providers/admin_provider.dart';
+
+class AdminHomeView extends ConsumerWidget {
   const AdminHomeView({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    const stats = [
-      DashboardStat(label: 'Empleados', value: '24'),
-      DashboardStat(label: 'Activos hoy', value: '18'),
-      DashboardStat(label: 'Promedio', value: '95%'),
-    ];
+  Widget build(BuildContext context, WidgetRef ref) {
+    final statsAsync = ref.watch(adminDashboardStatsProvider);
+    
+    final stats = statsAsync.when(
+      data: (data) => [
+        DashboardStat(label: 'Empleados', value: '${data['employees']}'),
+        DashboardStat(label: 'Activos hoy', value: '${data['active_shifts']}'),
+        DashboardStat(label: 'Atrasos', value: '${data['late_arrivals']}'),
+      ],
+      loading: () => const [
+        DashboardStat(label: 'Empleados', value: '...'),
+        DashboardStat(label: 'Activos hoy', value: '...'),
+        DashboardStat(label: 'Atrasos', value: '...'),
+      ],
+      error: (_, __) => const [
+        DashboardStat(label: 'Empleados', value: '--'),
+        DashboardStat(label: 'Activos hoy', value: '--'),
+        DashboardStat(label: 'Atrasos', value: '--'),
+      ],
+    );
 
     return SafeArea(
       child: ListView(
         children: [
-          _buildHeader(context),
+          _buildHeader(context, ref),
           AdminDashboardHeader(
             title: 'Panel de Administración',
             subtitle: 'Gestión empresarial',
@@ -101,7 +119,9 @@ class AdminHomeView extends StatelessWidget {
     );
   }
 
-  Widget _buildHeader(BuildContext context) {
+  Widget _buildHeader(BuildContext context, WidgetRef ref) {
+    final profileAsync = ref.watch(currentUserProfileProvider);
+
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 24, 16, 32),
       decoration: const BoxDecoration(
@@ -132,20 +152,28 @@ class AdminHomeView extends StatelessWidget {
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: const [
-                // TODO(backend): cargar datos reales del administrador autenticado.
-                Text(
-                  'Hola, Ana Ramirez!',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.white,
+              children: [
+                profileAsync.when(
+                  data: (profile) => Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Hola, ${profile?.fullName ?? 'Admin'}!',
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.white,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '${profile?.jobTitle ?? 'Administrador'} · ${DateTime.now().toString().split(' ')[0]}',
+                        style: const TextStyle(color: Colors.white70),
+                      ),
+                    ],
                   ),
-                ),
-                SizedBox(height: 4),
-                Text(
-                  'Administrador · 31/10/2025',
-                  style: TextStyle(color: Colors.white70),
+                  loading: () => const Text('Cargando...', style: TextStyle(color: Colors.white)),
+                  error: (_, __) => const Text('Error', style: TextStyle(color: Colors.white)),
                 ),
               ],
             ),

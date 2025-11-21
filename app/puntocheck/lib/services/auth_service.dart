@@ -21,6 +21,29 @@ class AuthService {
     }
   }
 
+  /// Registro de nuevos usuarios
+  Future<AuthResponse> signUp({
+    required String email,
+    required String password,
+    required String fullName,
+    String? organizationId,
+  }) async {
+    try {
+      return await _supabase.auth.signUp(
+        email: email,
+        password: password,
+        data: {
+          'full_name': fullName,
+          if (organizationId != null) 'organization_id': organizationId,
+        },
+      );
+    } on AuthException catch (e) {
+      throw Exception(e.message);
+    } catch (e) {
+      throw Exception('Error inesperado al registrar usuario: $e');
+    }
+  }
+
   /// Cierra sesión
   Future<void> signOut() async {
     await _supabase.auth.signOut();

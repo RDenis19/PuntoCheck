@@ -1,23 +1,26 @@
 ﻿import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:puntocheck/utils/theme/app_colors.dart';
 import 'package:puntocheck/presentation/shared/widgets/primary_button.dart';
 import 'package:puntocheck/presentation/shared/widgets/image_picker_button.dart';
 import 'package:puntocheck/presentation/shared/widgets/location_display.dart';
+import 'package:puntocheck/providers/attendance_provider.dart';
+import 'package:puntocheck/models/geo_location.dart';
 
-class RegistroAsistenciaView extends StatefulWidget {
+class RegistroAsistenciaView extends ConsumerStatefulWidget {
   const RegistroAsistenciaView({super.key});
 
   @override
-  State<RegistroAsistenciaView> createState() => _RegistroAsistenciaViewState();
+  ConsumerState<RegistroAsistenciaView> createState() => _RegistroAsistenciaViewState();
 }
 
-class _RegistroAsistenciaViewState extends State<RegistroAsistenciaView> {
+class _RegistroAsistenciaViewState extends ConsumerState<RegistroAsistenciaView> {
   File? _selectedImage;
   Position? _currentPosition;
 
-  void _onConfirm() {
+  Future<void> _onConfirm() async {
     if (_selectedImage == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Debes tomar una foto de evidencia')),
@@ -31,17 +34,40 @@ class _RegistroAsistenciaViewState extends State<RegistroAsistenciaView> {
       return;
     }
 
-    // TODO(backend): enviar foto, geolocalización y hora al backend
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Asistencia registrada correctamente (mock).'),
-        backgroundColor: Colors.green,
+    // Llamar al controller
+    await ref.read(attendanceControllerProvider.notifier).checkIn(
+      location: GeoLocation(
+        latitude: _currentPosition!.latitude,
+        longitude: _currentPosition!.longitude,
       ),
+      photoFile: _selectedImage!,
+      address: 'Ubicación GPS', // TODO: Reverse geocoding si es necesario
     );
+
+    final state = ref.read(attendanceControllerProvider);
+    
+    if (!mounted) return;
+
+    if (state.hasError) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: ${state.error}')),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Asistencia registrada correctamente.'),
+          backgroundColor: Colors.green,
+        ),
+      );
+      Navigator.pop(context);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    final attendanceState = ref.watch(attendanceControllerProvider);
+    final isLoading = attendanceState.isLoading;
+
     return Scaffold(
       appBar: AppBar(
         backgroundColor: AppColors.white,
@@ -137,7 +163,8 @@ class _RegistroAsistenciaViewState extends State<RegistroAsistenciaView> {
             ),
             const SizedBox(height: 32),
             PrimaryButton(
-              text: 'Confirmar Entrada',
+              text: isLoading ? 'Registrando...' : 'Confirmar Entrada',
+              enabled: !isLoading,
               onPressed: _onConfirm,
             ),
             const SizedBox(height: 12),
@@ -155,7 +182,3 @@ class _RegistroAsistenciaViewState extends State<RegistroAsistenciaView> {
     );
   }
 }
-
-
-
-

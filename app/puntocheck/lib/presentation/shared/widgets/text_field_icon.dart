@@ -11,6 +11,7 @@ class TextFieldIcon extends StatelessWidget {
     this.keyboardType = TextInputType.text,
     this.suffix,
     this.validator,
+    this.onChanged,
   });
 
   final TextEditingController controller;
@@ -20,6 +21,7 @@ class TextFieldIcon extends StatelessWidget {
   final TextInputType keyboardType;
   final Widget? suffix;
   final String? Function(String?)? validator;
+  final void Function(String)? onChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -28,6 +30,7 @@ class TextFieldIcon extends StatelessWidget {
       obscureText: obscure,
       keyboardType: keyboardType,
       validator: validator,
+      onChanged: onChanged,
       decoration: InputDecoration(
         hintText: hintText,
         prefixIcon: Icon(prefixIcon, color: AppColors.black.withValues(alpha: 0.3)),

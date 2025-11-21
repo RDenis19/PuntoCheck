@@ -1,19 +1,21 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:puntocheck/utils/theme/app_colors.dart';
 import 'package:puntocheck/routes/app_router.dart';
-import 'package:puntocheck/presentation/superadmin/mock/organizations_mock.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:puntocheck/providers/super_admin_provider.dart';
+import 'package:puntocheck/models/enums.dart';
 import 'package:puntocheck/presentation/superadmin/widgets/sa_organization_card.dart';
 import 'package:puntocheck/presentation/superadmin/widgets/sa_section_title.dart';
 import 'package:puntocheck/presentation/shared/widgets/text_field_icon.dart';
 
-class OrganizacionesListView extends StatefulWidget {
+class OrganizacionesListView extends ConsumerStatefulWidget {
   const OrganizacionesListView({super.key});
 
   @override
-  State<OrganizacionesListView> createState() => _OrganizacionesListViewState();
+  ConsumerState<OrganizacionesListView> createState() => _OrganizacionesListViewState();
 }
 
-class _OrganizacionesListViewState extends State<OrganizacionesListView> {
+class _OrganizacionesListViewState extends ConsumerState<OrganizacionesListView> {
   final _searchController = TextEditingController();
   int _selectedFilter = 0;
 
@@ -31,28 +33,7 @@ class _OrganizacionesListViewState extends State<OrganizacionesListView> {
 
   @override
   Widget build(BuildContext context) {
-    final filtered = mockOrganizations.where((org) {
-      final query = _searchController.text.toLowerCase();
-      final matchesSearch =
-          org.nombre.toLowerCase().contains(query) ||
-          org.adminEmail.toLowerCase().contains(query);
-
-      bool matchesFilter = true;
-      switch (_selectedFilter) {
-        case 1:
-          matchesFilter = org.estado == 'activa';
-          break;
-        case 2:
-          matchesFilter = org.estado == 'suspendida';
-          break;
-        case 3:
-          matchesFilter = org.estado == 'prueba';
-          break;
-        default:
-          matchesFilter = true;
-      }
-      return matchesSearch && matchesFilter;
-    }).toList();
+    final orgsAsync = ref.watch(allOrganizationsProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -62,37 +43,66 @@ class _OrganizacionesListViewState extends State<OrganizacionesListView> {
         elevation: 0,
         iconTheme: const IconThemeData(color: AppColors.black),
       ),
-      body: ListView(
-        children: [
-          SaSectionTitle(title: 'Buscar'),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: TextFieldIcon(
-              controller: _searchController,
-              hintText: 'Buscar por nombre o correo del admin…',
-              prefixIcon: Icons.search,
-            ),
-          ),
-          const SizedBox(height: 12),
-          _buildFilters(),
-          const SizedBox(height: 8),
-          ...filtered.map(
-            (org) => SaOrganizationCard(
-              organization: org,
-              onTap: () => Navigator.pushNamed(
-                context,
-                AppRouter.superAdminOrganizacionDetalle,
-                arguments: org,
+      body: orgsAsync.when(
+        data: (orgs) {
+          final filtered = orgs.where((org) {
+            final query = _searchController.text.toLowerCase();
+            final matchesSearch =
+                org.name.toLowerCase().contains(query) ||
+                (org.contactEmail?.toLowerCase().contains(query) ?? false);
+
+            bool matchesFilter = true;
+            switch (_selectedFilter) {
+              case 1:
+                matchesFilter = org.status == OrgStatus.activa;
+                break;
+              case 2:
+                matchesFilter = org.status == OrgStatus.suspendida;
+                break;
+              case 3:
+                matchesFilter = org.status == OrgStatus.prueba;
+                break;
+              default:
+                matchesFilter = true;
+            }
+            return matchesSearch && matchesFilter;
+          }).toList();
+
+          return ListView(
+            children: [
+              const SaSectionTitle(title: 'Buscar'),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: TextFieldIcon(
+                  controller: _searchController,
+                  hintText: 'Buscar por nombre o correo...',
+                  prefixIcon: Icons.search,
+                  onChanged: (_) => setState(() {}),
+                ),
               ),
-            ),
-          ),
-          if (filtered.isEmpty)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 40),
-              child: Center(child: Text('No se encontraron organizaciones.')),
-            ),
-          // TODO(backend): esta vista debe conectarse a la API con paginación y filtros.
-        ],
+              const SizedBox(height: 12),
+              _buildFilters(),
+              const SizedBox(height: 8),
+              ...filtered.map(
+                (org) => SaOrganizationCard(
+                  organization: org,
+                  onTap: () => Navigator.pushNamed(
+                    context,
+                    AppRouter.superAdminOrganizacionDetalle,
+                    arguments: org,
+                  ),
+                ),
+              ),
+              if (filtered.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 40),
+                  child: Center(child: Text('No se encontraron organizaciones.')),
+                ),
+            ],
+          );
+        },
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (_, __) => const Center(child: Text('Error cargando organizaciones')),
       ),
     );
   }
