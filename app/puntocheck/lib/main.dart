@@ -1,18 +1,21 @@
 ﻿import 'package:flutter/material.dart';
-import 'package:puntocheck/app.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:puntocheck/services/supabase_client.dart';
+import 'package:supabase_flutter/supabase_flutter.dart'; // Importación directa
+import 'package:puntocheck/app.dart';
 
-/// Entrada principal de la aplicacion.
-/// Inicializa Supabase usando variables de entorno `--dart-define`:
-///  flutter run --dart-define=SUPABASE_URL=https://... --dart-define=SUPABASE_ANON_KEY=key
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await SupabaseClient.initialize();
+
+  // 1. Inicialización oficial de Supabase
+  // Asegúrate de pasar tus keys reales o usar --dart-define como tenías planeado
+  await Supabase.initialize(
+    url: const String.fromEnvironment('SUPABASE_URL'),
+    anonKey: const String.fromEnvironment('SUPABASE_ANON_KEY'),
+  );
+
   runApp(
     const ProviderScope(
       child: PuntoCheckApp(),
     ),
   );
 }
-

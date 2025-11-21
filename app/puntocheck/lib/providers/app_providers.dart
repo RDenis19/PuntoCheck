@@ -1,0 +1,404 @@
+import 'dart:async';
+import 'dart:io';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' show User, AuthState;
+
+// Modelos
+import '../models/profile_model.dart';
+import '../models/organization_model.dart';
+import '../models/work_shift_model.dart';
+import '../models/work_schedule_model.dart';
+import '../models/notification_model.dart';
+import '../models/geo_location.dart';
+
+// Servicios
+import '../services/auth_service.dart';
+import '../services/attendance_service.dart';
+import '../services/organization_service.dart';
+import '../services/storage_service.dart';
+import '../services/notification_service.dart';
+import '../services/schedule_service.dart';
+import '../services/biometric_service.dart';
+
+// ============================================================================
+// 1. CAPA DE SERVICIOS (INYECCIÓN DE DEPENDENCIAS)
+// ============================================================================
+/// Proveedor de AuthService - Inyección de dependencia
+final authServiceProvider = Provider<AuthService>((ref) => AuthService());
+
+/// Proveedor de AttendanceService - Inyección de dependencia
+final attendanceServiceProvider = 
+    Provider<AttendanceService>((ref) => AttendanceService());
+
+/// Proveedor de OrganizationService - Inyección de dependencia
+final organizationServiceProvider = 
+    Provider<OrganizationService>((ref) => OrganizationService());
+
+/// Proveedor de StorageService - Inyección de dependencia
+final storageServiceProvider = 
+    Provider<StorageService>((ref) => StorageService());
+
+/// Proveedor de NotificationService - Inyección de dependencia
+final notificationServiceProvider = 
+    Provider<NotificationService>((ref) => NotificationService());
+
+/// Proveedor de ScheduleService - Inyección de dependencia
+final scheduleServiceProvider = 
+    Provider<ScheduleService>((ref) => ScheduleService());
+
+/// Proveedor de BiometricService - Inyección de dependencia
+final biometricServiceProvider = 
+    Provider<BiometricService>((ref) => BiometricService());
+
+
+// ============================================================================
+// 2. AUTENTICACIÓN (AUTH STATE & CURRENT USER)
+// ============================================================================
+/// Stream del estado de autenticación de Supabase
+/// Emite cambios cuando el usuario inicia/cierra sesión
+final authStateProvider = StreamProvider<AuthState>((ref) {
+  return ref.watch(authServiceProvider).authStateChanges;
+});
+
+/// Usuario actual desde Supabase Auth
+/// null si no está autenticado
+final currentUserProvider = Provider<User?>((ref) {
+  return ref.watch(authStateProvider).value?.session?.user;
+});
+
+/// Controller de autenticación - Maneja SignIn, SignUp, SignOut, ResetPassword
+class AuthController extends AsyncNotifier<void> {
+  @override
+  FutureOr<void> build() => null;
+
+  /// Inicia sesión con email y contraseña
+  Future<void> signIn(String email, String password) async {
+    state = const AsyncValue.loading();
+    state = await AsyncValue.guard(() => 
+      ref.read(authServiceProvider).signIn(email, password)
+    );
+  }
+
+  /// Registra un nuevo usuario
+  Future<void> signUp({
+    required String email,
+    required String password,
+    required String fullName,
+    String? organizationId,
+  }) async {
+    state = const AsyncValue.loading();
+    state = await AsyncValue.guard(() =>
+      ref.read(authServiceProvider).signUp(
+        email: email,
+        password: password,
+        fullName: fullName,
+        organizationId: organizationId,
+      )
+    );
+  }
+
+  /// Cierra sesión
+  Future<void> signOut() async {
+    state = const AsyncValue.loading();
+    state = await AsyncValue.guard(() => 
+      ref.read(authServiceProvider).signOut()
+    );
+  }
+
+  /// Inicia recuperación de contraseña
+  Future<void> resetPassword(String email) async {
+    state = const AsyncValue.loading();
+    state = await AsyncValue.guard(() => 
+      ref.read(authServiceProvider).resetPassword(email)
+    );
+  }
+}
+final authControllerProvider = 
+    AsyncNotifierProvider<AuthController, void>(AuthController.new);
+
+
+// ============================================================================
+// 3. PERFIL DE USUARIO (PROFILE MANAGEMENT)
+// ============================================================================
+/// Controller de perfil - Carga, actualiza y maneja el perfil del usuario
+class ProfileController extends AsyncNotifier<Profile?> {
+  @override
+  Future<Profile?> build() async {
+    final user = ref.watch(currentUserProvider);
+    if (user == null) return null;
+    
+    try {
+      return await ref.read(authServiceProvider).getCurrentUserProfile();
+    } catch (e) {
+      // Retornar null si falla la carga del perfil
+      return null;
+    }
+  }
+
+  /// Refresca el perfil desde la base de datos
+  Future<void> refresh() async {
+    ref.invalidateSelf();
+    await future;
+  }
+
+  /// Actualiza los datos del perfil
+  Future<void> updateProfile(Profile updatedProfile) async {
+    state = const AsyncValue.loading();
+    state = await AsyncValue.guard(() async {
+      await ref.read(authServiceProvider).updateProfile(updatedProfile);
+      return updatedProfile;
+    });
+  }
+
+  /// Sube un avatar y actualiza el perfil
+  Future<void> uploadAvatar(File imageFile) async {
+    final currentProfile = state.value;
+    if (currentProfile == null) return;
+    
+    state = const AsyncValue.loading();
+    state = await AsyncValue.guard(() async {
+      final service = ref.read(storageServiceProvider);
+      final authService = ref.read(authServiceProvider);
+      final url = await service.uploadAvatar(imageFile, currentProfile.id);
+      final newProfile = currentProfile.copyWith(avatarUrl: url);
+      await authService.updateProfile(newProfile);
+      return newProfile;
+    });
+  }
+}
+final profileProvider = 
+    AsyncNotifierProvider<ProfileController, Profile?>(ProfileController.new);
+
+
+// ============================================================================
+// 4. ORGANIZACIÓN (ORGANIZATION MANAGEMENT)
+// ============================================================================
+/// Obtiene la organización actual del usuario autenticado
+final currentOrganizationProvider = 
+    FutureProvider.autoDispose<Organization?>((ref) async {
+  ref.watch(authStateProvider);
+  return ref.watch(organizationServiceProvider).getMyOrganization();
+});
+
+/// Obtiene todas las organizaciones (Solo SUPERADMIN)
+final allOrganizationsProvider = 
+    FutureProvider.autoDispose<List<Organization>>((ref) async {
+  return ref.watch(organizationServiceProvider).getAllOrganizations();
+});
+
+/// Obtiene estadísticas globales (Solo SUPERADMIN)
+final superAdminStatsProvider = 
+    FutureProvider.autoDispose<Map<String, dynamic>>((ref) async {
+  return ref.watch(organizationServiceProvider).getSuperAdminStats();
+});
+
+/// Controller para administración de organizaciones
+class OrganizationController extends AsyncNotifier<void> {
+  @override
+  FutureOr<void> build() => null;
+
+  /// Actualiza configuración de la organización (Admin)
+  Future<void> updateOrgConfig(String orgId, Map<String, dynamic> updates) async {
+    state = const AsyncValue.loading();
+    state = await AsyncValue.guard(() =>
+      ref.read(organizationServiceProvider).updateConfig(orgId, updates)
+    );
+  }
+}
+final organizationControllerProvider = 
+    AsyncNotifierProvider<OrganizationController, void>(OrganizationController.new);
+
+
+// ============================================================================
+// 5. ASISTENCIA (ATTENDANCE TRACKING)
+// ============================================================================
+/// Obtiene el historial de asistencia del usuario
+/// Incluye todos los turnos completados
+final attendanceHistoryProvider = 
+    FutureProvider.autoDispose<List<WorkShift>>((ref) async {
+  ref.watch(attendanceControllerProvider);
+  return ref.watch(attendanceServiceProvider).getMyHistory();
+});
+
+/// Obtiene estadísticas de hoy (horas trabajadas, etc.)
+final todayStatsProvider = 
+    FutureProvider.autoDispose<Map<String, dynamic>>((ref) async {
+  ref.watch(attendanceControllerProvider);
+  return ref.watch(attendanceServiceProvider).getTodayStats();
+});
+
+/// Obtiene el turno activo actual (si existe)
+/// Retorna null si no hay un turno activo
+final activeShiftProvider = 
+    FutureProvider.autoDispose<WorkShift?>((ref) async {
+  ref.watch(attendanceControllerProvider);
+  return ref.watch(attendanceServiceProvider).getActiveShift();
+});
+
+/// Controller de asistencia - Maneja CheckIn y CheckOut
+class AttendanceController extends AsyncNotifier<void> {
+  @override
+  FutureOr<void> build() => null;
+
+  /// Registra entrada (CheckIn)
+  /// Requiere: ubicación geográfica, foto del usuario y ID de la organización
+  Future<void> checkIn({
+    required GeoLocation location,
+    required File photoFile,
+    required String orgId,
+    String? address,
+  }) async {
+    state = const AsyncValue.loading();
+    state = await AsyncValue.guard(() async {
+      final userId = ref.read(currentUserProvider)!.id;
+      final storage = ref.read(storageServiceProvider);
+      final service = ref.read(attendanceServiceProvider);
+      
+      // Sube la foto de entrada
+      final photoPath = await storage.uploadEvidence(photoFile, userId, orgId);
+      
+      // Registra el CheckIn en la BD
+      await service.checkIn(
+        location: location,
+        photoPath: photoPath,
+        address: address,
+      );
+      
+      // Invalida los providers relacionados para recargar datos
+      ref.invalidate(activeShiftProvider);
+      ref.invalidate(todayStatsProvider);
+    });
+  }
+
+  /// Registra salida (CheckOut)
+  /// Requiere: ID del turno activo, ubicación y opcionalmente foto
+  Future<void> checkOut({
+    required String shiftId,
+    required GeoLocation location,
+    required String orgId,
+    File? photoFile,
+    String? address,
+  }) async {
+    state = const AsyncValue.loading();
+    state = await AsyncValue.guard(() async {
+      final storage = ref.read(storageServiceProvider);
+      final service = ref.read(attendanceServiceProvider);
+      
+      String? photoPath;
+      if (photoFile != null) {
+        final userId = ref.read(currentUserProvider)!.id;
+        photoPath = await storage.uploadEvidence(photoFile, userId, orgId);
+      }
+      
+      // Registra el CheckOut en la BD
+      await service.checkOut(
+        shiftId: shiftId,
+        location: location,
+        photoPath: photoPath,
+        address: address,
+      );
+      
+      // Invalida los providers relacionados para recargar datos
+      ref.invalidate(activeShiftProvider);
+      ref.invalidate(attendanceHistoryProvider);
+      ref.invalidate(todayStatsProvider);
+    });
+  }
+}
+final attendanceControllerProvider = 
+    AsyncNotifierProvider<AttendanceController, void>(AttendanceController.new);
+
+
+// ============================================================================
+// 6. NOTIFICACIONES (NOTIFICATIONS)
+// ============================================================================
+/// Stream en tiempo real de notificaciones del usuario
+/// Se actualiza automáticamente cuando hay cambios en la BD
+final notificationsStreamProvider = 
+    StreamProvider.autoDispose<List<AppNotification>>((ref) {
+  return ref.watch(notificationServiceProvider).myNotificationsStream;
+});
+
+/// Cuenta de notificaciones no leídas
+/// Se recalcula automáticamente cuando cambia el stream de notificaciones
+final unreadNotificationsCountProvider = 
+    Provider.autoDispose<int>((ref) {
+  final notifications = ref.watch(notificationsStreamProvider).value ?? [];
+  return notifications.where((n) => !n.isRead).length;
+});
+
+/// Controller de notificaciones - Maneja lectura y acciones
+class NotificationController extends AsyncNotifier<void> {
+  @override
+  FutureOr<void> build() => null;
+
+  /// Marca una notificación individual como leída
+  Future<void> markAsRead(String id) async {
+    state = const AsyncValue.loading();
+    state = await AsyncValue.guard(() => 
+      ref.read(notificationServiceProvider).markAsRead(id)
+    );
+  }
+
+  /// Marca todas las notificaciones como leídas
+  Future<void> markAllAsRead() async {
+    state = const AsyncValue.loading();
+    state = await AsyncValue.guard(() => 
+      ref.read(notificationServiceProvider).markAllAsRead()
+    );
+  }
+}
+final notificationControllerProvider = 
+    AsyncNotifierProvider<NotificationController, void>(NotificationController.new);
+
+
+// ============================================================================
+// 7. HORARIOS (SCHEDULES)
+// ============================================================================
+/// Obtiene el horario semanal del usuario
+/// Incluye horarios generales y horarios personalizados si existen
+final myScheduleProvider = 
+    FutureProvider.autoDispose<List<WorkSchedule>>((ref) async {
+  return ref.watch(scheduleServiceProvider).getMySchedule();
+});
+
+/// Controller para administración de horarios (Admin)
+class ScheduleController extends AsyncNotifier<void> {
+  @override
+  FutureOr<void> build() => null;
+
+  /// Asigna un horario a un empleado
+  Future<void> createSchedule(WorkSchedule schedule) async {
+    state = const AsyncValue.loading();
+    state = await AsyncValue.guard(() =>
+      ref.read(scheduleServiceProvider).createSchedule(schedule)
+    );
+  }
+}
+final scheduleControllerProvider = 
+    AsyncNotifierProvider<ScheduleController, void>(ScheduleController.new);
+
+// ============================================================================
+// 8. BIOMETRÍA (BIOMETRIC AUTHENTICATION)
+// ============================================================================
+/// Verifica si el dispositivo soporta autenticación biométrica
+final biometricAvailableProvider = 
+    FutureProvider.autoDispose<bool>((ref) async {
+  return ref.watch(biometricServiceProvider).isBiometricAvailable();
+});
+
+/// Controller para autenticación biométrica
+class BiometricController extends AsyncNotifier<void> {
+  @override
+  FutureOr<void> build() => null;
+
+  /// Autentica mediante biometría (huella o reconocimiento facial)
+  Future<void> authenticate() async {
+    state = const AsyncValue.loading();
+    state = await AsyncValue.guard(() =>
+      ref.read(biometricServiceProvider).authenticate()
+    );
+  }
+}
+final biometricControllerProvider = 
+    AsyncNotifierProvider<BiometricController, void>(BiometricController.new);
