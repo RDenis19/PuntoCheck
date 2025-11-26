@@ -1,8 +1,9 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:puntocheck/utils/theme/app_colors.dart';
 import 'package:puntocheck/routes/app_router.dart';
-import 'package:puntocheck/providers/auth_provider.dart';
+import 'package:puntocheck/providers/app_providers.dart';
 
 class SplashView extends ConsumerStatefulWidget {
   const SplashView({super.key});
@@ -54,11 +55,11 @@ class _SplashViewState extends ConsumerState<SplashView> with SingleTickerProvid
   }
 
   Future<void> _checkSession() async {
-    // Esperar animación mínima
+    // Esperar animacion minima
     await Future.delayed(const Duration(seconds: 2));
     if (!mounted) return;
 
-    // Verificar sesión
+    // Verificar sesion
     // Leemos el estado actual de auth
     final authState = await ref.read(authStateProvider.future);
     final user = authState.session?.user;
@@ -66,16 +67,16 @@ class _SplashViewState extends ConsumerState<SplashView> with SingleTickerProvid
     if (user != null) {
       // Usuario autenticado, obtener perfil para saber rol
       try {
-        final profile = await ref.read(currentUserProfileProvider.future);
+        final profile = await ref.read(profileProvider.future);
         if (!mounted) return;
         
         if (profile != null) {
           if (profile.isSuperAdmin) {
-            Navigator.pushReplacementNamed(context, AppRouter.superAdminHome);
+            context.go(AppRoutes.superAdminHome);
           } else if (profile.isOrgAdmin) {
-            Navigator.pushReplacementNamed(context, AppRouter.adminHome);
+            context.go(AppRoutes.adminHome);
           } else {
-            Navigator.pushReplacementNamed(context, AppRouter.employeeHome);
+            context.go(AppRoutes.employeeHome);
           }
           return;
         }
@@ -86,7 +87,7 @@ class _SplashViewState extends ConsumerState<SplashView> with SingleTickerProvid
     }
 
     if (!mounted) return;
-    Navigator.pushReplacementNamed(context, AppRouter.login);
+    context.go(AppRoutes.login);
   }
 
   @override
@@ -120,3 +121,5 @@ class _SplashViewState extends ConsumerState<SplashView> with SingleTickerProvid
     );
   }
 }
+
+

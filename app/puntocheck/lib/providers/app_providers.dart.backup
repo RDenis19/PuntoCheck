@@ -27,34 +27,29 @@ import '../services/biometric_service.dart';
 final authServiceProvider = Provider<AuthService>((ref) => AuthService());
 
 /// Proveedor de AttendanceService - Inyección de dependencia
-final attendanceServiceProvider = Provider<AttendanceService>(
-  (ref) => AttendanceService(),
-);
+final attendanceServiceProvider = 
+    Provider<AttendanceService>((ref) => AttendanceService());
 
 /// Proveedor de OrganizationService - Inyección de dependencia
-final organizationServiceProvider = Provider<OrganizationService>(
-  (ref) => OrganizationService(),
-);
+final organizationServiceProvider = 
+    Provider<OrganizationService>((ref) => OrganizationService());
 
 /// Proveedor de StorageService - Inyección de dependencia
-final storageServiceProvider = Provider<StorageService>(
-  (ref) => StorageService(),
-);
+final storageServiceProvider = 
+    Provider<StorageService>((ref) => StorageService());
 
 /// Proveedor de NotificationService - Inyección de dependencia
-final notificationServiceProvider = Provider<NotificationService>(
-  (ref) => NotificationService(),
-);
+final notificationServiceProvider = 
+    Provider<NotificationService>((ref) => NotificationService());
 
 /// Proveedor de ScheduleService - Inyección de dependencia
-final scheduleServiceProvider = Provider<ScheduleService>(
-  (ref) => ScheduleService(),
-);
+final scheduleServiceProvider = 
+    Provider<ScheduleService>((ref) => ScheduleService());
 
 /// Proveedor de BiometricService - Inyección de dependencia
-final biometricServiceProvider = Provider<BiometricService>(
-  (ref) => BiometricService(),
-);
+final biometricServiceProvider = 
+    Provider<BiometricService>((ref) => BiometricService());
+
 
 // ============================================================================
 // 2. AUTENTICACIÓN (AUTH STATE & CURRENT USER)
@@ -79,8 +74,8 @@ class AuthController extends AsyncNotifier<void> {
   /// Inicia sesión con email y contraseña
   Future<void> signIn(String email, String password) async {
     state = const AsyncValue.loading();
-    state = await AsyncValue.guard(
-      () => ref.read(authServiceProvider).signIn(email, password),
+    state = await AsyncValue.guard(() => 
+      ref.read(authServiceProvider).signIn(email, password)
     );
   }
 
@@ -92,38 +87,35 @@ class AuthController extends AsyncNotifier<void> {
     String? organizationId,
   }) async {
     state = const AsyncValue.loading();
-    state = await AsyncValue.guard(
-      () => ref
-          .read(authServiceProvider)
-          .signUp(
-            email: email,
-            password: password,
-            fullName: fullName,
-            organizationId: organizationId,
-          ),
+    state = await AsyncValue.guard(() =>
+      ref.read(authServiceProvider).signUp(
+        email: email,
+        password: password,
+        fullName: fullName,
+        organizationId: organizationId,
+      )
     );
   }
 
   /// Cierra sesión
   Future<void> signOut() async {
     state = const AsyncValue.loading();
-    state = await AsyncValue.guard(
-      () => ref.read(authServiceProvider).signOut(),
+    state = await AsyncValue.guard(() => 
+      ref.read(authServiceProvider).signOut()
     );
   }
 
   /// Inicia recuperación de contraseña
   Future<void> resetPassword(String email) async {
     state = const AsyncValue.loading();
-    state = await AsyncValue.guard(
-      () => ref.read(authServiceProvider).resetPassword(email),
+    state = await AsyncValue.guard(() => 
+      ref.read(authServiceProvider).resetPassword(email)
     );
   }
 }
+final authControllerProvider = 
+    AsyncNotifierProvider<AuthController, void>(AuthController.new);
 
-final authControllerProvider = AsyncNotifierProvider<AuthController, void>(
-  AuthController.new,
-);
 
 // ============================================================================
 // 3. PERFIL DE USUARIO (PROFILE MANAGEMENT)
@@ -134,7 +126,7 @@ class ProfileController extends AsyncNotifier<Profile?> {
   Future<Profile?> build() async {
     final user = ref.watch(currentUserProvider);
     if (user == null) return null;
-
+    
     try {
       return await ref.read(authServiceProvider).getCurrentUserProfile();
     } catch (e) {
@@ -162,7 +154,7 @@ class ProfileController extends AsyncNotifier<Profile?> {
   Future<void> uploadAvatar(File imageFile) async {
     final currentProfile = state.value;
     if (currentProfile == null) return;
-
+    
     state = const AsyncValue.loading();
     state = await AsyncValue.guard(() async {
       final service = ref.read(storageServiceProvider);
@@ -174,15 +166,10 @@ class ProfileController extends AsyncNotifier<Profile?> {
     });
   }
 }
+final profileProvider = 
+    AsyncNotifierProvider<ProfileController, Profile?>(ProfileController.new);
 
-final profileProvider = AsyncNotifierProvider<ProfileController, Profile?>(
-  ProfileController.new,
-);
-
-// ============================================================================
-// 3.B ROL DE USUARIO (DERIVADO DEL PERFIL)
-// ============================================================================
-/// Rol del usuario para controlar rutas y permisos
+// Rol derivado del perfil para centralizar la logica de rutas y permisos
 enum UserRole { superAdmin, admin, employee, unknown }
 
 final userRoleProvider = Provider.autoDispose<UserRole>((ref) {
@@ -200,139 +187,63 @@ final userRoleProvider = Provider.autoDispose<UserRole>((ref) {
   );
 });
 
+
 // ============================================================================
 // 4. ORGANIZACIÓN (ORGANIZATION MANAGEMENT)
 // ============================================================================
 /// Obtiene la organización actual del usuario autenticado
-final currentOrganizationProvider = FutureProvider.autoDispose<Organization?>((
-  ref,
-) async {
+final currentOrganizationProvider = 
+    FutureProvider.autoDispose<Organization?>((ref) async {
   ref.watch(authStateProvider);
   return ref.watch(organizationServiceProvider).getMyOrganization();
 });
 
 /// Obtiene todas las organizaciones (Solo SUPERADMIN)
-final allOrganizationsProvider = FutureProvider.autoDispose<List<Organization>>(
-  (ref) async {
-    return ref.watch(organizationServiceProvider).getAllOrganizations();
-  },
-);
-
-/// Estadisticas para el dashboard de administrador (Admin)
-final adminDashboardStatsProvider =
-    FutureProvider.autoDispose<Map<String, dynamic>>((ref) async {
-      final profile = await ref.watch(profileProvider.future);
-      final orgId = profile?.organizationId;
-
-      if (orgId == null) {
-        throw Exception('El usuario no tiene organizacion asignada.');
-      }
-
-      return ref
-          .watch(organizationServiceProvider)
-          .getAdminDashboardStats(orgId);
-    });
-
-/// Empleados de una organizacion (SuperAdmin/Admin)
-final organizationEmployeesProvider = FutureProvider.autoDispose
-    .family<List<Profile>, String>((ref, orgId) async {
-      return ref.watch(organizationServiceProvider).getEmployeesByOrg(orgId);
-    });
-
-/// Empleados de la organizacion del usuario (Admin)
-final orgEmployeesProvider = FutureProvider.autoDispose<List<Profile>>((
-  ref,
-) async {
   final profile = await ref.watch(profileProvider.future);
   final orgId = profile?.organizationId;
-  if (orgId == null) return <Profile>[];
+
+  if (orgId == null) {
+    return <Profile>[];
+  }
+
   return ref.watch(organizationServiceProvider).getEmployeesByOrg(orgId);
 });
 
-/// Contenedor tipado para estadisticas de una organizacion (SuperAdmin/Admin)
-class OrganizationDashboardSnapshot {
-  const OrganizationDashboardSnapshot({
-    required this.totalEmployees,
-    required this.activeToday,
-    required this.attendanceAverage,
-  });
-
-  final int totalEmployees;
-  final int activeToday;
-  final int attendanceAverage;
-}
-
-/// Estadisticas por organizacion reutilizables en UI
-final organizationDashboardStatsProvider = FutureProvider.autoDispose
-    .family<OrganizationDashboardSnapshot, String>((ref, orgId) async {
-      final stats = await ref
-          .watch(organizationServiceProvider)
-          .getAdminDashboardStats(orgId);
-
-      final totalEmployees = stats['employees'] as int? ?? 0;
-      final activeToday = stats['active_shifts'] as int? ?? 0;
-      final attendanceAverage = totalEmployees > 0
-          ? ((activeToday / totalEmployees) * 100).round()
-          : 0;
-
-      return OrganizationDashboardSnapshot(
-        totalEmployees: totalEmployees,
-        activeToday: activeToday,
-        attendanceAverage: attendanceAverage,
-      );
-    });
-
-/// Obtiene estadisticas globales (Solo SUPERADMIN)
-final superAdminStatsProvider =
+/// Estadisticas para el dashboard de administrador
+final adminDashboardStatsProvider = 
     FutureProvider.autoDispose<Map<String, dynamic>>((ref) async {
-      return ref.watch(organizationServiceProvider).getSuperAdminStats();
-    });
+  final profile = await ref.watch(profileProvider.future);
+  final orgId = profile?.organizationId;
 
-/// Controller para administración de organizaciones
-class OrganizationController extends AsyncNotifier<void> {
-  @override
-  FutureOr<void> build() => null;
-
-  /// Actualiza configuración de la organización (Admin)
-  Future<void> updateOrgConfig(
-    String orgId,
-    Map<String, dynamic> updates,
-  ) async {
-    state = const AsyncValue.loading();
-    state = await AsyncValue.guard(
-      () => ref.read(organizationServiceProvider).updateConfig(orgId, updates),
-    );
+  if (orgId == null) {
+    throw Exception('El usuario no tiene organizacion asignada.');
   }
-}
 
-final organizationControllerProvider =
-    AsyncNotifierProvider<OrganizationController, void>(
-      OrganizationController.new,
-    );
+  return ref.watch(organizationServiceProvider).getAdminDashboardStats(orgId);
+});
 
 // ============================================================================
 // 5. ASISTENCIA (ATTENDANCE TRACKING)
 // ============================================================================
 /// Obtiene el historial de asistencia del usuario
 /// Incluye todos los turnos completados
-final attendanceHistoryProvider = FutureProvider.autoDispose<List<WorkShift>>((
-  ref,
-) async {
+final attendanceHistoryProvider = 
+    FutureProvider.autoDispose<List<WorkShift>>((ref) async {
   ref.watch(attendanceControllerProvider);
   return ref.watch(attendanceServiceProvider).getMyHistory();
 });
 
 /// Obtiene estadísticas de hoy (horas trabajadas, etc.)
-final todayStatsProvider = FutureProvider.autoDispose<Map<String, dynamic>>((
-  ref,
-) async {
+final todayStatsProvider = 
+    FutureProvider.autoDispose<Map<String, dynamic>>((ref) async {
   ref.watch(attendanceControllerProvider);
   return ref.watch(attendanceServiceProvider).getTodayStats();
 });
 
 /// Obtiene el turno activo actual (si existe)
 /// Retorna null si no hay un turno activo
-final activeShiftProvider = FutureProvider.autoDispose<WorkShift?>((ref) async {
+final activeShiftProvider = 
+    FutureProvider.autoDispose<WorkShift?>((ref) async {
   ref.watch(attendanceControllerProvider);
   return ref.watch(attendanceServiceProvider).getActiveShift();
 });
@@ -355,17 +266,17 @@ class AttendanceController extends AsyncNotifier<void> {
       final userId = ref.read(currentUserProvider)!.id;
       final storage = ref.read(storageServiceProvider);
       final service = ref.read(attendanceServiceProvider);
-
+      
       // Sube la foto de entrada
       final photoPath = await storage.uploadEvidence(photoFile, userId, orgId);
-
+      
       // Registra el CheckIn en la BD
       await service.checkIn(
         location: location,
         photoPath: photoPath,
         address: address,
       );
-
+      
       // Invalida los providers relacionados para recargar datos
       ref.invalidate(activeShiftProvider);
       ref.invalidate(todayStatsProvider);
@@ -385,13 +296,13 @@ class AttendanceController extends AsyncNotifier<void> {
     state = await AsyncValue.guard(() async {
       final storage = ref.read(storageServiceProvider);
       final service = ref.read(attendanceServiceProvider);
-
+      
       String? photoPath;
       if (photoFile != null) {
         final userId = ref.read(currentUserProvider)!.id;
         photoPath = await storage.uploadEvidence(photoFile, userId, orgId);
       }
-
+      
       // Registra el CheckOut en la BD
       await service.checkOut(
         shiftId: shiftId,
@@ -399,7 +310,7 @@ class AttendanceController extends AsyncNotifier<void> {
         photoPath: photoPath,
         address: address,
       );
-
+      
       // Invalida los providers relacionados para recargar datos
       ref.invalidate(activeShiftProvider);
       ref.invalidate(attendanceHistoryProvider);
@@ -407,23 +318,24 @@ class AttendanceController extends AsyncNotifier<void> {
     });
   }
 }
-
-final attendanceControllerProvider =
+final attendanceControllerProvider = 
     AsyncNotifierProvider<AttendanceController, void>(AttendanceController.new);
+
 
 // ============================================================================
 // 6. NOTIFICACIONES (NOTIFICATIONS)
 // ============================================================================
 /// Stream en tiempo real de notificaciones del usuario
 /// Se actualiza automáticamente cuando hay cambios en la BD
-final notificationsStreamProvider =
+final notificationsStreamProvider = 
     StreamProvider.autoDispose<List<AppNotification>>((ref) {
-      return ref.watch(notificationServiceProvider).myNotificationsStream;
-    });
+  return ref.watch(notificationServiceProvider).myNotificationsStream;
+});
 
 /// Cuenta de notificaciones no leídas
 /// Se recalcula automáticamente cuando cambia el stream de notificaciones
-final unreadNotificationsCountProvider = Provider.autoDispose<int>((ref) {
+final unreadNotificationsCountProvider = 
+    Provider.autoDispose<int>((ref) {
   final notifications = ref.watch(notificationsStreamProvider).value ?? [];
   return notifications.where((n) => !n.isRead).length;
 });
@@ -436,33 +348,30 @@ class NotificationController extends AsyncNotifier<void> {
   /// Marca una notificación individual como leída
   Future<void> markAsRead(String id) async {
     state = const AsyncValue.loading();
-    state = await AsyncValue.guard(
-      () => ref.read(notificationServiceProvider).markAsRead(id),
+    state = await AsyncValue.guard(() => 
+      ref.read(notificationServiceProvider).markAsRead(id)
     );
   }
 
   /// Marca todas las notificaciones como leídas
   Future<void> markAllAsRead() async {
     state = const AsyncValue.loading();
-    state = await AsyncValue.guard(
-      () => ref.read(notificationServiceProvider).markAllAsRead(),
+    state = await AsyncValue.guard(() => 
+      ref.read(notificationServiceProvider).markAllAsRead()
     );
   }
 }
+final notificationControllerProvider = 
+    AsyncNotifierProvider<NotificationController, void>(NotificationController.new);
 
-final notificationControllerProvider =
-    AsyncNotifierProvider<NotificationController, void>(
-      NotificationController.new,
-    );
 
 // ============================================================================
 // 7. HORARIOS (SCHEDULES)
 // ============================================================================
 /// Obtiene el horario semanal del usuario
 /// Incluye horarios generales y horarios personalizados si existen
-final myScheduleProvider = FutureProvider.autoDispose<List<WorkSchedule>>((
-  ref,
-) async {
+final myScheduleProvider = 
+    FutureProvider.autoDispose<List<WorkSchedule>>((ref) async {
   return ref.watch(scheduleServiceProvider).getMySchedule();
 });
 
@@ -474,22 +383,20 @@ class ScheduleController extends AsyncNotifier<void> {
   /// Asigna un horario a un empleado
   Future<void> createSchedule(WorkSchedule schedule) async {
     state = const AsyncValue.loading();
-    state = await AsyncValue.guard(
-      () => ref.read(scheduleServiceProvider).createSchedule(schedule),
+    state = await AsyncValue.guard(() =>
+      ref.read(scheduleServiceProvider).createSchedule(schedule)
     );
   }
 }
-
-final scheduleControllerProvider =
+final scheduleControllerProvider = 
     AsyncNotifierProvider<ScheduleController, void>(ScheduleController.new);
 
 // ============================================================================
 // 8. BIOMETRÍA (BIOMETRIC AUTHENTICATION)
 // ============================================================================
 /// Verifica si el dispositivo soporta autenticación biométrica
-final biometricAvailableProvider = FutureProvider.autoDispose<bool>((
-  ref,
-) async {
+final biometricAvailableProvider = 
+    FutureProvider.autoDispose<bool>((ref) async {
   return ref.watch(biometricServiceProvider).isBiometricAvailable();
 });
 
@@ -501,11 +408,10 @@ class BiometricController extends AsyncNotifier<void> {
   /// Autentica mediante biometría (huella o reconocimiento facial)
   Future<void> authenticate() async {
     state = const AsyncValue.loading();
-    state = await AsyncValue.guard(
-      () => ref.read(biometricServiceProvider).authenticate(),
+    state = await AsyncValue.guard(() =>
+      ref.read(biometricServiceProvider).authenticate()
     );
   }
 }
-
-final biometricControllerProvider =
+final biometricControllerProvider = 
     AsyncNotifierProvider<BiometricController, void>(BiometricController.new);

@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:puntocheck/utils/theme/app_colors.dart';
 
 class AnnouncementTypeChip extends StatelessWidget {

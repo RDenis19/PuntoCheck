@@ -1,4 +1,5 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:puntocheck/routes/app_router.dart';
 import 'package:puntocheck/presentation/shared/widgets/primary_button.dart';
 import 'package:puntocheck/presentation/shared/widgets/text_field_icon.dart';
@@ -24,7 +25,7 @@ class _ResetPasswordViewState extends State<ResetPasswordView> {
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () => Navigator.of(context).pop(),
+          onPressed: () => context.pop(),
         ),
       ),
       backgroundColor: Colors.white,
@@ -35,7 +36,7 @@ class _ResetPasswordViewState extends State<ResetPasswordView> {
           children: [
             const SizedBox(height: 20),
             const Text(
-              'Establecer una nueva contraseña',
+              'Establecer una nueva contrasena',
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.w600,
@@ -43,7 +44,7 @@ class _ResetPasswordViewState extends State<ResetPasswordView> {
             ),
             const SizedBox(height: 12),
             const Text(
-              'Crea una nueva contraseña. Asegúrate de que sea diferente de las anteriores por seguridad.',
+              'Crea una nueva contrasena. Asegurate de que sea diferente de las anteriores por seguridad.',
               style: TextStyle(
                 fontSize: 14,
                 color: Colors.grey,
@@ -52,7 +53,7 @@ class _ResetPasswordViewState extends State<ResetPasswordView> {
             const SizedBox(height: 32),
             TextFieldIcon(
               controller: _passwordController,
-              hintText: 'Contraseña',
+              hintText: 'Contrasena',
               prefixIcon: Icons.lock_outline,
               obscure: _obscurePassword,
               suffix: IconButton(
@@ -69,7 +70,7 @@ class _ResetPasswordViewState extends State<ResetPasswordView> {
             const SizedBox(height: 16),
             TextFieldIcon(
               controller: _confirmPasswordController,
-              hintText: 'Confirma contraseña',
+              hintText: 'Confirma contrasena',
               prefixIcon: Icons.lock_outline,
               obscure: _obscureConfirmPassword,
               suffix: IconButton(
@@ -87,11 +88,9 @@ class _ResetPasswordViewState extends State<ResetPasswordView> {
             ),
             const SizedBox(height: 32),
             PrimaryButton(
-              text: 'Actualizar contraseña',
+              text: 'Actualizar contrasena',
               onPressed: () {
-                // TODO(backend): aquí se envía la nueva contraseña al backend para actualizarla.
-                // Razón: persistir de forma segura la nueva credencial del usuario.
-                Navigator.pushNamed(context, AppRouter.resetPasswordSuccess);
+                context.push(AppRoutes.resetPasswordSuccess);
               },
             ),
           ],
@@ -100,4 +99,3 @@ class _ResetPasswordViewState extends State<ResetPasswordView> {
     );
   }
 }
-

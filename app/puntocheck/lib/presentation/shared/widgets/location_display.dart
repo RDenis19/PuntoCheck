@@ -125,7 +125,7 @@ class _LocationDisplayState extends State<LocationDisplay> {
                     _currentPosition!.longitude.toStringAsFixed(6)),
                 const SizedBox(height: 8),
                 _buildInfoRow(Icons.speed, 'Precisión',
-                    '±${_currentPosition!.accuracy.toStringAsFixed(1)} m'),
+                    'A${_currentPosition!.accuracy.toStringAsFixed(1)} m'),
                 const SizedBox(height: 16),
                 SizedBox(
                   width: double.infinity,

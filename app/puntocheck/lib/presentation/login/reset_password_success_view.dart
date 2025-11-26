@@ -1,4 +1,5 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:puntocheck/routes/app_router.dart';
 import 'package:puntocheck/presentation/shared/widgets/primary_button.dart';
 
@@ -42,7 +43,7 @@ class ResetPasswordSuccessView extends StatelessWidget {
             PrimaryButton(
               text: 'Continuar',
               onPressed: () {
-                Navigator.pushReplacementNamed(context, AppRouter.login);
+                context.go(AppRoutes.login);
               },
             ),
           ],

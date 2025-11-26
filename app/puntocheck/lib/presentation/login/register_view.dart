@@ -14,7 +14,7 @@ class RegisterView extends StatelessWidget {
       ),
       body: const Center(
         child: Text(
-          'El registro público está deshabilitado.\nContacte a su administrador para crear una cuenta.',
+          'El registro pAoblico estA deshabilitado.\nContacte a su administrador para crear una cuenta.',
           textAlign: TextAlign.center,
         ),
       ),

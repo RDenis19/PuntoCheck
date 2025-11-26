@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:puntocheck/utils/theme/app_colors.dart';
 
 typedef DaySelectedCallback = void Function(DateTime date);
@@ -85,7 +85,6 @@ class ScheduleCalendar extends StatelessWidget {
           },
         ),
         const SizedBox(height: 12),
-        // TODO(backend): persistir esta selección de días en reglas de horario.
       ],
     );
   }

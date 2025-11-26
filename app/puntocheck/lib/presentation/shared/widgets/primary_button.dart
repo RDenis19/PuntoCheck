@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:puntocheck/utils/theme/app_colors.dart';
 
 class PrimaryButton extends StatelessWidget {
@@ -8,12 +8,14 @@ class PrimaryButton extends StatelessWidget {
     required this.onPressed,
     this.enabled = true,
     this.width,
+    this.isLoading = false,
   });
 
   final String text;
   final VoidCallback onPressed;
   final bool enabled;
   final double? width;
+  final bool isLoading;
 
   @override
   Widget build(BuildContext context) {
@@ -21,7 +23,7 @@ class PrimaryButton extends StatelessWidget {
       width: width ?? double.infinity,
       height: 56,
       child: ElevatedButton(
-        onPressed: enabled ? onPressed : null,
+        onPressed: (enabled && !isLoading) ? onPressed : null,
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.primaryRed,
           foregroundColor: AppColors.white,
@@ -30,13 +32,22 @@ class PrimaryButton extends StatelessWidget {
             borderRadius: BorderRadius.circular(16),
           ),
         ),
-        child: Text(
-          text,
-          style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
+        child: isLoading
+            ? const SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(AppColors.white),
+                ),
+              )
+            : Text(
+                text,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
       ),
     );
   }

@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:puntocheck/utils/theme/app_colors.dart';
 import 'package:puntocheck/presentation/admin/widgets/announcement_type_chip.dart';
 import 'package:puntocheck/presentation/shared/widgets/primary_button.dart';
@@ -76,7 +76,7 @@ class _NuevoAnuncioViewState extends State<NuevoAnuncioView> {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  'Envíe avisos a todos los empleados.',
+                  'EnvAe avisos a todos los empleados.',
                   style: TextStyle(
                     color: AppColors.white.withValues(alpha: 0.7),
                   ),
@@ -99,12 +99,12 @@ class _NuevoAnuncioViewState extends State<NuevoAnuncioView> {
           ),
           const SizedBox(height: 20),
           _buildLabeledField(
-            label: 'Título del anuncio',
+            label: 'TAtulo del anuncio',
             child: TextField(
               controller: _tituloController,
               maxLength: 60,
               decoration: _inputDecoration(
-                'Ej: Reunión general, Cambio de horario…',
+                'Ej: Reunión general, Cambio de horario',
               ),
               onChanged: (_) => setState(() {}),
             ),
@@ -128,9 +128,8 @@ class _NuevoAnuncioViewState extends State<NuevoAnuncioView> {
           PrimaryButton(
             text: 'Publicar',
             onPressed: () {
-              // TODO(backend): enviar anuncio al backend para distribuirlo a los empleados.
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Anuncio publicado (mock).')),
+                const SnackBar(content: Text('Publicaremos el anuncio al conectar el backend.')),
               );
               Navigator.pop(context);
             },
@@ -192,6 +191,5 @@ class _NuevoAnuncioViewState extends State<NuevoAnuncioView> {
     );
   }
 }
-
 
 

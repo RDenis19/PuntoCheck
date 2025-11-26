@@ -1,71 +1,48 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:puntocheck/models/enums.dart';
+import 'package:puntocheck/models/notification_model.dart';
+import 'package:puntocheck/providers/app_providers.dart';
 import 'package:puntocheck/utils/theme/app_colors.dart';
 import 'package:puntocheck/presentation/shared/widgets/notice_card.dart';
 import 'package:puntocheck/presentation/shared/widgets/primary_button.dart';
 
-class AvisosView extends StatelessWidget {
+class AvisosView extends ConsumerWidget {
   const AvisosView({super.key, this.embedded = false});
 
   final bool embedded;
 
   @override
-  Widget build(BuildContext context) {
-    final notices = [
-      {
-        'titulo': 'Actualiza tu información personal',
-        'descripcion': 'Confirma tus datos antes del cierre de mes.',
-        'fecha': 'Hoy · 9:15 AM',
-        'color': AppColors.primaryRed,
-        'detalle':
-            'Hola Pablo, necesitamos que confirmes tu información personal para mantener tus datos actualizados. Revisa tu correo y valida tu dirección para evitar inconvenientes.',
-        'unread': true,
-      },
-      {
-        'titulo': 'Nuevo horario desde noviembre',
-        'descripcion': 'Tu jornada cambiará a partir del lunes.',
-        'fecha': 'Ayer · 5:40 PM',
-        'color': AppColors.infoBlue,
-        'detalle':
-            'Desde el próximo lunes tu horario de ingreso será a las 07:30 AM. Recuerda registrar tu asistencia apenas llegues para mantener la puntualidad.',
-        'unread': true,
-      },
-      {
-        'titulo': 'Cumpleaños del Mes',
-        'descripcion': '¡Celebramos los cumpleaños de noviembre!',
-        'fecha': 'Ayer · 2:00 PM',
-        'color': AppColors.successGreen,
-        'detalle':
-            'Este viernes tendremos un pequeño festejo para reconocer a los cumpleañeros de noviembre. ¡No faltes!',
-        'unread': false,
-      },
-      {
-        'titulo': 'Cambio de Horario · Mantenimiento',
-        'descripcion': 'Importante: Mantenimiento de instalaciones.',
-        'fecha': '29 Oct · 4:30 PM',
-        'color': AppColors.warningOrange,
-        'detalle':
-            'El próximo martes tendremos trabajos de mantenimiento en el área principal, por lo que la jornada se adelantará media hora.',
-        'unread': false,
-      },
-    ];
+  Widget build(BuildContext context, WidgetRef ref) {
+    final noticesAsync = ref.watch(notificationsStreamProvider);
+    final unreadCount = ref.watch(unreadNotificationsCountProvider);
 
-    final unreadCount = notices
-        .where((notice) => notice['unread'] == true)
-        .length;
+    final listView = noticesAsync.when(
+      data: (notices) {
+        if (notices.isEmpty) {
+          return Padding(
+            padding: EdgeInsets.fromLTRB(0, 24, 0, embedded ? 90 : 24),
+            child: _EmptyNotices(embedded: embedded),
+          );
+        }
 
-    final listView = ListView(
-      padding: EdgeInsets.fromLTRB(0, 12, 0, embedded ? 90 : 12),
-      children: [
-        for (final notice in notices)
-          NoticeCard(
-            titulo: notice['titulo'] as String,
-            descripcionCorta: notice['descripcion'] as String,
-            fechaTexto: notice['fecha'] as String,
-            color: notice['color'] as Color,
-            unread: notice['unread'] as bool,
-            onTap: () => _showNoticeDetail(context, notice),
-          ),
-      ],
+        return ListView(
+          padding: EdgeInsets.fromLTRB(0, 12, 0, embedded ? 90 : 12),
+          children: [
+            for (final notice in notices)
+              NoticeCard(
+                titulo: notice.title,
+                descripcionCorta: notice.body,
+                fechaTexto: _formatDate(notice.createdAt),
+                color: _colorForType(notice.type),
+                unread: !notice.isRead,
+                onTap: () => _showNoticeDetail(context, ref, notice),
+              ),
+          ],
+        );
+      },
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (_, __) => const Center(child: Text('Error al cargar avisos')),
     );
 
     if (embedded) {
@@ -99,9 +76,13 @@ class AvisosView extends StatelessWidget {
     );
   }
 
-  void _showNoticeDetail(BuildContext context, Map<String, Object> notice) {
-    // TODO(backend): al abrir el modal debe marcarse el aviso como leído y enviar
-    // esa confirmación al backend para métricas internas.
+  Future<void> _showNoticeDetail(
+    BuildContext context,
+    WidgetRef ref,
+    AppNotification notice,
+  ) async {
+    await ref.read(notificationControllerProvider.notifier).markAsRead(notice.id);
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -136,7 +117,7 @@ class AvisosView extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      notice['titulo'] as String,
+                      notice.title,
                       style: const TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.w800,
@@ -146,14 +127,14 @@ class AvisosView extends StatelessWidget {
                     const SizedBox(height: 6),
                     Row(
                       children: [
-                        Icon(
+                        const Icon(
                           Icons.access_time,
                           size: 16,
-                          color: AppColors.black.withValues(alpha: 0.5),
+                          color: AppColors.grey,
                         ),
                         const SizedBox(width: 6),
                         Text(
-                          notice['fecha'] as String,
+                          _formatDate(notice.createdAt),
                           style: TextStyle(
                             color: AppColors.black.withValues(alpha: 0.6),
                           ),
@@ -162,7 +143,7 @@ class AvisosView extends StatelessWidget {
                     ),
                     const SizedBox(height: 20),
                     Text(
-                      notice['detalle'] as String,
+                      notice.body,
                       style: TextStyle(
                         fontSize: 15,
                         height: 1.5,
@@ -182,6 +163,26 @@ class AvisosView extends StatelessWidget {
         );
       },
     );
+  }
+
+  static String _formatDate(DateTime dateTime) {
+    final day = dateTime.day.toString().padLeft(2, '0');
+    final month = dateTime.month.toString().padLeft(2, '0');
+    final hour = dateTime.hour.toString().padLeft(2, '0');
+    final minute = dateTime.minute.toString().padLeft(2, '0');
+    return '$day/$month/${dateTime.year} - $hour:$minute';
+  }
+
+  static Color _colorForType(NotifType type) {
+    switch (type) {
+      case NotifType.alerta:
+        return AppColors.primaryRed;
+      case NotifType.sistema:
+        return AppColors.infoBlue;
+      case NotifType.info:
+      default:
+        return AppColors.successGreen;
+    }
   }
 }
 
@@ -243,3 +244,41 @@ class _UnreadBadge extends StatelessWidget {
   }
 }
 
+class _EmptyNotices extends StatelessWidget {
+  const _EmptyNotices({required this.embedded});
+
+  final bool embedded;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Icon(
+          Icons.notifications_none,
+          size: 64,
+          color: AppColors.backgroundDark.withValues(alpha: 0.3),
+        ),
+        const SizedBox(height: 12),
+        Text(
+          'No tienes avisos',
+          style: TextStyle(
+            color: AppColors.backgroundDark.withValues(alpha: 0.7),
+            fontSize: 15,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          'Te notificaremos cuando llegue uno nuevo',
+          style: TextStyle(
+            color: AppColors.backgroundDark.withValues(alpha: 0.5),
+            fontSize: 12,
+          ),
+          textAlign: TextAlign.center,
+        ),
+        if (!embedded) const SizedBox(height: 32),
+      ],
+    );
+  }
+}

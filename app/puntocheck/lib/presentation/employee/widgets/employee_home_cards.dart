@@ -1,7 +1,7 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:puntocheck/utils/theme/app_colors.dart';
-import 'package:puntocheck/providers/attendance_provider.dart';
+import 'package:puntocheck/providers/app_providers.dart';
 
 class CurrentLocationCard extends StatelessWidget {
   const CurrentLocationCard({super.key});
@@ -42,7 +42,7 @@ class CurrentLocationCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  'Ubicación Actual',
+                  'Ubicacion Actual',
                   style: TextStyle(
                     fontSize: 14,
                     color: Colors.grey,
@@ -51,7 +51,7 @@ class CurrentLocationCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 const Text(
-                  'Ubicación no disponible',
+                  'Ubicacion no disponible',
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
@@ -253,7 +253,7 @@ class RecentActivityCard extends ConsumerWidget {
                         ),
                         const SizedBox(height: 12),
                         Text(
-                          'Aún no tienes asistencias',
+                          'Aun no tienes asistencias',
                           style: TextStyle(
                             color: AppColors.backgroundDark.withValues(alpha: 0.7),
                             fontSize: 14,
@@ -262,7 +262,7 @@ class RecentActivityCard extends ConsumerWidget {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          'Tus registros aparecerán aquí',
+                          'Tus registros apareceran aqui',
                           style: TextStyle(
                             color: AppColors.backgroundDark.withValues(alpha: 0.4),
                             fontSize: 12,
@@ -273,7 +273,7 @@ class RecentActivityCard extends ConsumerWidget {
                   ),
                 );
               }
-              // Mostrar solo los últimos 3
+              // Mostrar solo los ultimos 3
               final recent = history.take(3).toList();
               return Column(
                 children: recent.map((shift) {
@@ -366,3 +366,4 @@ class _ActivityItem extends StatelessWidget {
     );
   }
 }
+

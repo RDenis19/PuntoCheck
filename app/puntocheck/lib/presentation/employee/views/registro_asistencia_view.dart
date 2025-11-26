@@ -1,4 +1,4 @@
-﻿import 'dart:io';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
@@ -6,7 +6,7 @@ import 'package:puntocheck/utils/theme/app_colors.dart';
 import 'package:puntocheck/presentation/shared/widgets/primary_button.dart';
 import 'package:puntocheck/presentation/shared/widgets/image_picker_button.dart';
 import 'package:puntocheck/presentation/shared/widgets/location_display.dart';
-import 'package:puntocheck/providers/attendance_provider.dart';
+import 'package:puntocheck/providers/app_providers.dart';
 import 'package:puntocheck/models/geo_location.dart';
 
 class RegistroAsistenciaView extends ConsumerStatefulWidget {
@@ -34,6 +34,14 @@ class _RegistroAsistenciaViewState extends ConsumerState<RegistroAsistenciaView>
       return;
     }
 
+    final profile = await ref.read(profileProvider.future);
+    if (profile == null || profile.organizationId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Error: No se pudo obtener la organizacion')),
+      );
+      return;
+    }
+
     // Llamar al controller
     await ref.read(attendanceControllerProvider.notifier).checkIn(
       location: GeoLocation(
@@ -41,7 +49,7 @@ class _RegistroAsistenciaViewState extends ConsumerState<RegistroAsistenciaView>
         longitude: _currentPosition!.longitude,
       ),
       photoFile: _selectedImage!,
-      address: 'Ubicación GPS', // TODO: Reverse geocoding si es necesario
+      orgId: profile.organizationId!,
     );
 
     final state = ref.read(attendanceControllerProvider);
@@ -149,7 +157,7 @@ class _RegistroAsistenciaViewState extends ConsumerState<RegistroAsistenciaView>
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          'Los datos se guardarán cifrados como evidencia del registro.',
+                          'Los datos se guardarAn cifrados como evidencia del registro.',
                           style: TextStyle(
                             color: AppColors.black.withValues(alpha: 0.6),
                             fontSize: 12,
@@ -182,3 +190,4 @@ class _RegistroAsistenciaViewState extends ConsumerState<RegistroAsistenciaView>
     );
   }
 }
+

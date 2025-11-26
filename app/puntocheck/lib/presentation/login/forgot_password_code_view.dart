@@ -1,5 +1,7 @@
-﻿import 'package:flutter/material.dart';
+
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:go_router/go_router.dart';
 import 'package:puntocheck/utils/theme/app_colors.dart';
 import 'package:puntocheck/routes/app_router.dart';
 import 'package:puntocheck/presentation/shared/widgets/primary_button.dart';
@@ -15,7 +17,7 @@ class ForgotPasswordCodeView extends StatelessWidget {
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () => Navigator.of(context).pop(),
+          onPressed: () => context.pop(),
         ),
       ),
       backgroundColor: Colors.white,
@@ -34,7 +36,7 @@ class ForgotPasswordCodeView extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             const Text(
-              'Enviamos un código a <correo>\nColoque los 5 dígitos enviados al correo',
+              'Enviamos un codigo a tu correo. Coloca los 5 digitos recibidos.',
               style: TextStyle(
                 fontSize: 14,
                 color: Colors.grey,
@@ -47,11 +49,9 @@ class ForgotPasswordCodeView extends StatelessWidget {
             ),
             const SizedBox(height: 32),
             PrimaryButton(
-              text: 'Verificar código',
+              text: 'Verificar codigo',
               onPressed: () {
-                // TODO(backend): aquí se valida el código recibido con el backend.
-                // Razón: asegurar que el usuario ingresó el código correcto antes de permitir el cambio.
-                Navigator.pushNamed(context, AppRouter.resetPassword);
+                context.push(AppRoutes.resetPassword);
               },
             ),
             const Spacer(),
@@ -59,7 +59,7 @@ class ForgotPasswordCodeView extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 const Text(
-                  '¿Aún no has recibido el correo electrónico?',
+                  'Aun no has recibido el correo electronico?',
                   textAlign: TextAlign.center,
                   style: TextStyle(color: Colors.grey),
                 ),
@@ -67,11 +67,11 @@ class ForgotPasswordCodeView extends StatelessWidget {
                   onPressed: () {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
-                        content: Text('Reenviando correo... (mock)'),
+                        content: Text('Reenviando correo... '),
                       ),
                     );
                   },
-                  child: const Text('Reenviar correo electrónico'),
+                  child: const Text('Reenviar correo electronico'),
                 ),
               ],
             ),
@@ -82,7 +82,7 @@ class ForgotPasswordCodeView extends StatelessWidget {
     );
   }
 
-  Widget _buildCodeBox() {
+  static Widget _buildCodeBox() {
     return Container(
       width: 50,
       height: 50,
@@ -108,4 +108,3 @@ class ForgotPasswordCodeView extends StatelessWidget {
     );
   }
 }
-

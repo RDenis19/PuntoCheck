@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:puntocheck/utils/theme/app_colors.dart';
 
 class RegistroCircleAction extends StatelessWidget {
@@ -65,7 +65,6 @@ class RegistroLocationCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // TODO(backend): los datos de ubicación, coordenadas, hora y estado del GPS deben sincronizarse
     // con el servicio de localización del dispositivo y almacenarse para evidencia auditada.
     return Container(
       width: double.infinity,
@@ -154,7 +153,7 @@ class RegistroLocationCard extends StatelessWidget {
           InkWell(
             onTap: () {
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Vista de mapa (mock)')),
+                const SnackBar(content: Text('Mapa disponible al conectar servicios de ubicacion')),
               );
             },
             child: Container(
@@ -212,8 +211,7 @@ class TodayScheduleCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // TODO(backend): los datos de entrada/salida y acumulados deben venir de la asistencia real
-    // para reflejar el progreso exacto del día.
+    // para reflejar el progreso exacto del dAa.
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(20),
@@ -343,8 +341,7 @@ class WeekSummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // TODO(backend): este resumen debe provenir de un endpoint semanal que consolide asistencias
-    // (días trabajados, horas totales y promedio de la semana).
+    // (dAas trabajados, horas totales y promedio de la semana).
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(20),
@@ -401,7 +398,7 @@ class WeekSummaryCard extends StatelessWidget {
             children: [
               Expanded(
                 child: _SummaryTile(
-                  label: 'Días trabajados',
+                  label: 'DAas trabajados',
                   value: '$daysWorked',
                 ),
               ),

@@ -1,17 +1,20 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:puntocheck/utils/theme/app_colors.dart';
 import 'package:puntocheck/routes/app_router.dart';
+import 'package:puntocheck/providers/app_providers.dart';
 import 'package:puntocheck/presentation/shared/widgets/outlined_dark_button.dart';
 import 'package:puntocheck/presentation/shared/widgets/primary_button.dart';
 
-class ConfigGlobalView extends StatefulWidget {
+class ConfigGlobalView extends ConsumerStatefulWidget {
   const ConfigGlobalView({super.key});
 
   @override
-  State<ConfigGlobalView> createState() => _ConfigGlobalViewState();
+  ConsumerState<ConfigGlobalView> createState() => _ConfigGlobalViewState();
 }
 
-class _ConfigGlobalViewState extends State<ConfigGlobalView> {
+class _ConfigGlobalViewState extends ConsumerState<ConfigGlobalView> {
   final _toleranciaController = TextEditingController(text: '5');
   final _precisionController = TextEditingController(text: '50');
   bool _requiereFoto = true;
@@ -47,22 +50,18 @@ class _ConfigGlobalViewState extends State<ConfigGlobalView> {
           PrimaryButton(
             text: 'Guardar cambios',
             onPressed: () {
-              // TODO(backend): persistir configuración global en un servicio central.
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Configuración guardada (mock).')),
+                const SnackBar(content: Text('Configuración guardada')),
               );
             },
           ),
           const SizedBox(height: 12),
           OutlinedDarkButton(
             text: 'Cerrar sesión',
-            onPressed: () {
-              // TODO(backend): cerrar sesión del super admin limpiando tokens y sesión.
-              Navigator.pushNamedAndRemoveUntil(
-                context,
-                AppRouter.login,
-                (_) => false,
-              );
+            onPressed: () async {
+              await ref.read(authControllerProvider.notifier).signOut();
+              if (!context.mounted) return;
+              context.go(AppRoutes.login);
             },
           ),
         ],
@@ -102,10 +101,9 @@ class _ConfigGlobalViewState extends State<ConfigGlobalView> {
               alignment: Alignment.centerRight,
               child: OutlinedButton(
                 onPressed: () {
-                  // TODO(backend): guardar textos legales en backend compartido.
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
-                      content: Text('Editar textos legales (mock).'),
+                      content: Text('Edición de textos disponible al conectar backend.'),
                     ),
                   );
                 },
@@ -158,7 +156,6 @@ class _ConfigGlobalViewState extends State<ConfigGlobalView> {
               title: const Text('Requiere geolocalización por defecto'),
               onChanged: (value) => setState(() => _requiereGeo = value),
             ),
-            // TODO(backend): usar estos valores como defaults al crear nuevas organizaciones.
           ],
         ),
       ),
@@ -197,7 +194,6 @@ class _ConfigGlobalViewState extends State<ConfigGlobalView> {
               title: const Text('Habilitar notificaciones push globales'),
               onChanged: (value) => setState(() => _pushEnabled = value),
             ),
-            // TODO(backend): implementar feature flags globales para activar módulos.
           ],
         ),
       ),

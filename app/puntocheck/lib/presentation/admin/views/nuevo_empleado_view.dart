@@ -1,23 +1,26 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:puntocheck/providers/app_providers.dart';
 import 'package:puntocheck/utils/theme/app_colors.dart';
 import 'package:puntocheck/presentation/shared/widgets/outlined_dark_button.dart';
 import 'package:puntocheck/presentation/shared/widgets/primary_button.dart';
 import 'package:puntocheck/presentation/shared/widgets/text_field_icon.dart';
 
-class NuevoEmpleadoView extends StatefulWidget {
+class NuevoEmpleadoView extends ConsumerStatefulWidget {
   const NuevoEmpleadoView({super.key});
 
   @override
-  State<NuevoEmpleadoView> createState() => _NuevoEmpleadoViewState();
+  ConsumerState<NuevoEmpleadoView> createState() => _NuevoEmpleadoViewState();
 }
 
-class _NuevoEmpleadoViewState extends State<NuevoEmpleadoView> {
+class _NuevoEmpleadoViewState extends ConsumerState<NuevoEmpleadoView> {
   final _nombreController = TextEditingController();
   final _correoController = TextEditingController();
   final _telefonoController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
   bool _isAdmin = false;
+  bool _saving = false;
 
   @override
   void dispose() {
@@ -27,6 +30,56 @@ class _NuevoEmpleadoViewState extends State<NuevoEmpleadoView> {
     _passwordController.dispose();
     _confirmPasswordController.dispose();
     super.dispose();
+  }
+
+  Future<void> _registerEmployee() async {
+    // TODO: Conectar con servicio real de creación cuando esté disponible
+    final name = _nombreController.text.trim();
+    final email = _correoController.text.trim();
+    final phone = _telefonoController.text.trim();
+    final pass = _passwordController.text;
+    final confirm = _confirmPasswordController.text;
+
+    if (name.isEmpty || email.isEmpty || pass.isEmpty) {
+      _showMessage('Completa los campos requeridos');
+      return;
+    }
+    if (pass != confirm) {
+      _showMessage('Las contrasenas no coinciden');
+      return;
+    }
+
+    setState(() => _saving = true);
+    try {
+      final profile = await ref.read(profileProvider.future);
+      final orgId = profile?.organizationId;
+
+      await ref.read(authControllerProvider.notifier).signUp(
+        email: email,
+        password: pass,
+        fullName: name,
+        organizationId: orgId,
+      );
+
+      final state = ref.read(authControllerProvider);
+      if (state.hasError) {
+        _showMessage(state.error.toString());
+      } else {
+        _showMessage('Empleado registrado');
+        Navigator.pop(context);
+      }
+    } catch (e) {
+      _showMessage('Error: $e');
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  void _showMessage(String msg) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(msg)),
+    );
   }
 
   @override
@@ -52,28 +105,28 @@ class _NuevoEmpleadoViewState extends State<NuevoEmpleadoView> {
             const SizedBox(height: 16),
             TextFieldIcon(
               controller: _correoController,
-              hintText: 'Correo electrónico',
+              hintText: 'Correo electronico',
               prefixIcon: Icons.email_outlined,
               keyboardType: TextInputType.emailAddress,
             ),
             const SizedBox(height: 16),
             TextFieldIcon(
               controller: _telefonoController,
-              hintText: 'Número telefónico',
+              hintText: 'Numero telefonico',
               prefixIcon: Icons.phone_outlined,
               keyboardType: TextInputType.phone,
             ),
             const SizedBox(height: 16),
             TextFieldIcon(
               controller: _passwordController,
-              hintText: 'Contraseña',
+              hintText: 'Contrasena',
               prefixIcon: Icons.lock_outline,
               obscure: true,
             ),
             const SizedBox(height: 16),
             TextFieldIcon(
               controller: _confirmPasswordController,
-              hintText: 'Confirmar contraseña',
+              hintText: 'Confirmar contrasena',
               prefixIcon: Icons.lock_outline,
               obscure: true,
             ),
@@ -108,13 +161,9 @@ class _NuevoEmpleadoViewState extends State<NuevoEmpleadoView> {
             ),
             const SizedBox(height: 28),
             PrimaryButton(
-              text: 'Registrar Empleado',
-              onPressed: () {
-                // TODO(backend): crear el usuario en Auth y almacenar su perfil con rol.
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Empleado registrado (mock).')),
-                );
-              },
+              text: _saving ? 'Registrando...' : 'Registrar Empleado',
+              enabled: !_saving,
+              onPressed: _registerEmployee,
             ),
             const SizedBox(height: 12),
             OutlinedDarkButton(

@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:puntocheck/utils/theme/app_theme.dart';
 
 /// Widget de campo de texto personalizado para formularios de autenticación.

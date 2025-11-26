@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:puntocheck/utils/theme/app_colors.dart';
 import 'package:puntocheck/presentation/superadmin/views/config_global_view.dart';
 import 'package:puntocheck/presentation/superadmin/views/organizaciones_list_view.dart';

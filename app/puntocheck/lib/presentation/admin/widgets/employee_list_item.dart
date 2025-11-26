@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:puntocheck/utils/theme/app_colors.dart';
 
 class EmployeeListItem extends StatelessWidget {
@@ -82,7 +82,7 @@ class EmployeeListItem extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 4),
-          Text('Último día: $lastDate', style: _smallText),
+          Text('Asltimo dAa: $lastDate', style: _smallText),
         ],
       ),
     );

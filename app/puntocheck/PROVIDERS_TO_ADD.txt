@@ -1,0 +1,44 @@
+
+// Rol derivado del perfil para centralizar la logica de rutas y permisos
+enum UserRole { superAdmin, admin, employee, unknown }
+
+final userRoleProvider = Provider.autoDispose<UserRole>((ref) {
+  final profileAsync = ref.watch(profileProvider);
+
+  return profileAsync.when(
+    data: (profile) {
+      if (profile?.isSuperAdmin == true) return UserRole.superAdmin;
+      if (profile?.isOrgAdmin == true) return UserRole.admin;
+      if (profile != null) return UserRole.employee;
+      return UserRole.unknown;
+    },
+    loading: () => UserRole.unknown,
+    error: (_, __) => UserRole.unknown,
+  );
+});
+
+/// Empleados de la organizacion del usuario (Admin)
+final orgEmployeesProvider = 
+    FutureProvider.autoDispose<List<Profile>>((ref) async {
+  final profile = await ref.watch(profileProvider.future);
+  final orgId = profile?.organizationId;
+
+  if (orgId == null) {
+    return <Profile>[];
+  }
+
+  return ref.watch(organizationServiceProvider).getEmployeesByOrg(orgId);
+});
+
+/// Estadisticas para el dashboard de administrador
+final adminDashboardStatsProvider = 
+    FutureProvider.autoDispose<Map<String, dynamic>>((ref) async {
+  final profile = await ref.watch(profileProvider.future);
+  final orgId = profile?.organizationId;
+
+  if (orgId == null) {
+    throw Exception('El usuario no tiene organizacion asignada.');
+  }
+
+  return ref.watch(organizationServiceProvider).getAdminDashboardStats(orgId);
+});

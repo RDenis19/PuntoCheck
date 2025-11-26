@@ -1,17 +1,16 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:puntocheck/utils/theme/app_colors.dart';
 import 'package:puntocheck/routes/app_router.dart';
 import 'package:puntocheck/presentation/employee/views/avisos_view.dart';
 import 'package:puntocheck/presentation/employee/views/historial_view.dart';
 import 'package:puntocheck/presentation/employee/views/settings_view.dart';
 import 'package:puntocheck/presentation/employee/widgets/employee_home_cards.dart';
-import 'package:puntocheck/providers/auth_provider.dart';
-import 'package:puntocheck/providers/attendance_provider.dart';
+import 'package:puntocheck/providers/app_providers.dart';
 
 class EmployeeHomeView extends ConsumerStatefulWidget {
   const EmployeeHomeView({super.key});
-
   @override
   ConsumerState<EmployeeHomeView> createState() => _EmployeeHomeViewState();
 }
@@ -46,11 +45,10 @@ class _EmployeeHomeViewState extends ConsumerState<EmployeeHomeView> {
             _buildHeader(context),
             const SizedBox(height: 16),
             _buildRegisterButton(context),
-            const SizedBox(height: 16),
             const CurrentLocationCard(),
             TodayStatsCard(
               onFooterTap: () {
-                Navigator.pushNamed(context, AppRouter.employeeHorarioTrabajo);
+                context.push(AppRoutes.horarioTrabajo);
               },
             ),
             const RecentActivityCard(),
@@ -62,8 +60,7 @@ class _EmployeeHomeViewState extends ConsumerState<EmployeeHomeView> {
   }
 
   Widget _buildHeader(BuildContext context) {
-    final profileAsync = ref.watch(currentUserProfileProvider);
-
+    final profileAsync = ref.watch(profileProvider);
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 20, 16, 24),
       decoration: const BoxDecoration(
@@ -84,11 +81,10 @@ class _EmployeeHomeViewState extends ConsumerState<EmployeeHomeView> {
             width: 56,
             height: 56,
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.1),
+              color: Colors.white.withOpacity(0.1),
               shape: BoxShape.circle,
-              border: Border.all(color: Colors.white.withValues(alpha: 0.3)),
+              border: Border.all(color: Colors.white.withOpacity(0.3)),
             ),
-            // TODO: Mostrar avatar real si existe
             child: const Icon(Icons.person, color: Colors.white, size: 30),
           ),
           const SizedBox(width: 12),
@@ -107,7 +103,7 @@ class _EmployeeHomeViewState extends ConsumerState<EmployeeHomeView> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    '${profile?.jobTitle ?? 'Empleado'} · ${DateTime.now().toString().split(' ')[0]}',
+                    '${profile?.jobTitle ?? 'Empleado'}  ${DateTime.now().toString().split(' ')[0]}',
                     style: const TextStyle(fontSize: 12, color: Colors.white70),
                   ),
                 ],
@@ -116,7 +112,6 @@ class _EmployeeHomeViewState extends ConsumerState<EmployeeHomeView> {
               error: (_, __) => const Text('Error cargando perfil', style: TextStyle(color: Colors.white)),
             ),
           ),
-          const SizedBox(width: 12),
           Stack(
             clipBehavior: Clip.none,
             children: [
@@ -151,7 +146,6 @@ class _EmployeeHomeViewState extends ConsumerState<EmployeeHomeView> {
   Widget _buildRegisterButton(BuildContext context) {
     // Verificar si ya tiene turno activo
     final activeShiftAsync = ref.watch(activeShiftProvider);
-
     return activeShiftAsync.when(
       data: (activeShift) {
         final isCheckIn = activeShift == null;
@@ -159,12 +153,12 @@ class _EmployeeHomeViewState extends ConsumerState<EmployeeHomeView> {
           child: GestureDetector(
             onTap: () {
               // Si es check-in, vamos a registro
-              // Si es check-out, también vamos a registro (o una vista de salida específica)
+              // Si es check-out, tambien vamos a registro (o una vista de salida especifica)
               // Por ahora reusamos la vista, pero pasamos argumento o manejamos estado
-              // Idealmente RegistroAsistenciaView debería saber si es entrada o salida
+              // Idealmente RegistroAsistenciaView deberia saber si es entrada o salida
               // O pasamos un argumento.
               // Por simplicidad, vamos a la misma vista y ella decide (o le pasamos param)
-              Navigator.pushNamed(context, AppRouter.employeeRegistroAsistencia);
+              context.push(AppRoutes.registroAsistencia);
             },
             child: Container(
               width: 120,
@@ -184,9 +178,9 @@ class _EmployeeHomeViewState extends ConsumerState<EmployeeHomeView> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Icon(
-                    isCheckIn ? Icons.login : Icons.logout, 
-                    color: AppColors.white, 
-                    size: 32
+                    isCheckIn ? Icons.login : Icons.logout,
+                    color: AppColors.white,
+                    size: 32,
                   ),
                   const SizedBox(height: 6),
                   Text(
@@ -216,7 +210,6 @@ class _EmployeeHomeViewState extends ConsumerState<EmployeeHomeView> {
       Icons.notifications_none,
       Icons.settings_outlined,
     ];
-
     const labels = <String>['Inicio', 'Mapa', 'Historial', 'Avisos', 'Ajustes'];
 
     return Container(
@@ -249,7 +242,7 @@ class _EmployeeHomeViewState extends ConsumerState<EmployeeHomeView> {
                   ),
                   decoration: BoxDecoration(
                     color: isSelected
-                        ? AppColors.primaryRed.withValues(alpha: 0.08)
+                        ? AppColors.primaryRed.withOpacity(0.08)
                         : Colors.transparent,
                     borderRadius: BorderRadius.circular(20),
                     border: isSelected
@@ -291,7 +284,7 @@ class _MapPlaceholder extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
+    return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
@@ -300,9 +293,9 @@ class _MapPlaceholder extends StatelessWidget {
             Icon(
               Icons.map_outlined,
               size: 72,
-              color: AppColors.primaryRed.withValues(alpha: 0.7),
+              color: AppColors.primaryRed.withOpacity(0.7),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 24),
             const Text(
               'Mapa en desarrollo',
               style: TextStyle(
@@ -313,16 +306,16 @@ class _MapPlaceholder extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              'Pronto podrás ver rutas, oficinas y la ubicación en tiempo real.',
+              'Pronto podras ver rutas, oficinas y la ubicacion en tiempo real.',
               textAlign: TextAlign.center,
-              style: TextStyle(color: AppColors.black.withValues(alpha: 0.6)),
+              style: TextStyle(color: AppColors.black.withOpacity(0.6)),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 32),
             OutlinedButton(
               onPressed: () {
                 ScaffoldMessenger.of(
                   context,
-                ).showSnackBar(const SnackBar(content: Text('Mapa (mock).')));
+                ).showSnackBar(const SnackBar(content: Text('Mapa en desarrollo')));
               },
               style: OutlinedButton.styleFrom(
                 foregroundColor: AppColors.primaryRed,
@@ -343,3 +336,4 @@ class _MapPlaceholder extends StatelessWidget {
     );
   }
 }
+

@@ -1,11 +1,10 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:puntocheck/utils/theme/app_colors.dart';
 import 'package:puntocheck/presentation/admin/widgets/schedule_calendar.dart';
 import 'package:puntocheck/presentation/shared/widgets/primary_button.dart';
 import 'package:puntocheck/presentation/shared/widgets/text_field_icon.dart';
-import 'package:puntocheck/providers/schedule_provider.dart';
-import 'package:puntocheck/providers/auth_provider.dart';
+import 'package:puntocheck/providers/app_providers.dart';
 import 'package:puntocheck/models/work_schedule_model.dart';
 import 'package:puntocheck/models/enums.dart';
 
@@ -34,12 +33,12 @@ class _HorarioAdminViewState extends ConsumerState<HorarioAdminView> {
   Future<void> _saveSchedule() async {
     if (_selectedDays.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Selecciona al menos un día')),
+        const SnackBar(content: Text('Selecciona al menos un dAAa')),
       );
       return;
     }
 
-    final profile = await ref.read(currentUserProfileProvider.future);
+    final profile = await ref.read(profileProvider.future);
     if (profile == null || profile.organizationId == null) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -48,9 +47,8 @@ class _HorarioAdminViewState extends ConsumerState<HorarioAdminView> {
       return;
     }
 
-    // TODO: Necesitarías seleccionar un empleado primero
-    // Por ahora, esto es un ejemplo de cómo crear horarios
-    // Deberías agregar un selector de empleado en la UI
+    // Por ahora, esto es un ejemplo de cAA3mo crear horarios
+    // DeberAAas agregar un selector de empleado en la UI
     
     final scheduleController = ref.read(scheduleControllerProvider.notifier);
     
@@ -78,7 +76,7 @@ class _HorarioAdminViewState extends ConsumerState<HorarioAdminView> {
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Horario guardado para ${_selectedDays.length} días.'),
+          content: Text('Horario guardado para ${_selectedDays.length} dAAas.'),
         ),
       );
       setState(() {
@@ -232,5 +230,4 @@ class _HorarioAdminViewState extends ConsumerState<HorarioAdminView> {
   bool _isSameDay(DateTime a, DateTime b) =>
       a.year == b.year && a.month == b.month && a.day == b.day;
 }
-
 

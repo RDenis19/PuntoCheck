@@ -1,4 +1,5 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:puntocheck/utils/theme/app_colors.dart';
 import 'package:puntocheck/routes/app_router.dart';
 import 'package:puntocheck/presentation/admin/widgets/employee_list_item.dart';
@@ -6,7 +7,7 @@ import 'package:puntocheck/presentation/admin/widgets/employee_stats_cards.dart'
 import 'package:puntocheck/presentation/shared/widgets/text_field_icon.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:puntocheck/providers/admin_provider.dart';
+import 'package:puntocheck/providers/app_providers.dart';
 
 class EmpleadosListView extends ConsumerStatefulWidget {
   const EmpleadosListView({super.key});
@@ -18,8 +19,6 @@ class EmpleadosListView extends ConsumerStatefulWidget {
 class _EmpleadosListViewState extends ConsumerState<EmpleadosListView> {
   final _searchController = TextEditingController();
   int _selectedFilter = 0;
-
-  // final List<Map<String, dynamic>> _employees = []; // Eliminado mock
 
   @override
   void dispose() {
@@ -45,18 +44,25 @@ class _EmpleadosListViewState extends ConsumerState<EmpleadosListView> {
             final matchesSearch = (employee.fullName ?? '')
                 .toLowerCase()
                 .contains(_searchController.text.toLowerCase());
-            // TODO: Implementar filtro de activos/inactivos real si tuviéramos ese campo en Profile o cruzando con Shifts
-            return matchesSearch;
+            bool matchesFilter = true;
+            if (_selectedFilter == 1) matchesFilter = employee.isActive;
+            if (_selectedFilter == 2) matchesFilter = !employee.isActive;
+            return matchesSearch && matchesFilter;
           }).toList();
 
           return ListView(
             padding: const EdgeInsets.all(16),
             children: [
-              EmployeeStatsCards(stats: [
-                 EmployeeStatData(label: 'Total', value: '${employees.length}'),
-                 const EmployeeStatData(label: 'Activos', value: '--'), // Requiere cruce con shifts
-                 const EmployeeStatData(label: 'Promedio', value: '--'),
-              ]),
+              EmployeeStatsCards(
+                stats: [
+                  EmployeeStatData(
+                    label: 'Total',
+                    value: '${employees.length}',
+                  ),
+                  const EmployeeStatData(label: 'Activos', value: '--'),
+                  const EmployeeStatData(label: 'Promedio', value: '--'),
+                ],
+              ),
               const SizedBox(height: 20),
               TextFieldIcon(
                 controller: _searchController,
@@ -74,27 +80,28 @@ class _EmpleadosListViewState extends ConsumerState<EmpleadosListView> {
                   child: Center(child: Text('Sin resultados')),
                 )
               else
-                ...filtered.map((employee) => Card(
-                  margin: const EdgeInsets.symmetric(vertical: 6),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20),
+                ...filtered.map(
+                  (employee) => Card(
+                    margin: const EdgeInsets.symmetric(vertical: 6),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: EmployeeListItem(
+                      active: employee.isActive,
+                      name: employee.fullName ?? 'Sin Nombre',
+                      role: employee.jobTitle,
+                      lastEntry: '--',
+                      lastExit: '--',
+                      lastDate: '--',
+                      onTap: () {
+                        context.push(
+                          AppRoutes.adminEmpleadoDetalle,
+                          extra: employee,
+                        );
+                      },
+                    ),
                   ),
-                  child: EmployeeListItem(
-                    name: employee.fullName ?? 'Sin Nombre',
-                    role: employee.jobTitle,
-                    active: false, // TODO: Real time status
-                    lastEntry: '--',
-                    lastExit: '--',
-                    lastDate: '--',
-                    onTap: () {
-                      Navigator.pushNamed(
-                        context,
-                        AppRouter.adminEmpleadoDetalle,
-                        arguments: employee, // Pasamos el objeto Profile real
-                      );
-                    },
-                  ),
-                )),
+                ),
             ],
           );
         },
@@ -145,7 +152,3 @@ class _EmpleadosListViewState extends ConsumerState<EmpleadosListView> {
     );
   }
 }
-
-
-
-

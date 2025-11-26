@@ -1,30 +1,50 @@
-﻿import 'package:flutter/material.dart';
-import 'package:puntocheck/utils/theme/app_colors.dart';
-import 'package:puntocheck/routes/app_router.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:puntocheck/providers/app_providers.dart';
 import 'package:puntocheck/presentation/shared/widgets/outlined_dark_button.dart';
+import 'package:puntocheck/routes/app_router.dart';
+import 'package:puntocheck/utils/theme/app_colors.dart';
 
-class SettingsView extends StatelessWidget {
+class SettingsView extends ConsumerWidget {
   const SettingsView({super.key, this.embedded = false});
 
   final bool embedded;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final profileAsync = ref.watch(profileProvider);
+
     final content = ListView(
       padding: EdgeInsets.fromLTRB(20, 20, 20, embedded ? 100 : 20),
       children: [
-        _ProfileHeader(
-          onEditAvatar: () => _showSnackBar(context, 'Actualizar foto (mock).'),
+        profileAsync.when(
+          data: (profile) => _ProfileHeader(
+            fullName: profile?.fullName ?? 'Usuario',
+            email: profile?.email ?? 'Sin correo',
+            jobTitle: profile?.jobTitle ?? '',
+            initials: profile?.initials ?? 'NA',
+            onEditAvatar: () =>
+                _showSnackBar(context, 'Actualizar foto disponible pronto.'),
+          ),
+          loading: () => const _ProfileHeader.loading(),
+          error: (_, __) => _ProfileHeader(
+            fullName: 'Usuario',
+            email: 'Sin correo',
+            jobTitle: '',
+            initials: 'NA',
+            onEditAvatar: () =>
+                _showSnackBar(context, 'Actualizar foto disponible pronto.'),
+          ),
         ),
         const SizedBox(height: 24),
         const _SectionTitle('Cuenta'),
         _SettingsTile(
           icon: Icons.person_outline,
-          title: 'Información personal',
-          subtitle: 'Edita tu nombre, teléfono, correo o contraseña',
+          title: 'Informacion personal',
+          subtitle: 'Edita tu nombre, telefono o cargo',
           onTap: () {
-            // TODO(backend): validar permisos antes de permitir cambios sobre la información personal.
-            Navigator.pushNamed(context, AppRouter.employeePersonalInfo);
+            context.push(AppRoutes.personalInfo);
           },
         ),
         const SizedBox(height: 24),
@@ -34,8 +54,7 @@ class SettingsView extends StatelessWidget {
           title: 'Modo Oscuro',
           subtitle: 'Cambia la apariencia del sistema',
           onTap: () {
-            // TODO(backend): persistir la preferencia de tema para mantenerla sincronizada entre dispositivos.
-            _showSnackBar(context, 'Modo oscuro (mock).');
+            _showSnackBar(context, 'Modo oscuro en desarrollo.');
           },
         ),
         _SettingsTile(
@@ -43,8 +62,7 @@ class SettingsView extends StatelessWidget {
           title: 'Lenguaje',
           subtitle: 'Selecciona tu idioma preferido',
           onTap: () {
-            // TODO(backend): guardar el lenguaje preferido del usuario para cargarlo al iniciar sesión.
-            _showSnackBar(context, 'Cambio de lenguaje (mock).');
+            _showSnackBar(context, 'Cambio de lenguaje en desarrollo.');
           },
         ),
         const SizedBox(height: 24),
@@ -52,22 +70,18 @@ class SettingsView extends StatelessWidget {
         _SettingsTile(
           icon: Icons.fingerprint,
           title: 'Huella Dactilar',
-          subtitle: 'Configura biometría para ingresar',
+          subtitle: 'Configura biometria para ingresar',
           onTap: () {
-            // TODO(backend): integrar biometría nativa y sincronizar la preferencia desde backend/Auth.
-            _showSnackBar(context, 'Huella dactilar (mock).');
+            _showSnackBar(context, 'Huella dactilar en desarrollo.');
           },
         ),
         const SizedBox(height: 24),
         OutlinedDarkButton(
-          text: 'Cerrar sesión',
-          onPressed: () {
-            // TODO(backend): cerrar la sesión real limpiando tokens y actualizando backend.
-            Navigator.pushNamedAndRemoveUntil(
-              context,
-              AppRouter.login,
-              (_) => false,
-            );
+          text: 'Cerrar sesion',
+          onPressed: () async {
+            await ref.read(authControllerProvider.notifier).signOut();
+            if (!context.mounted) return;
+            context.go(AppRoutes.login);
           },
         ),
       ],
@@ -103,9 +117,25 @@ class SettingsView extends StatelessWidget {
 }
 
 class _ProfileHeader extends StatelessWidget {
-  const _ProfileHeader({required this.onEditAvatar});
+  const _ProfileHeader({
+    required this.onEditAvatar,
+    this.fullName = '',
+    this.email = '',
+    this.jobTitle = '',
+    this.initials = 'NA',
+  });
 
-  final VoidCallback onEditAvatar;
+  const _ProfileHeader.loading({this.onEditAvatar})
+    : fullName = 'Cargando...',
+      email = '',
+      jobTitle = '',
+      initials = 'NA';
+
+  final VoidCallback? onEditAvatar;
+  final String fullName;
+  final String email;
+  final String jobTitle;
+  final String initials;
 
   @override
   Widget build(BuildContext context) {
@@ -127,10 +157,17 @@ class _ProfileHeader extends StatelessWidget {
           Stack(
             clipBehavior: Clip.none,
             children: [
-              const CircleAvatar(
+              CircleAvatar(
                 radius: 40,
-                backgroundColor: AppColors.primaryRed,
-                child: Icon(Icons.person, color: AppColors.white, size: 40),
+                backgroundColor: AppColors.primaryRed.withValues(alpha: 0.1),
+                child: Text(
+                  initials,
+                  style: const TextStyle(
+                    color: AppColors.primaryRed,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 18,
+                  ),
+                ),
               ),
               Positioned(
                 bottom: -4,
@@ -160,27 +197,24 @@ class _ProfileHeader extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Pablo Criollo',
-                  style: TextStyle(
+                Text(
+                  fullName,
+                  style: const TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.w700,
                     color: AppColors.backgroundDark,
                   ),
                 ),
                 const SizedBox(height: 4),
-                const Text(
-                  'pavincrik@gmail.com',
-                  style: TextStyle(color: AppColors.grey),
-                ),
+                Text(email, style: const TextStyle(color: AppColors.grey)),
                 const SizedBox(height: 4),
-                // TODO(backend): foto, nombre y correo deben venir del perfil autenticado.
-                Text(
-                  'Empleado · ID 00231',
-                  style: TextStyle(
-                    color: AppColors.black.withValues(alpha: 0.5),
+                if (jobTitle.isNotEmpty)
+                  Text(
+                    jobTitle,
+                    style: TextStyle(
+                      color: AppColors.black.withValues(alpha: 0.5),
+                    ),
                   ),
-                ),
               ],
             ),
           ),
@@ -288,5 +322,3 @@ class _SettingsTile extends StatelessWidget {
     );
   }
 }
-
-

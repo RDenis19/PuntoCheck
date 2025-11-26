@@ -1,17 +1,27 @@
-﻿import 'package:flutter/material.dart';
-import 'package:puntocheck/utils/theme/app_colors.dart';
-import 'package:puntocheck/models/organization_model.dart';
+import 'package:flutter/material.dart';
 import 'package:puntocheck/models/enums.dart';
+import 'package:puntocheck/models/organization_model.dart';
+import 'package:puntocheck/utils/theme/app_colors.dart';
 
 class SaOrganizationCard extends StatelessWidget {
   const SaOrganizationCard({
     super.key,
     required this.organization,
     required this.onTap,
+    this.totalEmployees,
+    this.activeToday,
+    this.attendanceAverage,
+    this.isLoading = false,
+    this.hasStatsError = false,
   });
 
   final Organization organization;
   final VoidCallback onTap;
+  final int? totalEmployees;
+  final int? activeToday;
+  final int? attendanceAverage;
+  final bool isLoading;
+  final bool hasStatsError;
 
   @override
   Widget build(BuildContext context) {
@@ -21,22 +31,41 @@ class SaOrganizationCard extends StatelessWidget {
       OrgStatus.suspendida => AppColors.primaryRed,
     };
 
-    return Card(
+    final brandColor = _brandColor();
+    final employeesText = totalEmployees != null ? '$totalEmployees' : '--';
+    final activeTodayText = activeToday != null ? '$activeToday' : '--';
+    final attendanceText = attendanceAverage != null
+        ? '$attendanceAverage%'
+        : '--';
+
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 180),
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
-      elevation: 3,
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: AppColors.black.withValues(alpha: 0.05)),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.black.withValues(alpha: 0.06),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
       child: InkWell(
         borderRadius: BorderRadius.circular(22),
-        onTap: onTap,
+        onTap: isLoading ? null : onTap,
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(18),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildLogo(),
-                  const SizedBox(width: 12),
+                  _buildLogo(brandColor),
+                  const SizedBox(width: 14),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -44,50 +73,72 @@ class SaOrganizationCard extends StatelessWidget {
                         Text(
                           organization.name,
                           style: const TextStyle(
-                            fontWeight: FontWeight.w700,
+                            fontWeight: FontWeight.w800,
                             fontSize: 16,
                             color: AppColors.backgroundDark,
                           ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
                         ),
                         const SizedBox(height: 4),
                         Text(
                           'Contacto: ${organization.contactEmail ?? 'N/A'}',
                           style: TextStyle(
                             color: AppColors.black.withValues(alpha: 0.6),
-                            fontSize: 12,
+                            fontSize: 13,
                           ),
+                        ),
+                        const SizedBox(height: 6),
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.calendar_today_outlined,
+                              size: 14,
+                              color: AppColors.black.withValues(alpha: 0.45),
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              'Alta: ${_formatDate(organization.createdAt)}',
+                              style: TextStyle(
+                                color: AppColors.black.withValues(alpha: 0.55),
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
                   ),
-                  _StatusChip(color: statusColor, text: organization.status.name),
+                  _StatusChip(
+                    color: statusColor,
+                    text: organization.status.name,
+                  ),
                 ],
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 16),
               Row(
                 children: [
                   _InfoColumn(
                     label: 'Empleados',
-                    value: '--', // TODO: Fetch count
+                    value: employeesText,
+                    isLoading: isLoading,
                   ),
                   _InfoColumn(
                     label: 'Activos hoy',
-                    value: '--', // TODO: Fetch active
+                    value: activeTodayText,
+                    isLoading: isLoading,
                   ),
                   _InfoColumn(
                     label: 'Promedio',
-                    value: '--', // TODO: Fetch avg
+                    value: attendanceText,
+                    isLoading: isLoading,
                   ),
                 ],
               ),
-              const SizedBox(height: 8),
-              Text(
-                'Desde ${_formatDate(organization.createdAt)}',
-                style: TextStyle(
-                  color: AppColors.black.withValues(alpha: 0.5),
-                  fontSize: 12,
-                ),
-              ),
+              if (hasStatsError) ...[
+                const SizedBox(height: 10),
+                const _StatsWarning(),
+              ],
             ],
           ),
         ),
@@ -95,36 +146,72 @@ class SaOrganizationCard extends StatelessWidget {
     );
   }
 
-  Widget _buildLogo() {
+  Widget _buildLogo(Color brandColor) {
     if (organization.logoUrl == null || organization.logoUrl!.isEmpty) {
-      return CircleAvatar(
-        radius: 28,
-        backgroundColor: AppColors.primaryRed.withValues(alpha: 0.15),
-        child: Text(
-          organization.name.substring(0, 1),
-          style: const TextStyle(
-            color: AppColors.primaryRed,
-            fontWeight: FontWeight.w700,
-            fontSize: 18,
+      return Container(
+        width: 60,
+        height: 60,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          gradient: LinearGradient(
+            colors: [
+              brandColor.withValues(alpha: 0.2),
+              brandColor.withValues(alpha: 0.35),
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          border: Border.all(color: AppColors.white, width: 2),
+        ),
+        child: Center(
+          child: Text(
+            organization.name.substring(0, 1),
+            style: const TextStyle(
+              color: AppColors.primaryRed,
+              fontWeight: FontWeight.w800,
+              fontSize: 20,
+            ),
           ),
         ),
       );
     }
 
-    return CircleAvatar(
-      radius: 28,
-      backgroundImage: NetworkImage(organization.logoUrl!),
+    return Container(
+      width: 60,
+      height: 60,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        border: Border.all(color: AppColors.black.withValues(alpha: 0.06)),
+      ),
+      clipBehavior: Clip.hardEdge,
+      child: Image.network(
+        organization.logoUrl!,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => CircleAvatar(
+          backgroundColor: brandColor.withValues(alpha: 0.15),
+          child: Text(
+            organization.name.substring(0, 1),
+            style: const TextStyle(
+              color: AppColors.primaryRed,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ),
+      ),
     );
+  }
+
+  Color _brandColor() {
+    final hex = organization.brandColor.replaceAll('#', '');
+    try {
+      return Color(int.parse('FF$hex', radix: 16));
+    } catch (_) {
+      return AppColors.primaryRed;
+    }
   }
 
   String _formatDate(DateTime date) =>
       '${date.day.toString().padLeft(2, '0')} ${_monthShort(date.month)} ${date.year}';
-
-  String _formatDateTime(DateTime date) {
-    final time =
-        '${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
-    return '${_formatDate(date)}, $time';
-  }
 
   String _monthShort(int month) {
     const months = [
@@ -146,10 +233,15 @@ class SaOrganizationCard extends StatelessWidget {
 }
 
 class _InfoColumn extends StatelessWidget {
-  const _InfoColumn({required this.label, required this.value});
+  const _InfoColumn({
+    required this.label,
+    required this.value,
+    this.isLoading = false,
+  });
 
   final String label;
   final String value;
+  final bool isLoading;
 
   @override
   Widget build(BuildContext context) {
@@ -160,18 +252,27 @@ class _InfoColumn extends StatelessWidget {
           Text(
             label,
             style: TextStyle(
-              color: AppColors.black.withValues(alpha: 0.6),
+              color: AppColors.black.withValues(alpha: 0.55),
               fontSize: 12,
             ),
           ),
-          const SizedBox(height: 2),
-          Text(
-            value,
-            style: const TextStyle(
-              color: AppColors.backgroundDark,
-              fontWeight: FontWeight.w700,
+          const SizedBox(height: 3),
+          if (isLoading)
+            Container(
+              height: 14,
+              decoration: BoxDecoration(
+                color: AppColors.black.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(6),
+              ),
+            )
+          else
+            Text(
+              value,
+              style: const TextStyle(
+                color: AppColors.backgroundDark,
+                fontWeight: FontWeight.w800,
+              ),
             ),
-          ),
         ],
       ),
     );
@@ -204,4 +305,33 @@ class _StatusChip extends StatelessWidget {
   }
 }
 
+class _StatsWarning extends StatelessWidget {
+  const _StatsWarning();
 
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: AppColors.primaryRed.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Row(
+        children: const [
+          Icon(Icons.info_outline, color: AppColors.primaryRed, size: 18),
+          SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              'No pudimos cargar las estadisticas. Intenta mas tarde.',
+              style: TextStyle(
+                color: AppColors.primaryRed,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}

@@ -1,12 +1,11 @@
-﻿import 'package:flutter/material.dart';
-import 'package:puntocheck/utils/theme/app_colors.dart';
-import 'package:puntocheck/routes/app_router.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:puntocheck/presentation/admin/widgets/admin_dashboard_header.dart';
 import 'package:puntocheck/presentation/admin/widgets/admin_quick_action_button.dart';
-
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:puntocheck/providers/auth_provider.dart';
-import 'package:puntocheck/providers/admin_provider.dart';
+import 'package:puntocheck/providers/app_providers.dart';
+import 'package:puntocheck/routes/app_router.dart';
+import 'package:puntocheck/utils/theme/app_colors.dart';
 
 class AdminHomeView extends ConsumerWidget {
   const AdminHomeView({super.key});
@@ -14,7 +13,9 @@ class AdminHomeView extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final statsAsync = ref.watch(adminDashboardStatsProvider);
-    
+    final profileAsync = ref.watch(profileProvider);
+    final organizationAsync = ref.watch(currentOrganizationProvider);
+
     final stats = statsAsync.when(
       data: (data) => [
         DashboardStat(label: 'Empleados', value: '${data['employees']}'),
@@ -33,95 +34,99 @@ class AdminHomeView extends ConsumerWidget {
       ],
     );
 
-    return SafeArea(
-      child: ListView(
-        children: [
-          _buildHeader(context, ref),
-          AdminDashboardHeader(
-            title: 'Panel de Administración',
-            subtitle: 'Gestión empresarial',
-            stats: stats,
-          ),
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            child: Text(
-              'Acciones rápidas',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
-                color: AppColors.backgroundDark,
+    return Scaffold(
+      backgroundColor: AppColors.white,
+      body: SafeArea(
+        child: ListView(
+          children: [
+            _buildHeader(context, profileAsync, organizationAsync),
+            AdminDashboardHeader(
+              title: 'Panel de Administracion',
+              subtitle: 'Gestion empresarial',
+              stats: stats,
+            ),
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              child: Text(
+                'Acciones rapidas',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.backgroundDark,
+                ),
               ),
             ),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Wrap(
-              spacing: 12,
-              runSpacing: 12,
-              children: [
-                AdminQuickActionButton(
-                  icon: Icons.person_add_alt,
-                  title: 'Nuevo Empleado',
-                  subtitle: 'Registrar nuevo empleado',
-                  onTap: () => Navigator.pushNamed(
-                    context,
-                    AppRouter.adminNuevoEmpleado,
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                children: [
+                  AdminQuickActionButton(
+                    icon: Icons.person_add_alt,
+                    title: 'Nuevo Empleado',
+                    subtitle: 'Registrar nuevo empleado',
+                    onTap: () => context.push(AppRoutes.adminNuevoEmpleado),
                   ),
-                ),
-                AdminQuickActionButton(
-                  icon: Icons.people_outline,
-                  title: 'Empleados',
-                  subtitle: 'Gestionar empleados',
-                  onTap: () => Navigator.pushNamed(
-                    context,
-                    AppRouter.adminEmpleadosList,
+                  AdminQuickActionButton(
+                    icon: Icons.people_outline,
+                    title: 'Empleados',
+                    subtitle: 'Gestionar empleados',
+                    onTap: () => context.push(AppRoutes.adminEmpleadosList),
                   ),
-                ),
-                AdminQuickActionButton(
-                  icon: Icons.map_outlined,
-                  title: 'Ubicación',
-                  subtitle: 'Ver empleados en mapa',
-                  onTap: () {
-                    // TODO(backend): conectar con el módulo de mapa en tiempo real.
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Mapa en desarrollo (mock).'),
-                      ),
-                    );
-                  },
-                ),
-                AdminQuickActionButton(
-                  icon: Icons.download_outlined,
-                  title: 'Descargar Reportes',
-                  subtitle: 'Reportes de asistencia',
-                  onTap: () {
-                    // TODO(backend): reutilizar el flujo de reportes ya implementado.
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Descarga de reportes (mock).'),
-                      ),
-                    );
-                  },
-                ),
-                AdminQuickActionButton(
-                  icon: Icons.campaign_outlined,
-                  title: 'Anuncios',
-                  subtitle: 'Gestionar anuncios',
-                  onTap: () =>
-                      Navigator.pushNamed(context, AppRouter.adminAnuncios),
-                ),
-              ],
+                  AdminQuickActionButton(
+                    icon: Icons.map_outlined,
+                    title: 'Ubicacion',
+                    subtitle: 'Ver empleados en mapa',
+                    onTap: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Modulo de mapa en desarrollo.'),
+                        ),
+                      );
+                    },
+                  ),
+                  AdminQuickActionButton(
+                    icon: Icons.download_outlined,
+                    title: 'Descargar Reportes',
+                    subtitle: 'Reportes de asistencia',
+                    onTap: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                            'Descarga de reportes disponible pronto.',
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                  AdminQuickActionButton(
+                    icon: Icons.campaign_outlined,
+                    title: 'Anuncios',
+                    subtitle: 'Gestionar anuncios',
+                    onTap: () => context.push(AppRoutes.adminAnuncios),
+                  ),
+                  AdminQuickActionButton(
+                    icon: Icons.add_alert_outlined,
+                    title: 'Nuevo anuncio',
+                    subtitle: 'Crear aviso interno',
+                    onTap: () => context.push(AppRoutes.adminNuevoAnuncio),
+                  ),
+                ],
+              ),
             ),
-          ),
-          const SizedBox(height: 24),
-        ],
+            const SizedBox(height: 24),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildHeader(BuildContext context, WidgetRef ref) {
-    final profileAsync = ref.watch(currentUserProfileProvider);
-
+  Widget _buildHeader(
+    BuildContext context,
+    AsyncValue profileAsync,
+    AsyncValue organizationAsync,
+  ) {
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 24, 16, 32),
       decoration: const BoxDecoration(
@@ -154,26 +159,46 @@ class AdminHomeView extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 profileAsync.when(
-                  data: (profile) => Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Hola, ${profile?.fullName ?? 'Admin'}!',
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.white,
+                  data: (profile) {
+                    final name = profile?.fullName ?? 'Admin';
+                    final title = profile?.jobTitle ?? 'Administrador';
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Hola, $name!',
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.white,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        '${profile?.jobTitle ?? 'Administrador'} · ${DateTime.now().toString().split(' ')[0]}',
-                        style: const TextStyle(color: Colors.white70),
-                      ),
-                    ],
+                        const SizedBox(height: 4),
+                        organizationAsync.when(
+                          data: (org) => Text(
+                            '$title • ${_formatDate(org?.createdAt)}',
+                            style: const TextStyle(color: Colors.white70),
+                          ),
+                          loading: () => const Text(
+                            'Cargando organizacion...',
+                            style: TextStyle(color: Colors.white70),
+                          ),
+                          error: (_, __) => const Text(
+                            'Organizacion',
+                            style: TextStyle(color: Colors.white70),
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+                  loading: () => const Text(
+                    'Cargando...',
+                    style: TextStyle(color: Colors.white),
                   ),
-                  loading: () => const Text('Cargando...', style: TextStyle(color: Colors.white)),
-                  error: (_, __) => const Text('Error', style: TextStyle(color: Colors.white)),
+                  error: (_, __) => const Text(
+                    'Error',
+                    style: TextStyle(color: Colors.white),
+                  ),
                 ),
               ],
             ),
@@ -182,9 +207,10 @@ class AdminHomeView extends ConsumerWidget {
             children: [
               IconButton(
                 onPressed: () {
-                  // TODO(backend): abrir centro de notificaciones del administrador.
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Notificaciones (mock).')),
+                    const SnackBar(
+                      content: Text('Centro de notificaciones en desarrollo.'),
+                    ),
                   );
                 },
                 icon: const Icon(
@@ -210,7 +236,9 @@ class AdminHomeView extends ConsumerWidget {
       ),
     );
   }
+
+  String _formatDate(DateTime? date) {
+    if (date == null) return '';
+    return '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
+  }
 }
-
-
-

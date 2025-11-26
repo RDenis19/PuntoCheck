@@ -1,26 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:puntocheck/providers/app_providers.dart';
 import 'package:puntocheck/routes/app_router.dart';
-import 'package:provider/provider.dart';
-import 'package:puntocheck/providers/auth_provider.dart';
 import 'package:puntocheck/presentation/shared/widgets/circle_logo_asset.dart';
 import 'package:puntocheck/presentation/shared/widgets/primary_button.dart';
 import 'package:puntocheck/presentation/shared/widgets/text_field_icon.dart';
 
-// TODO(backend): este punto se conecta con backend usando backend/data o backend/domain.
-// Motivo: desacoplar UI de la lógica de datos.
-/// Pantalla de recuperacion de contrasena con flujo mock.
-/// 
-/// TODO(backend): Integrar con servicio de email para enviar codigo de recuperacion.
-/// Motivo: Validar que el email existe, generar codigo temporal, enviar por email,
-/// y permitir que el usuario establezca nueva contrasena.
-class ForgotPasswordView extends StatefulWidget {
+class ForgotPasswordView extends ConsumerStatefulWidget {
   const ForgotPasswordView({super.key});
 
   @override
-  State<ForgotPasswordView> createState() => _ForgotPasswordViewState();
+  ConsumerState<ForgotPasswordView> createState() => _ForgotPasswordViewState();
 }
 
-class _ForgotPasswordViewState extends State<ForgotPasswordView> {
+class _ForgotPasswordViewState extends ConsumerState<ForgotPasswordView> {
   final _emailController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
 
@@ -35,27 +29,29 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> {
       return 'Ingresa tu correo';
     }
     if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(value)) {
-      return 'Correo inválido';
+      return 'Correo invalido';
     }
     return null;
   }
 
-  void _onRecover() async {
+  Future<void> _onRecover() async {
     if (!_formKey.currentState!.validate()) {
       return;
     }
 
     final email = _emailController.text.trim();
-    final authProvider = context.read<AuthProvider>();
-    final result = await authProvider.sendResetEmail(email);
-    if (result.isSuccess) {
-      _showSuccess('Código de recuperación enviado');
-      await Future.delayed(const Duration(milliseconds: 800));
-      if (!mounted) return;
-      Navigator.of(context).pushNamed(AppRouter.forgotCode);
-    } else {
-      _showError(result.message ?? 'Error al enviar enlace de recuperación');
+    await ref.read(authControllerProvider.notifier).resetPassword(email);
+    final state = ref.read(authControllerProvider);
+
+    if (state.hasError) {
+      _showError(state.error?.toString() ?? 'Error al enviar enlace');
+      return;
     }
+
+    _showSuccess('Enviamos un codigo a tu correo');
+    await Future.delayed(const Duration(milliseconds: 800));
+    if (!mounted) return;
+    context.push(AppRoutes.forgotCode);
   }
 
   void _showSuccess(String message) {
@@ -82,6 +78,9 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> {
 
   @override
   Widget build(BuildContext context) {
+    final authState = ref.watch(authControllerProvider);
+    final isLoading = authState.isLoading;
+
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
@@ -94,12 +93,10 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> {
                 const SizedBox(height: 32),
                 const CircleLogoAsset(radius: 60),
                 const SizedBox(height: 32),
-                const Text('Olvidaste tu Contraseña', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600)),
+                const Text('Olvidaste tu Contrasena', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600)),
                 const SizedBox(height: 8),
-                const Text('Por favor ingresa tu correo para recuperar tu contraseña', style: TextStyle(fontSize: 14, color: Colors.grey)),
+                const Text('Ingresa tu correo para recuperar tu contrasena', style: TextStyle(fontSize: 14, color: Colors.grey)),
                 const SizedBox(height: 40),
-
-                // Email field
                 TextFieldIcon(
                   controller: _emailController,
                   hintText: 'Ingresa tu correo',
@@ -108,23 +105,15 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> {
                   validator: _validateEmail,
                 ),
                 const SizedBox(height: 24),
-
-                // Send code button
                 PrimaryButton(
-                  text: 'Te enviamos un código',
-                  onPressed: () {
-                    if (!_formKey.currentState!.validate()) return;
-                    // TODO(backend): aquí se debería disparar el envío de un código al correo.
-                    // Razón: verificar que el usuario controla ese correo antes de cambiar la contraseña.
-                    _onRecover();
-                  },
+                  text: isLoading ? 'Enviando...' : 'Te enviamos un codigo',
+                  onPressed: _onRecover,
+                  enabled: !isLoading,
                 ),
                 const SizedBox(height: 24),
-
-                // Back to login link
                 TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('Volver al inicio de sesión'),
+                  onPressed: () => context.pop(),
+                  child: const Text('Volver al inicio de sesion'),
                 ),
               ],
             ),
@@ -134,5 +123,3 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> {
     );
   }
 }
-
-

@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:puntocheck/presentation/shared/widgets/primary_button.dart';
 
 /// Wrapper de botones reutilizables para formularios de autenticación.

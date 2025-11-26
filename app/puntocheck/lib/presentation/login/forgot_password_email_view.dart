@@ -1,4 +1,5 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:puntocheck/routes/app_router.dart';
 import 'package:puntocheck/presentation/shared/widgets/primary_button.dart';
 import 'package:puntocheck/presentation/shared/widgets/text_field_icon.dart';
@@ -21,7 +22,7 @@ class _ForgotPasswordEmailViewState extends State<ForgotPasswordEmailView> {
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () => Navigator.of(context).pop(),
+          onPressed: () => context.pop(),
         ),
       ),
       backgroundColor: Colors.white,
@@ -65,9 +66,7 @@ class _ForgotPasswordEmailViewState extends State<ForgotPasswordEmailView> {
             PrimaryButton(
               text: 'Te enviamos un código',
               onPressed: () {
-                // TODO(backend): aquí se debería disparar el envío de un código al correo.
-                // Razón: verificar que el usuario controla ese correo antes de cambiar la contraseña.
-                Navigator.pushNamed(context, AppRouter.forgotCode);
+                context.push(AppRoutes.forgotCode);
               },
             ),
           ],
@@ -76,5 +75,4 @@ class _ForgotPasswordEmailViewState extends State<ForgotPasswordEmailView> {
     );
   }
 }
-
 
