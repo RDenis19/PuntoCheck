@@ -127,7 +127,16 @@ class _EmpleadosListViewState extends ConsumerState<EmpleadosListView> {
                 padding: const EdgeInsets.symmetric(vertical: 10),
                 decoration: BoxDecoration(
                   color: selected ? AppColors.primaryRed : AppColors.white,
-                  borderRadius: BorderRadius.circular(20),
+                  borderRadius: BorderRadius.circular(24),
+                  boxShadow: selected
+                      ? [
+                          BoxShadow(
+                            color: AppColors.primaryRed.withValues(alpha: 0.3),
+                            blurRadius: 8,
+                            offset: const Offset(0, 4),
+                          ),
+                        ]
+                      : null,
                   border: Border.all(
                     color: selected
                         ? AppColors.primaryRed

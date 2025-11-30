@@ -31,8 +31,8 @@ class ScheduleCalendar extends StatelessWidget {
                     child: Text(
                       label,
                       style: const TextStyle(
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.grey,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.backgroundDark,
                       ),
                     ),
                   ),
@@ -56,26 +56,41 @@ class ScheduleCalendar extends StatelessWidget {
               return const SizedBox.shrink();
             }
             final bool isSelected = selectedDays.any((d) => _isSameDay(d, day));
+            final baseColor = AppColors.black.withValues(alpha: 0.06);
             return GestureDetector(
               onTap: () => onDayToggle(day),
               child: Container(
                 decoration: BoxDecoration(
                   color: isSelected
-                      ? AppColors.backgroundDark
+                      ? AppColors.primaryRed.withValues(alpha: 0.15)
                       : AppColors.white,
-                  borderRadius: BorderRadius.circular(14),
+                  borderRadius: BorderRadius.circular(12),
                   border: Border.all(
                     color: isSelected
-                        ? AppColors.backgroundDark
+                        ? AppColors.primaryRed
                         : AppColors.black.withValues(alpha: 0.08),
                   ),
+                  boxShadow: [
+                    if (isSelected)
+                      BoxShadow(
+                        color: AppColors.primaryRed.withValues(alpha: 0.12),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      )
+                    else
+                      BoxShadow(
+                        color: baseColor,
+                        blurRadius: 6,
+                        offset: const Offset(0, 2),
+                      ),
+                  ],
                 ),
                 alignment: Alignment.center,
                 child: Text(
                   '${day.day}',
                   style: TextStyle(
                     color: isSelected
-                        ? AppColors.white
+                        ? AppColors.primaryRed
                         : AppColors.backgroundDark,
                     fontWeight: FontWeight.w600,
                   ),

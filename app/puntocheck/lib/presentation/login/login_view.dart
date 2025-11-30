@@ -65,17 +65,12 @@ class _LoginViewState extends ConsumerState<LoginView> {
             children: [
               const SizedBox(height: 60),
               Center(
-                child: Container(
-                  width: 100,
-                  height: 100,
-                  decoration: BoxDecoration(
-                    color: AppColors.primaryRed.withOpacity(0.1),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.check_circle_outline,
-                    size: 60,
-                    color: AppColors.primaryRed,
+                child: SizedBox(
+                  width: 150,
+                  height: 150,
+                  child: Image.asset(
+                    'assets/logo.png',
+                    fit: BoxFit.contain,
                   ),
                 ),
               ),
@@ -142,47 +137,8 @@ class _LoginViewState extends ConsumerState<LoginView> {
                 onPressed: _onLogin,
               ),
               const SizedBox(height: 24),
-              GestureDetector(
-                onTap: () async {
-                  await ref.read(biometricControllerProvider.notifier).authenticate();
-                  if (!mounted) return;
-                  
-                  final bioState = ref.read(biometricControllerProvider);
-                  if (bioState.hasError) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Autenticación biométrica fallida o cancelada.'),
-                      ),
-                    );
-                  } else {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Autenticación biométrica exitosa.'),
-                      ),
-                    );
-                  }
-                },
-                child: Column(
-                  children: [
-                    Container(
-                      width: 72,
-                      height: 72,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: AppColors.primaryRed.withOpacity(0.12),
-                      ),
-                      alignment: Alignment.center,
-                      child: const Icon(
-                        Icons.fingerprint,
-                        color: AppColors.primaryRed,
-                        size: 40,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    const Text('Usar Autenticación Biométrica'),
-                  ],
-                ),
-              ),
+              // Biometric button removed as requested
+              const SizedBox(height: 20),
               const SizedBox(height: 40),
             ],
           ),

@@ -47,7 +47,7 @@ class SaOrganizationCard extends StatelessWidget {
         border: Border.all(color: AppColors.black.withValues(alpha: 0.05)),
         boxShadow: [
           BoxShadow(
-            color: AppColors.black.withValues(alpha: 0.06),
+            color: AppColors.primaryRed.withValues(alpha: 0.05),
             blurRadius: 18,
             offset: const Offset(0, 8),
           ),
@@ -290,15 +290,17 @@ class _StatusChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.15),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: color.withValues(alpha: 0.2)),
       ),
       child: Text(
         text.toUpperCase(),
         style: TextStyle(
           color: color,
           fontWeight: FontWeight.w700,
-          fontSize: 11,
+          fontSize: 10,
+          letterSpacing: 0.5,
         ),
       ),
     );

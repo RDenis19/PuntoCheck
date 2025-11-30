@@ -18,22 +18,22 @@ class SaHeader extends ConsumerWidget {
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            AppColors.backgroundDark,
-            const Color(0xFF02101E),
-            AppColors.backgroundDark.withValues(alpha: 0.95),
+            AppColors.primaryRed,
+            const Color(0xFFB71C1C), // Darker red
+            AppColors.primaryRed.withValues(alpha: 0.9),
           ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: const BorderRadius.only(
-          bottomLeft: Radius.circular(28),
-          bottomRight: Radius.circular(28),
+          bottomLeft: Radius.circular(32),
+          bottomRight: Radius.circular(32),
         ),
         boxShadow: [
           BoxShadow(
-            color: AppColors.black.withValues(alpha: 0.15),
+            color: AppColors.primaryRed.withValues(alpha: 0.3),
             blurRadius: 20,
-            offset: const Offset(0, 8),
+            offset: const Offset(0, 10),
           ),
         ],
       ),
@@ -68,21 +68,14 @@ class SaHeader extends ConsumerWidget {
             height: 62,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              gradient: LinearGradient(
-                colors: [
-                  AppColors.primaryRed.withValues(alpha: 0.8),
-                  AppColors.primaryRed,
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
+              color: Colors.white,
               border: Border.all(
-                color: Colors.white.withValues(alpha: 0.3),
-                width: 2,
+                color: Colors.white.withValues(alpha: 0.5),
+                width: 3,
               ),
               boxShadow: [
                 BoxShadow(
-                  color: AppColors.primaryRed.withValues(alpha: 0.4),
+                  color: Colors.black.withValues(alpha: 0.1),
                   blurRadius: 12,
                   offset: const Offset(0, 4),
                 ),
@@ -94,9 +87,9 @@ class SaHeader extends ConsumerWidget {
                       avatarUrl,
                       fit: BoxFit.cover,
                       errorBuilder: (_, __, ___) =>
-                          _InitialsFallback(initials: userInitials),
+                          _InitialsFallback(initials: userInitials, color: AppColors.primaryRed),
                     )
-                  : _InitialsFallback(initials: userInitials),
+                  : _InitialsFallback(initials: userInitials, color: AppColors.primaryRed),
             ),
           ),
         ),
@@ -267,17 +260,18 @@ class SaHeader extends ConsumerWidget {
 }
 
 class _InitialsFallback extends StatelessWidget {
-  const _InitialsFallback({required this.initials});
+  const _InitialsFallback({required this.initials, this.color = AppColors.white});
 
   final String initials;
+  final Color color;
 
   @override
   Widget build(BuildContext context) {
     return Center(
       child: Text(
         initials,
-        style: const TextStyle(
-          color: AppColors.white,
+        style: TextStyle(
+          color: color,
           fontSize: 20,
           fontWeight: FontWeight.w700,
           letterSpacing: 0.5,

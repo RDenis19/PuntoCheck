@@ -12,6 +12,7 @@ class TextFieldIcon extends StatelessWidget {
     this.suffix,
     this.validator,
     this.onChanged,
+    this.enabled = true,
   });
 
   final TextEditingController controller;
@@ -22,6 +23,7 @@ class TextFieldIcon extends StatelessWidget {
   final Widget? suffix;
   final String? Function(String?)? validator;
   final void Function(String)? onChanged;
+  final bool enabled;
 
   @override
   Widget build(BuildContext context) {
@@ -31,6 +33,7 @@ class TextFieldIcon extends StatelessWidget {
       keyboardType: keyboardType,
       validator: validator,
       onChanged: onChanged,
+       enabled: enabled,
       decoration: InputDecoration(
         hintText: hintText,
         prefixIcon: Icon(prefixIcon, color: AppColors.black.withValues(alpha: 0.3)),

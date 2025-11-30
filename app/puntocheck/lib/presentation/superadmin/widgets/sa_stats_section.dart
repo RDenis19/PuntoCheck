@@ -24,19 +24,12 @@ class SaStatsSection extends StatelessWidget {
       margin: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(28),
-        gradient: LinearGradient(
-          colors: [
-            AppColors.backgroundDark,
-            AppColors.black.withValues(alpha: 0.92),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+        color: AppColors.backgroundDark,
         boxShadow: [
           BoxShadow(
             color: AppColors.black.withValues(alpha: 0.2),
-            blurRadius: 20,
-            offset: const Offset(0, 8),
+            blurRadius: 24,
+            offset: const Offset(0, 12),
           ),
         ],
       ),
@@ -54,7 +47,7 @@ class SaStatsSection extends StatelessWidget {
                   shape: BoxShape.circle,
                   gradient: RadialGradient(
                     colors: [
-                      AppColors.primaryRed.withValues(alpha: 0.12),
+                      AppColors.infoBlue.withValues(alpha: 0.1),
                       Colors.transparent,
                     ],
                   ),
@@ -71,19 +64,19 @@ class SaStatsSection extends StatelessWidget {
                       Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color: AppColors.primaryRed.withValues(alpha: 0.15),
+                          color: AppColors.infoBlue.withValues(alpha: 0.15),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: const Icon(
                           Icons.analytics_outlined,
-                          color: AppColors.primaryRed,
+                          color: AppColors.infoBlue,
                           size: 20,
                         ),
                       ),
                       const SizedBox(width: 12),
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
-                        children: const [
+                        children: [
                           Text(
                             'Estadisticas globales',
                             style: TextStyle(
@@ -93,11 +86,11 @@ class SaStatsSection extends StatelessWidget {
                               letterSpacing: 0.3,
                             ),
                           ),
-                          SizedBox(height: 2),
+                          const SizedBox(height: 2),
                           Text(
                             'Resumen vivo del ecosistema PuntoCheck',
                             style: TextStyle(
-                              color: Colors.white70,
+                              color: AppColors.white.withValues(alpha: 0.7),
                               fontSize: 12,
                             ),
                           ),
@@ -120,42 +113,35 @@ class SaStatsSection extends StatelessWidget {
   }
 
   Widget _buildKpiCards(BuildContext context) {
-    final cards = [
-      SaKpiCard(
-        label: 'Organizaciones',
-        value: '$totalOrgs',
-        icon: Icons.apartment_outlined,
-        color: AppColors.primaryRed,
-      ),
-      SaKpiCard(
-        label: 'Usuarios totales',
-        value: '$totalUsers',
-        icon: Icons.people_outline,
-        color: AppColors.successGreen,
-      ),
-      SaKpiCard(
-        label: 'Planes activos',
-        value: '$activePlans',
-        icon: Icons.flash_on_outlined,
-        color: AppColors.warningOrange,
-      ),
-    ];
-
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final isWide = constraints.maxWidth > 520;
-        final cardWidth = isWide
-            ? (constraints.maxWidth - 12) / 2
-            : constraints.maxWidth;
-
-        return Wrap(
-          spacing: 12,
-          runSpacing: 12,
-          children: cards
-              .map((card) => SizedBox(width: cardWidth, child: card))
-              .toList(),
-        );
-      },
+    return Row(
+      children: [
+        Expanded(
+          child: SaKpiCard(
+            label: 'Orgs',
+            value: '$totalOrgs',
+            icon: Icons.apartment_outlined,
+            color: AppColors.infoBlue,
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: SaKpiCard(
+            label: 'Usuarios',
+            value: '$totalUsers',
+            icon: Icons.people_outline,
+            color: AppColors.infoBlue,
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: SaKpiCard(
+            label: 'Planes',
+            value: '$activePlans',
+            icon: Icons.flash_on_outlined,
+            color: AppColors.infoBlue,
+          ),
+        ),
+      ],
     );
   }
 
@@ -168,7 +154,7 @@ class SaStatsSection extends StatelessWidget {
           child: Container(
             height: 60,
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.05),
+              color: AppColors.backgroundDark.withValues(alpha: 0.05),
               borderRadius: BorderRadius.circular(16),
             ),
           ),

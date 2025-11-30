@@ -3,37 +3,40 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:puntocheck/utils/theme/app_colors.dart';
 import 'package:puntocheck/providers/app_providers.dart';
 
-class CurrentLocationCard extends StatelessWidget {
+class CurrentLocationCard extends ConsumerWidget {
   const CurrentLocationCard({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final locationAsync = ref.watch(currentLocationProvider);
+
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20),
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: AppColors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: const [
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: AppColors.black.withValues(alpha: 0.06)),
+        boxShadow: [
           BoxShadow(
-            color: Color(0x0D000000),
-            blurRadius: 10,
-            offset: Offset(0, 4),
+            color: AppColors.black.withValues(alpha: 0.06),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(10),
+            padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: AppColors.primaryRed.withValues(alpha: 0.1),
+              color: AppColors.primaryRed.withValues(alpha: 0.08),
               shape: BoxShape.circle,
             ),
             child: const Icon(
-              Icons.location_on,
+              Icons.location_on_outlined,
               color: AppColors.primaryRed,
-              size: 24,
+              size: 26,
             ),
           ),
           const SizedBox(width: 16),
@@ -44,18 +47,56 @@ class CurrentLocationCard extends StatelessWidget {
                 const Text(
                   'Ubicacion Actual',
                   style: TextStyle(
-                    fontSize: 14,
+                    fontSize: 13,
                     color: Colors.grey,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
                 const SizedBox(height: 4),
-                const Text(
-                  'Ubicacion no disponible',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.backgroundDark,
+                locationAsync.when(
+                  data: (pos) => Text(
+                    pos != null
+                        ? '${pos.latitude.toStringAsFixed(5)}, ${pos.longitude.toStringAsFixed(5)}'
+                        : 'Ubicacion no disponible',
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.backgroundDark,
+                      letterSpacing: -0.5,
+                    ),
+                  ),
+                  loading: () => const Text(
+                    'Obteniendo ubicacion...',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.backgroundDark,
+                    ),
+                  ),
+                  error: (err, _) => Text(
+                    err.toString(),
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.redAccent,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: TextButton.icon(
+                    onPressed: () => ref.refresh(currentLocationProvider),
+                    icon: const Icon(Icons.refresh, size: 16),
+                    label: const Text('Actualizar'),
+                    style: TextButton.styleFrom(
+                      foregroundColor: AppColors.primaryRed,
+                      padding: EdgeInsets.zero,
+                      minimumSize: const Size(0, 32),
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
                   ),
                 ),
               ],
@@ -81,53 +122,54 @@ class TodayStatsCard extends ConsumerWidget {
       decoration: BoxDecoration(
         color: AppColors.white,
         borderRadius: BorderRadius.circular(24),
-        boxShadow: const [
+        border: Border.all(color: AppColors.black.withValues(alpha: 0.06)),
+        boxShadow: [
           BoxShadow(
-            color: Color(0x0D000000),
-            blurRadius: 12,
-            offset: Offset(0, 4),
+            color: AppColors.black.withValues(alpha: 0.06),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
       child: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.all(24),
             child: Row(
               children: [
                 Expanded(
                   child: _buildStatItem(
-                    icon: Icons.access_time,
+                    icon: Icons.access_time_filled,
                     label: 'Horas Trabajadas',
                     value: statsAsync.when(
                       data: (data) => '${data['hours']}h ${data['minutes']}m',
                       loading: () => '...',
                       error: (_, __) => '--',
                     ),
-                    color: Colors.blue,
+                    color: const Color(0xFF4A90E2),
                   ),
                 ),
                 Container(
                   width: 1,
-                  height: 40,
-                  color: Colors.grey.withValues(alpha: 0.2),
+                  height: 48,
+                  color: Colors.grey.withValues(alpha: 0.15),
                 ),
                 Expanded(
                   child: _buildStatItem(
-                    icon: Icons.check_circle_outline,
+                    icon: Icons.check_circle,
                     label: 'Asistencias',
                     value: statsAsync.when(
                       data: (data) => '${data['shift_count']}',
                       loading: () => '...',
                       error: (_, __) => '--',
                     ),
-                    color: Colors.green,
+                    color: const Color(0xFF50E3C2),
                   ),
                 ),
               ],
             ),
           ),
-          const Divider(height: 1),
+          Divider(height: 1, color: Colors.grey.withValues(alpha: 0.1)),
           InkWell(
             onTap: onFooterTap,
             borderRadius: const BorderRadius.only(
@@ -135,7 +177,7 @@ class TodayStatsCard extends ConsumerWidget {
               bottomRight: Radius.circular(24),
             ),
             child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 14),
+              padding: const EdgeInsets.symmetric(vertical: 16),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: const [
@@ -144,13 +186,13 @@ class TodayStatsCard extends ConsumerWidget {
                     style: TextStyle(
                       color: AppColors.primaryRed,
                       fontWeight: FontWeight.w600,
-                      fontSize: 13,
+                      fontSize: 14,
                     ),
                   ),
-                  SizedBox(width: 4),
+                  SizedBox(width: 6),
                   Icon(
-                    Icons.arrow_forward_ios,
-                    size: 12,
+                    Icons.arrow_forward_rounded,
+                    size: 16,
                     color: AppColors.primaryRed,
                   ),
                 ],
@@ -203,15 +245,16 @@ class RecentActivityCard extends ConsumerWidget {
 
     return Container(
       margin: const EdgeInsets.all(20),
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         color: AppColors.white,
         borderRadius: BorderRadius.circular(24),
-        boxShadow: const [
+        border: Border.all(color: AppColors.black.withValues(alpha: 0.06)),
+        boxShadow: [
           BoxShadow(
-            color: Color(0x0D000000),
-            blurRadius: 12,
-            offset: Offset(0, 4),
+            color: AppColors.black.withValues(alpha: 0.06),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
@@ -227,17 +270,29 @@ class RecentActivityCard extends ConsumerWidget {
                   fontSize: 18,
                   fontWeight: FontWeight.w700,
                   color: AppColors.backgroundDark,
+                  letterSpacing: -0.5,
                 ),
               ),
-              TextButton(
-                onPressed: () {
+              InkWell(
+                onTap: () {
                   // Navegar a historial completo
                 },
-                child: const Text('Ver Todo'),
+                borderRadius: BorderRadius.circular(12),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  child: const Text(
+                    'Ver Todo',
+                    style: TextStyle(
+                      color: AppColors.primaryRed,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 20),
           historyAsync.when(
             data: (history) {
               if (history.isEmpty) {
@@ -246,18 +301,25 @@ class RecentActivityCard extends ConsumerWidget {
                     padding: const EdgeInsets.symmetric(vertical: 24),
                     child: Column(
                       children: [
-                        Icon(
-                          Icons.history_toggle_off,
-                          size: 48,
-                          color: AppColors.backgroundDark.withValues(alpha: 0.3),
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.grey.withValues(alpha: 0.05),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            Icons.history_toggle_off,
+                            size: 40,
+                            color: AppColors.backgroundDark.withValues(alpha: 0.3),
+                          ),
                         ),
-                        const SizedBox(height: 12),
+                        const SizedBox(height: 16),
                         Text(
                           'Aun no tienes asistencias',
                           style: TextStyle(
                             color: AppColors.backgroundDark.withValues(alpha: 0.7),
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
                         const SizedBox(height: 4),
@@ -265,7 +327,7 @@ class RecentActivityCard extends ConsumerWidget {
                           'Tus registros apareceran aqui',
                           style: TextStyle(
                             color: AppColors.backgroundDark.withValues(alpha: 0.4),
-                            fontSize: 12,
+                            fontSize: 13,
                           ),
                         ),
                       ],
@@ -283,7 +345,7 @@ class RecentActivityCard extends ConsumerWidget {
                     time: _formatTime(isCheckIn ? shift.checkInTime : shift.checkOutTime!),
                     subtitle: _formatDate(shift.date),
                     icon: isCheckIn ? Icons.login : Icons.logout,
-                    color: isCheckIn ? Colors.green : Colors.orange,
+                    color: isCheckIn ? AppColors.successGreen : Colors.orange,
                   );
                 }).toList(),
               );

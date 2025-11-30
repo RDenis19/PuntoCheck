@@ -42,7 +42,12 @@ class AdminHomeView extends ConsumerWidget {
             _buildHeader(context, profileAsync, organizationAsync),
             AdminDashboardHeader(
               title: 'Panel de Administracion',
-              subtitle: 'Gestion empresarial',
+              subtitle: organizationAsync.when(
+                data: (org) =>
+                    'Organizacion: ${org?.name ?? 'Sin organizacion'}',
+                loading: () => 'Organizacion: ...',
+                error: (_, __) => 'Organizacion: --',
+              ),
               stats: stats,
             ),
             const Padding(
@@ -106,12 +111,6 @@ class AdminHomeView extends ConsumerWidget {
                     subtitle: 'Gestionar anuncios',
                     onTap: () => context.push(AppRoutes.adminAnuncios),
                   ),
-                  AdminQuickActionButton(
-                    icon: Icons.add_alert_outlined,
-                    title: 'Nuevo anuncio',
-                    subtitle: 'Crear aviso interno',
-                    onTap: () => context.push(AppRoutes.adminNuevoAnuncio),
-                  ),
                 ],
               ),
             ),
@@ -131,7 +130,10 @@ class AdminHomeView extends ConsumerWidget {
       padding: const EdgeInsets.fromLTRB(16, 24, 16, 32),
       decoration: const BoxDecoration(
         gradient: LinearGradient(
-          colors: [AppColors.backgroundDark, Color(0xFF02101E)],
+          colors: [
+            AppColors.primaryRed,
+            const Color(0xFFC62828), // Darker red
+          ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),

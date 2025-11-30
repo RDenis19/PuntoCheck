@@ -54,13 +54,14 @@ class AdminDashboardHeader extends StatelessWidget {
           ),
           const SizedBox(height: 20),
           Row(
-            children: stats
-                .map(
-                  (stat) => Expanded(
-                    child: _StatTile(label: stat.label, value: stat.value),
-                  ),
-                )
-                .toList(),
+            children: [
+              for (int i = 0; i < stats.length; i++) ...[
+                if (i > 0) const SizedBox(width: 12),
+                Expanded(
+                  child: _StatTile(label: stats[i].label, value: stats[i].value),
+                ),
+              ],
+            ],
           ),
         ],
       ),
@@ -84,8 +85,7 @@ class _StatTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.only(right: 12),
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppColors.white.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(20),
@@ -98,15 +98,18 @@ class _StatTile extends StatelessWidget {
             label,
             style: TextStyle(
               color: AppColors.white.withValues(alpha: 0.7),
-              fontSize: 13,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
             ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 8),
           Text(
             value,
             style: const TextStyle(
               color: AppColors.white,
-              fontSize: 20,
+              fontSize: 22,
               fontWeight: FontWeight.w700,
             ),
           ),

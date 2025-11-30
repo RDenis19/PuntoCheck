@@ -41,22 +41,36 @@ class EmpleadoDetalleView extends StatelessWidget {
             const SizedBox(height: 16),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Informacion de contacto',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 16,
-                      color: AppColors.backgroundDark,
+              child: Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: AppColors.white,
+                  borderRadius: BorderRadius.circular(24),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.black.withValues(alpha: 0.05),
+                      blurRadius: 16,
+                      offset: const Offset(0, 8),
                     ),
-                  ),
-                  const SizedBox(height: 12),
-                  _InfoRow(label: 'Correo', value: profile.email ?? 'Sin correo'),
-                  _InfoRow(label: 'Telefono', value: profile.phone ?? 'Sin telefono'),
-                  _InfoRow(label: 'Rol', value: profile.jobTitle),
-                ],
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Informacion de contacto',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 16,
+                        color: AppColors.backgroundDark,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    _InfoRow(label: 'Correo', value: profile.email ?? 'Sin correo'),
+                    _InfoRow(label: 'Telefono', value: profile.phone ?? 'Sin telefono'),
+                    _InfoRow(label: 'Rol', value: profile.jobTitle),
+                  ],
+                ),
               ),
             ),
             const SizedBox(height: 24),
@@ -94,12 +108,19 @@ class EmpleadoDetalleView extends StatelessWidget {
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            AppColors.backgroundDark,
-            AppColors.black.withValues(alpha: 0.9),
+            AppColors.primaryRed,
+            const Color(0xFFC62828), // Darker red
           ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primaryRed.withValues(alpha: 0.3),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
         borderRadius: const BorderRadius.only(
           bottomLeft: Radius.circular(32),
           bottomRight: Radius.circular(32),
@@ -108,15 +129,22 @@ class EmpleadoDetalleView extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          CircleAvatar(
-            radius: 42,
-            backgroundColor: AppColors.white,
-            child: Text(
-              profile.initials,
-              style: const TextStyle(
-                color: AppColors.backgroundDark,
-                fontWeight: FontWeight.w700,
-                fontSize: 20,
+          Container(
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: AppColors.white.withValues(alpha: 0.2),
+            ),
+            child: CircleAvatar(
+              radius: 42,
+              backgroundColor: AppColors.white,
+              child: Text(
+                profile.initials,
+                style: const TextStyle(
+                  color: AppColors.primaryRed,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 24,
+                ),
               ),
             ),
           ),
@@ -125,21 +153,21 @@ class EmpleadoDetalleView extends StatelessWidget {
             profile.fullName ?? 'Sin nombre',
             style: const TextStyle(
               color: AppColors.white,
-              fontSize: 20,
-              fontWeight: FontWeight.w700,
+              fontSize: 22,
+              fontWeight: FontWeight.w800,
             ),
           ),
           Text(
             profile.employeeCode ?? '',
-            style: TextStyle(color: AppColors.white.withValues(alpha: 0.8)),
+            style: TextStyle(color: AppColors.white.withValues(alpha: 0.9)),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              _Chip(label: profile.isActive ? 'Activo' : 'Inactivo', color: AppColors.successGreen),
+              _Chip(label: profile.isActive ? 'ACTIVO' : 'INACTIVO', color: AppColors.white),
               const SizedBox(width: 8),
-              _Chip(label: profile.isOrgAdmin ? 'Admin' : 'Empleado', color: AppColors.infoBlue),
+              _Chip(label: profile.isOrgAdmin ? 'ADMIN' : 'EMPLEADO', color: AppColors.white),
             ],
           ),
         ],

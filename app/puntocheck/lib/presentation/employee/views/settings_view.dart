@@ -7,9 +7,14 @@ import 'package:puntocheck/routes/app_router.dart';
 import 'package:puntocheck/utils/theme/app_colors.dart';
 
 class SettingsView extends ConsumerWidget {
-  const SettingsView({super.key, this.embedded = false});
+  const SettingsView({
+    super.key,
+    this.embedded = false,
+    this.personalInfoRoute = AppRoutes.personalInfo,
+  });
 
   final bool embedded;
+  final String personalInfoRoute;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -44,7 +49,7 @@ class SettingsView extends ConsumerWidget {
           title: 'Informacion personal',
           subtitle: 'Edita tu nombre, telefono o cargo',
           onTap: () {
-            context.push(AppRoutes.personalInfo);
+            context.push(personalInfoRoute);
           },
         ),
         const SizedBox(height: 24),

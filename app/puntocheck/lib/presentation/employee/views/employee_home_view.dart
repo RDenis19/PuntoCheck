@@ -45,6 +45,7 @@ class _EmployeeHomeViewState extends ConsumerState<EmployeeHomeView> {
             _buildHeader(context),
             const SizedBox(height: 16),
             _buildRegisterButton(context),
+            const SizedBox(height: 24),
             const CurrentLocationCard(),
             TodayStatsCard(
               onFooterTap: () {
@@ -61,11 +62,15 @@ class _EmployeeHomeViewState extends ConsumerState<EmployeeHomeView> {
 
   Widget _buildHeader(BuildContext context) {
     final profileAsync = ref.watch(profileProvider);
+    final orgAsync = ref.watch(currentOrganizationProvider);
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 20, 16, 24),
       decoration: const BoxDecoration(
         gradient: LinearGradient(
-          colors: [AppColors.backgroundDark, Color(0xFF062235)],
+          colors: [
+            AppColors.primaryRed,
+            Color(0xFFD32F2F),
+          ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -106,6 +111,25 @@ class _EmployeeHomeViewState extends ConsumerState<EmployeeHomeView> {
                     '${profile?.jobTitle ?? 'Empleado'}  ${DateTime.now().toString().split(' ')[0]}',
                     style: const TextStyle(fontSize: 12, color: Colors.white70),
                   ),
+                  const SizedBox(height: 6),
+                  orgAsync.when(
+                    data: (org) => Text(
+                      'Organizacion: ${org?.name ?? 'Sin asignar'}',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Colors.white70,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    loading: () => const Text(
+                      'Organizacion: cargando...',
+                      style: TextStyle(fontSize: 12, color: Colors.white70),
+                    ),
+                    error: (_, __) => const Text(
+                      'Organizacion: no disponible',
+                      style: TextStyle(fontSize: 12, color: Colors.white70),
+                    ),
+                  ),
                 ],
               ),
               loading: () => const Center(child: CircularProgressIndicator(color: Colors.white)),
@@ -131,7 +155,7 @@ class _EmployeeHomeViewState extends ConsumerState<EmployeeHomeView> {
                   width: 8,
                   height: 8,
                   decoration: const BoxDecoration(
-                    color: AppColors.primaryRed,
+                    color: AppColors.white,
                     shape: BoxShape.circle,
                   ),
                 ),
@@ -150,48 +174,50 @@ class _EmployeeHomeViewState extends ConsumerState<EmployeeHomeView> {
       data: (activeShift) {
         final isCheckIn = activeShift == null;
         return Center(
-          child: GestureDetector(
-            onTap: () {
-              // Si es check-in, vamos a registro
-              // Si es check-out, tambien vamos a registro (o una vista de salida especifica)
-              // Por ahora reusamos la vista, pero pasamos argumento o manejamos estado
-              // Idealmente RegistroAsistenciaView deberia saber si es entrada o salida
-              // O pasamos un argumento.
-              // Por simplicidad, vamos a la misma vista y ella decide (o le pasamos param)
-              context.push(AppRoutes.registroAsistencia);
-            },
-            child: Container(
-              width: 120,
-              height: 120,
-              decoration: BoxDecoration(
-                color: isCheckIn ? AppColors.primaryRed : Colors.orange,
-                shape: BoxShape.circle,
-                boxShadow: const [
-                  BoxShadow(
-                    color: Color(0x33000000),
-                    blurRadius: 12,
-                    offset: Offset(0, 6),
-                  ),
-                ],
-              ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    isCheckIn ? Icons.login : Icons.logout,
-                    color: AppColors.white,
-                    size: 32,
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    isCheckIn ? 'Registrar\nEntrada' : 'Registrar\nSalida',
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
+          child: Container(
+            width: 130,
+            height: 130,
+            decoration: BoxDecoration(
+              color: isCheckIn ? AppColors.primaryRed : Colors.orange,
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: (isCheckIn ? AppColors.primaryRed : Colors.orange)
+                      .withValues(alpha: 0.4),
+                  blurRadius: 16,
+                  offset: const Offset(0, 8),
+                ),
+              ],
+            ),
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: () {
+                  context.push(AppRoutes.registroAsistencia);
+                },
+                borderRadius: BorderRadius.circular(65),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      isCheckIn ? Icons.login : Icons.logout,
                       color: AppColors.white,
-                      fontWeight: FontWeight.w600,
+                      size: 36,
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 8),
+                    Text(
+                      isCheckIn ? 'Registrar\nEntrada' : 'Registrar\nSalida',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        color: AppColors.white,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 13,
+                        height: 1.2,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),

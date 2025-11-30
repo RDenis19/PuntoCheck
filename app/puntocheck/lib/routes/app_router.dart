@@ -35,6 +35,7 @@ import 'package:puntocheck/presentation/employee/views/personal_info_view.dart';
 import 'package:puntocheck/presentation/superadmin/views/super_admin_shell_view.dart';
 import 'package:puntocheck/presentation/superadmin/views/organizaciones_list_view.dart';
 import 'package:puntocheck/presentation/superadmin/views/organizacion_detalle_view.dart';
+import 'package:puntocheck/presentation/superadmin/views/organizacion_empleados_full_view.dart';
 
 class AppRoutes {
   static const String splash = '/';
@@ -51,6 +52,7 @@ class AppRoutes {
   static const String adminEmpleadoDetalle = '/admin/empleado-detalle';
   static const String adminAnuncios = '/admin/anuncios';
   static const String adminNuevoAnuncio = '/admin/nuevo-anuncio';
+  static const String adminPersonalInfo = '/admin/personal-info';
 
   // Employee
   static const String employeeHome = '/employee';
@@ -64,6 +66,8 @@ class AppRoutes {
   static const String superAdminOrganizaciones = '/superadmin/organizaciones';
   static const String superAdminOrganizacionDetalle =
       '/superadmin/organizacion-detalle';
+  static const String superAdminOrganizacionEmpleados =
+      '/superadmin/organizacion-empleados';
 }
 
 final appRouterProvider = Provider<GoRouter>((ref) {
@@ -169,6 +173,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             path: 'nuevo-anuncio',
             builder: (context, state) => const NuevoAnuncioView(),
           ),
+          GoRoute(
+            path: 'personal-info',
+            builder: (context, state) => const PersonalInfoView(),
+          ),
         ],
       ),
 
@@ -210,6 +218,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             builder: (context, state) {
               final org = state.extra as Organization?;
               return OrganizacionDetalleView(organization: org);
+            },
+          ),
+          GoRoute(
+            path: 'organizacion-empleados',
+            builder: (context, state) {
+              final org = state.extra as Organization?;
+              return OrganizacionEmpleadosFullView(organization: org);
             },
           ),
         ],

@@ -1,21 +1,25 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:puntocheck/models/enums.dart';
+import 'package:puntocheck/providers/app_providers.dart';
 import 'package:puntocheck/utils/theme/app_colors.dart';
 import 'package:puntocheck/presentation/admin/widgets/announcement_type_chip.dart';
 import 'package:puntocheck/presentation/shared/widgets/primary_button.dart';
 
-class NuevoAnuncioView extends StatefulWidget {
+class NuevoAnuncioView extends ConsumerStatefulWidget {
   const NuevoAnuncioView({super.key});
 
   @override
-  State<NuevoAnuncioView> createState() => _NuevoAnuncioViewState();
+  ConsumerState<NuevoAnuncioView> createState() => _NuevoAnuncioViewState();
 }
 
-class _NuevoAnuncioViewState extends State<NuevoAnuncioView> {
+class _NuevoAnuncioViewState extends ConsumerState<NuevoAnuncioView> {
   final _tituloController = TextEditingController();
   final _mensajeController = TextEditingController();
   int _selectedType = 0;
+  bool _isSubmitting = false;
 
-  final _chips = ['Información', 'Aviso', 'Urgente', 'Evento'];
+  final _chips = ['Informacion', 'Aviso', 'Urgente', 'Evento'];
 
   @override
   void dispose() {
@@ -126,13 +130,9 @@ class _NuevoAnuncioViewState extends State<NuevoAnuncioView> {
           ),
           const SizedBox(height: 24),
           PrimaryButton(
-            text: 'Publicar',
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Publicaremos el anuncio al conectar el backend.')),
-              );
-              Navigator.pop(context);
-            },
+            text: _isSubmitting ? 'Publicando...' : 'Publicar',
+            enabled: !_isSubmitting,
+            onPressed: _publish,
           ),
         ],
       ),
@@ -189,6 +189,48 @@ class _NuevoAnuncioViewState extends State<NuevoAnuncioView> {
       ),
       counterText: '',
     );
+  }
+
+  NotifType get _selectedNotifType {
+    switch (_selectedType) {
+      case 1:
+      case 2:
+        return NotifType.alerta;
+      default:
+        return NotifType.info;
+    }
+  }
+
+  Future<void> _publish() async {
+    final title = _tituloController.text.trim();
+    final body = _mensajeController.text.trim();
+    if (title.isEmpty || body.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Completa titulo y mensaje')),
+      );
+      return;
+    }
+
+    setState(() => _isSubmitting = true);
+    final controller = ref.read(announcementControllerProvider.notifier);
+    await controller.createAnnouncement(
+      title: title,
+      body: body,
+      type: _selectedNotifType,
+    );
+
+    final state = ref.read(announcementControllerProvider);
+    if (state.hasError) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: ${state.error}')),
+      );
+    } else {
+      if (mounted) Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Anuncio publicado')),
+      );
+    }
+    if (mounted) setState(() => _isSubmitting = false);
   }
 }
 

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:puntocheck/models/notification_model.dart';
+import 'package:puntocheck/models/enums.dart';
 import 'package:puntocheck/providers/app_providers.dart';
 import 'package:puntocheck/routes/app_router.dart';
 import 'package:puntocheck/utils/theme/app_colors.dart';
@@ -44,7 +45,7 @@ class AnunciosAdminView extends ConsumerWidget {
                         fechaTexto: _formatDate(anuncio.createdAt),
                         color: AppColors.primaryRed,
                         unread: !anuncio.isRead,
-                        onTap: () => _openAnnouncementDetail(context, anuncio),
+                        onTap: () => _openAnnouncementDetail(context, anuncio, ref),
                       );
                     },
                   );
@@ -66,7 +67,11 @@ class AnunciosAdminView extends ConsumerWidget {
     );
   }
 
-  void _openAnnouncementDetail(BuildContext context, AppNotification anuncio) {
+  void _openAnnouncementDetail(
+    BuildContext context,
+    AppNotification anuncio,
+    WidgetRef ref,
+  ) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -119,6 +124,35 @@ class AnunciosAdminView extends ConsumerWidget {
                       anuncio.body,
                       style: const TextStyle(fontSize: 15, height: 1.5),
                     ),
+                    const SizedBox(height: 20),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: () {
+                              Navigator.pop(context);
+                              _openEditSheet(context, anuncio, ref);
+                            },
+                            icon: const Icon(Icons.edit_outlined),
+                            label: const Text('Editar'),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: AppColors.primaryRed,
+                            ),
+                            onPressed: () {
+                              Navigator.pop(context);
+                              _confirmDelete(context, anuncio, ref);
+                            },
+                            icon: const Icon(Icons.delete_outline),
+                            label: const Text('Eliminar'),
+                          ),
+                        ),
+                      ],
+                    ),
                   ],
                 ),
               ),
@@ -135,6 +169,155 @@ class AnunciosAdminView extends ConsumerWidget {
     final hour = dateTime.hour.toString().padLeft(2, '0');
     final minute = dateTime.minute.toString().padLeft(2, '0');
     return '$day/$month/${dateTime.year} - $hour:$minute';
+  }
+
+  void _openEditSheet(
+    BuildContext context,
+    AppNotification anuncio,
+    WidgetRef ref,
+  ) {
+    final titleController = TextEditingController(text: anuncio.title);
+    final bodyController = TextEditingController(text: anuncio.body);
+    NotifType selectedType = anuncio.type;
+    bool saving = false;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return Padding(
+              padding: EdgeInsets.only(
+                left: 16,
+                right: 16,
+                top: 16,
+                bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: AppColors.black.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  const Text(
+                    'Editar anuncio',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w800,
+                      fontSize: 16,
+                      color: AppColors.backgroundDark,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: titleController,
+                    decoration: const InputDecoration(
+                      labelText: 'Título',
+                      border: OutlineInputBorder(),
+                    ),
+                    maxLength: 60,
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: bodyController,
+                    decoration: const InputDecoration(
+                      labelText: 'Mensaje',
+                      border: OutlineInputBorder(),
+                    ),
+                    maxLines: 4,
+                    maxLength: 300,
+                  ),
+                  const SizedBox(height: 12),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: NotifType.values.map((type) {
+                      final selected = selectedType == type;
+                      return ChoiceChip(
+                        label: Text(type.name),
+                        selected: selected,
+                        onSelected: (_) => setState(() => selectedType = type),
+                      );
+                    }).toList(),
+                  ),
+                  const SizedBox(height: 16),
+                  PrimaryButton(
+                    text: saving ? 'Guardando...' : 'Guardar cambios',
+                    enabled: !saving,
+                    onPressed: () async {
+                      if (titleController.text.trim().isEmpty ||
+                          bodyController.text.trim().isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Completa título y mensaje'),
+                          ),
+                        );
+                        return;
+                      }
+                      setState(() => saving = true);
+                      await ref
+                          .read(announcementControllerProvider.notifier)
+                          .updateAnnouncement(
+                            id: anuncio.id,
+                            title: titleController.text.trim(),
+                            body: bodyController.text.trim(),
+                            type: selectedType,
+                          );
+                      setState(() => saving = false);
+                      if (context.mounted) Navigator.pop(context);
+                    },
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _confirmDelete(
+    BuildContext context,
+    AppNotification anuncio,
+    WidgetRef ref,
+  ) {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Eliminar anuncio'),
+        content: const Text('Esta acción no se puede deshacer.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () async {
+              await ref
+                  .read(announcementControllerProvider.notifier)
+                  .deleteAnnouncement(id: anuncio.id);
+              if (context.mounted) Navigator.pop(context);
+            },
+            child: const Text(
+              'Eliminar',
+              style: TextStyle(color: AppColors.primaryRed),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 

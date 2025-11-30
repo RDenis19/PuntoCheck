@@ -4,6 +4,7 @@ import 'package:puntocheck/presentation/admin/views/admin_home_view.dart';
 import 'package:puntocheck/presentation/admin/views/horario_admin_view.dart';
 import 'package:puntocheck/presentation/admin/views/apariencia_app_view.dart';
 import 'package:puntocheck/presentation/employee/views/settings_view.dart';
+import 'package:puntocheck/routes/app_router.dart';
 
 class AdminShellView extends StatefulWidget {
   const AdminShellView({super.key});
@@ -38,7 +39,7 @@ class _AdminShellViewState extends State<AdminShellView> {
       Icons.settings_outlined,
     ];
 
-    const labels = ['Inicio', 'Horario', 'Editar App', 'Configuración'];
+    const labels = ['Inicio', 'Horario', 'Editar App', 'Ajustes'];
 
     return Container(
       decoration: const BoxDecoration(
@@ -125,9 +126,14 @@ class AdminSettingsTabView extends StatelessWidget {
                 fontWeight: FontWeight.w700,
                 color: AppColors.backgroundDark,
               ),
+              ),
+            ),
+          Expanded(
+            child: SettingsView(
+              embedded: true,
+              personalInfoRoute: AppRoutes.adminPersonalInfo,
             ),
           ),
-          Expanded(child: SettingsView(embedded: true)),
         ],
       ),
     );

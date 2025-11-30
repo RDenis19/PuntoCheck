@@ -42,18 +42,30 @@ class _RegistroAsistenciaViewState extends ConsumerState<RegistroAsistenciaView>
       return;
     }
 
-    // Llamar al controller
-    await ref.read(attendanceControllerProvider.notifier).checkIn(
-      location: GeoLocation(
-        latitude: _currentPosition!.latitude,
-        longitude: _currentPosition!.longitude,
-      ),
-      photoFile: _selectedImage!,
-      orgId: profile.organizationId!,
+    final activeShift = await ref.read(activeShiftProvider.future);
+    final controller = ref.read(attendanceControllerProvider.notifier);
+    final location = GeoLocation(
+      latitude: _currentPosition!.latitude,
+      longitude: _currentPosition!.longitude,
     );
 
+    if (activeShift == null) {
+      await controller.checkIn(
+        location: location,
+        photoFile: _selectedImage!,
+        orgId: profile.organizationId!,
+      );
+    } else {
+      await controller.checkOut(
+        shiftId: activeShift.id,
+        location: location,
+        orgId: profile.organizationId!,
+        photoFile: _selectedImage!,
+      );
+    }
+
     final state = ref.read(attendanceControllerProvider);
-    
+
     if (!mounted) return;
 
     if (state.hasError) {
@@ -62,8 +74,10 @@ class _RegistroAsistenciaViewState extends ConsumerState<RegistroAsistenciaView>
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Asistencia registrada correctamente.'),
+        SnackBar(
+          content: Text(activeShift == null
+              ? 'Entrada registrada correctamente.'
+              : 'Salida registrada correctamente.'),
           backgroundColor: Colors.green,
         ),
       );
@@ -75,6 +89,7 @@ class _RegistroAsistenciaViewState extends ConsumerState<RegistroAsistenciaView>
   Widget build(BuildContext context) {
     final attendanceState = ref.watch(attendanceControllerProvider);
     final isLoading = attendanceState.isLoading;
+    final activeShiftAsync = ref.watch(activeShiftProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -82,11 +97,27 @@ class _RegistroAsistenciaViewState extends ConsumerState<RegistroAsistenciaView>
         elevation: 0,
         centerTitle: true,
         iconTheme: const IconThemeData(color: AppColors.black),
-        title: const Text(
-          'Registrar Asistencia',
-          style: TextStyle(
-            fontWeight: FontWeight.w700,
-            color: AppColors.backgroundDark,
+        title: activeShiftAsync.when(
+          data: (shift) => Text(
+            shift == null ? 'Registrar Entrada' : 'Registrar Salida',
+            style: const TextStyle(
+              fontWeight: FontWeight.w700,
+              color: AppColors.backgroundDark,
+            ),
+          ),
+          loading: () => const Text(
+            'Registrar Asistencia',
+            style: TextStyle(
+              fontWeight: FontWeight.w700,
+              color: AppColors.backgroundDark,
+            ),
+          ),
+          error: (_, __) => const Text(
+            'Registrar Asistencia',
+            style: TextStyle(
+              fontWeight: FontWeight.w700,
+              color: AppColors.backgroundDark,
+            ),
           ),
         ),
       ),
@@ -113,54 +144,69 @@ class _RegistroAsistenciaViewState extends ConsumerState<RegistroAsistenciaView>
               },
             ),
             const SizedBox(height: 24),
+            const SizedBox(height: 24),
             Container(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: AppColors.infoBlue.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(20),
+                color: AppColors.white,
+                borderRadius: BorderRadius.circular(24),
                 border: Border.all(
-                  color: AppColors.infoBlue.withValues(alpha: 0.3),
+                  color: AppColors.infoBlue.withValues(alpha: 0.15),
                 ),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.infoBlue.withValues(alpha: 0.08),
+                    blurRadius: 16,
+                    offset: const Offset(0, 8),
+                  ),
+                ],
               ),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Container(
-                    width: 44,
-                    height: 44,
+                    width: 48,
+                    height: 48,
                     decoration: BoxDecoration(
-                      color: AppColors.infoBlue.withValues(alpha: 0.2),
+                      color: AppColors.infoBlue.withValues(alpha: 0.1),
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(
-                      Icons.info_outline,
+                      Icons.info_outline_rounded,
                       color: AppColors.infoBlue,
+                      size: 26,
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 16),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Text(
-                          'Información importante',
+                          'Información Importante',
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w700,
                             color: AppColors.backgroundDark,
+                            letterSpacing: -0.5,
                           ),
                         ),
-                        const SizedBox(height: 6),
-                        const Text(
-                          'Tu foto y ubicación serán registradas de forma segura en el sistema de asistencia.',
-                          style: TextStyle(fontSize: 14),
-                        ),
-                        const SizedBox(height: 4),
+                        const SizedBox(height: 8),
                         Text(
-                          'Los datos se guardarAn cifrados como evidencia del registro.',
+                          'Tu foto y ubicación serán registradas de forma segura en el sistema de asistencia.',
                           style: TextStyle(
-                            color: AppColors.black.withValues(alpha: 0.6),
-                            fontSize: 12,
+                            fontSize: 14,
+                            height: 1.4,
+                            color: AppColors.backgroundDark.withValues(alpha: 0.8),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Los datos se guardarán cifrados como evidencia del registro.',
+                          style: TextStyle(
+                            color: AppColors.black.withValues(alpha: 0.5),
+                            fontSize: 13,
+                            height: 1.3,
                           ),
                         ),
                       ],
@@ -171,7 +217,15 @@ class _RegistroAsistenciaViewState extends ConsumerState<RegistroAsistenciaView>
             ),
             const SizedBox(height: 32),
             PrimaryButton(
-              text: isLoading ? 'Registrando...' : 'Confirmar Entrada',
+              text: activeShiftAsync.when(
+                data: (shift) => isLoading
+                    ? 'Registrando...'
+                    : shift == null
+                        ? 'Confirmar Entrada'
+                        : 'Confirmar Salida',
+                loading: () => isLoading ? 'Registrando...' : 'Confirmar',
+                error: (_, __) => isLoading ? 'Registrando...' : 'Confirmar',
+              ),
               enabled: !isLoading,
               onPressed: _onConfirm,
             ),

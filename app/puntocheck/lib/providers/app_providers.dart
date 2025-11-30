@@ -5,20 +5,25 @@ import 'package:supabase_flutter/supabase_flutter.dart' show User, AuthState;
 
 // Modelos
 import '../models/profile_model.dart';
+import '../models/enums.dart';
 import '../models/organization_model.dart';
 import '../models/work_shift_model.dart';
 import '../models/work_schedule_model.dart';
 import '../models/notification_model.dart';
 import '../models/geo_location.dart';
+import '../utils/location_helper.dart';
+import 'package:geolocator/geolocator.dart';
 
 // Servicios
 import '../services/auth_service.dart';
 import '../services/attendance_service.dart';
 import '../services/organization_service.dart';
+import '../services/super_admin_service.dart';
 import '../services/storage_service.dart';
 import '../services/notification_service.dart';
 import '../services/schedule_service.dart';
 import '../services/biometric_service.dart';
+import '../services/global_settings_service.dart';
 
 // ============================================================================
 // 1. CAPA DE SERVICIOS (INYECCIÓN DE DEPENDENCIAS)
@@ -31,9 +36,14 @@ final attendanceServiceProvider = Provider<AttendanceService>(
   (ref) => AttendanceService(),
 );
 
-/// Proveedor de OrganizationService - Inyección de dependencia
+/// Proveedor de OrganizationService (admin + super admin centralizado)
 final organizationServiceProvider = Provider<OrganizationService>(
   (ref) => OrganizationService(),
+);
+
+/// Alias legacy para mantener compatibilidad con imports antiguos.
+final superAdminServiceProvider = Provider<SuperAdminService>(
+  (ref) => ref.read(organizationServiceProvider),
 );
 
 /// Proveedor de StorageService - Inyección de dependencia
@@ -46,6 +56,77 @@ final notificationServiceProvider = Provider<NotificationService>(
   (ref) => NotificationService(),
 );
 
+class AnnouncementController extends AsyncNotifier<void> {
+  @override
+  FutureOr<void> build() => null;
+
+  Future<void> createAnnouncement({
+    required String title,
+    required String body,
+    NotifType type = NotifType.info,
+  }) async {
+    state = const AsyncValue.loading();
+    state = await AsyncValue.guard(() async {
+      final profile = await ref.read(profileProvider.future);
+      final orgId = profile?.organizationId;
+      if (orgId == null) {
+        throw Exception('No se encontro organizacion para el admin.');
+      }
+      await ref.read(notificationServiceProvider).createAnnouncement(
+            organizationId: orgId,
+            title: title,
+            body: body,
+            type: type,
+          );
+      ref.invalidate(notificationsStreamProvider);
+    });
+  }
+
+  Future<void> updateAnnouncement({
+    required String id,
+    required String title,
+    required String body,
+    NotifType type = NotifType.info,
+  }) async {
+    state = const AsyncValue.loading();
+    state = await AsyncValue.guard(() async {
+      final profile = await ref.read(profileProvider.future);
+      final orgId = profile?.organizationId;
+      if (orgId == null) {
+        throw Exception('No se encontro organizacion para el admin.');
+      }
+      await ref.read(notificationServiceProvider).updateAnnouncement(
+            id: id,
+            organizationId: orgId,
+            title: title,
+            body: body,
+            type: type,
+          );
+      ref.invalidate(notificationsStreamProvider);
+    });
+  }
+
+  Future<void> deleteAnnouncement({required String id}) async {
+    state = const AsyncValue.loading();
+    state = await AsyncValue.guard(() async {
+      final profile = await ref.read(profileProvider.future);
+      final orgId = profile?.organizationId;
+      if (orgId == null) {
+        throw Exception('No se encontro organizacion para el admin.');
+      }
+      await ref
+          .read(notificationServiceProvider)
+          .deleteAnnouncement(id: id, organizationId: orgId);
+      ref.invalidate(notificationsStreamProvider);
+    });
+  }
+}
+
+final announcementControllerProvider =
+    AsyncNotifierProvider<AnnouncementController, void>(
+  AnnouncementController.new,
+);
+
 /// Proveedor de ScheduleService - Inyección de dependencia
 final scheduleServiceProvider = Provider<ScheduleService>(
   (ref) => ScheduleService(),
@@ -54,6 +135,11 @@ final scheduleServiceProvider = Provider<ScheduleService>(
 /// Proveedor de BiometricService - Inyección de dependencia
 final biometricServiceProvider = Provider<BiometricService>(
   (ref) => BiometricService(),
+);
+
+/// Proveedor de configuracion global
+final globalSettingsServiceProvider = Provider<GlobalSettingsService>(
+  (ref) => GlobalSettingsService(),
 );
 
 // ============================================================================
@@ -187,12 +273,25 @@ enum UserRole { superAdmin, admin, employee, unknown }
 
 final userRoleProvider = Provider.autoDispose<UserRole>((ref) {
   final profileAsync = ref.watch(profileProvider);
+  final currentUser = ref.watch(currentUserProvider);
+  final metaIsSuperAdmin =
+      ((currentUser?.userMetadata ?? const {})['is_super_admin'] as bool?) ==
+          true;
+  final metaIsOrgAdmin =
+      ((currentUser?.userMetadata ?? const {})['is_org_admin'] as bool?) ==
+          true;
 
   return profileAsync.when(
     data: (profile) {
-      if (profile?.isSuperAdmin == true) return UserRole.superAdmin;
-      if (profile?.isOrgAdmin == true) return UserRole.admin;
+      final isSuper = (profile?.isSuperAdmin == true) || metaIsSuperAdmin;
+      final isAdmin = (profile?.isOrgAdmin == true) || metaIsOrgAdmin;
+
+      if (isSuper) return UserRole.superAdmin;
+      if (isAdmin) return UserRole.admin;
       if (profile != null) return UserRole.employee;
+
+      if (metaIsSuperAdmin) return UserRole.superAdmin;
+      if (metaIsOrgAdmin) return UserRole.admin;
       return UserRole.unknown;
     },
     loading: () => UserRole.unknown,
@@ -214,9 +313,84 @@ final currentOrganizationProvider = FutureProvider.autoDispose<Organization?>((
 /// Obtiene todas las organizaciones (Solo SUPERADMIN)
 final allOrganizationsProvider = FutureProvider.autoDispose<List<Organization>>(
   (ref) async {
-    return ref.watch(organizationServiceProvider).getAllOrganizations();
+    final result = await ref.watch(organizationServiceProvider).getOrganizationsPage(
+          page: 1,
+          pageSize: 15,
+          sortBy: 'created_at',
+          ascending: false,
+        );
+    return result.items;
   },
 );
+
+/// Parametros tipados para la paginacion de organizaciones.
+class OrganizationPageRequest {
+  const OrganizationPageRequest({
+    this.page = 1,
+    this.pageSize = 12,
+    this.search,
+    this.status,
+    this.sortBy = 'created_at',
+    this.ascending = false,
+  });
+
+  final int page;
+  final int pageSize;
+  final String? search;
+  final OrgStatus? status;
+  final String sortBy;
+  final bool ascending;
+
+  @override
+  bool operator ==(Object other) {
+    return other is OrganizationPageRequest &&
+        other.page == page &&
+        other.pageSize == pageSize &&
+        other.search == search &&
+        other.status == status &&
+        other.sortBy == sortBy &&
+        other.ascending == ascending;
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(page, pageSize, search, status, sortBy, ascending);
+}
+
+/// Request por defecto usado en home de superadmin (organizaciones recientes).
+const defaultOrganizationsPageRequest = OrganizationPageRequest(
+  page: 1,
+  pageSize: 6,
+  sortBy: 'created_at',
+  ascending: false,
+);
+
+/// Paginacion server side de organizaciones (Super Admin).
+final organizationsPageProvider = FutureProvider.autoDispose
+    .family<PaginatedResult<Organization>, OrganizationPageRequest>((
+  ref,
+  params,
+) async {
+  return ref.watch(organizationServiceProvider).getOrganizationsPage(
+        page: params.page,
+        pageSize: params.pageSize,
+        search: params.search,
+        status: params.status,
+        sortBy: params.sortBy,
+        ascending: params.ascending,
+      );
+});
+
+/// Cantidad de organizaciones por estado (se actualiza con la busqueda).
+final organizationStatusCountsProvider =
+    FutureProvider.autoDispose.family<Map<OrgStatus, int>, String?>((
+  ref,
+  search,
+) async {
+  return ref
+      .watch(organizationServiceProvider)
+      .getOrganizationStatusCounts(search: search);
+});
 
 /// Estadisticas para el dashboard de administrador (Admin)
 final adminDashboardStatsProvider =
@@ -238,6 +412,62 @@ final organizationEmployeesProvider = FutureProvider.autoDispose
     .family<List<Profile>, String>((ref, orgId) async {
       return ref.watch(organizationServiceProvider).getEmployeesByOrg(orgId);
     });
+
+/// Parametros tipados para paginacion de empleados por organizacion.
+class EmployeePageRequest {
+  const EmployeePageRequest({
+    required this.organizationId,
+    this.page = 1,
+    this.pageSize = 20,
+    this.search,
+    this.onlyAdmins,
+    this.excludeAdmins,
+  });
+
+  final String organizationId;
+  final int page;
+  final int pageSize;
+  final String? search;
+  final bool? onlyAdmins;
+  final bool? excludeAdmins;
+
+  @override
+  bool operator ==(Object other) {
+    return other is EmployeePageRequest &&
+        other.organizationId == organizationId &&
+        other.page == page &&
+        other.pageSize == pageSize &&
+        other.search == search &&
+        other.onlyAdmins == onlyAdmins &&
+        other.excludeAdmins == excludeAdmins;
+  }
+
+  @override
+  int get hashCode => Object.hash(
+        organizationId,
+        page,
+        pageSize,
+        search,
+        onlyAdmins,
+        excludeAdmins,
+      );
+}
+
+/// Paginacion server side de empleados por organizacion (Super Admin/Admin).
+final organizationEmployeesPageProvider = FutureProvider.autoDispose
+    .family<PaginatedResult<Profile>, EmployeePageRequest>((
+  ref,
+  params,
+) async {
+  return ref.watch(organizationServiceProvider).getEmployeesPage(
+        organizationId: params.organizationId,
+        page: params.page,
+        pageSize: params.pageSize,
+        search: params.search,
+        onlyAdmins: params.onlyAdmins,
+        excludeAdmins: params.excludeAdmins,
+      );
+});
 
 /// Empleados de la organizacion del usuario (Admin)
 final orgEmployeesProvider = FutureProvider.autoDispose<List<Profile>>((
@@ -282,16 +512,196 @@ final organizationDashboardStatsProvider = FutureProvider.autoDispose
       );
     });
 
+/// Metricas enriquecidas por organizacion (asistencias y atrasos).
+final organizationMetricsProvider =
+    FutureProvider.autoDispose.family<OrganizationMetrics, String>((
+  ref,
+  orgId,
+) async {
+  return ref.watch(organizationServiceProvider).getOrganizationMetrics(orgId);
+});
+
+/// Plan y limites de la organizacion.
+final organizationPlanProvider =
+    FutureProvider.autoDispose.family<PlanSummary, String>((
+  ref,
+  orgId,
+) async {
+  return ref.watch(organizationServiceProvider).getPlanSummary(orgId);
+});
+
 /// Obtiene estadisticas globales (Solo SUPERADMIN)
 final superAdminStatsProvider =
-    FutureProvider.autoDispose<Map<String, dynamic>>((ref) async {
+    FutureProvider.autoDispose<Map<String, int>>((ref) async {
       return ref.watch(organizationServiceProvider).getSuperAdminStats();
     });
+
+/// Configuracion global (fila unica)
+final globalSettingsProvider = FutureProvider<Map<String, dynamic>>((ref) async {
+  return ref.watch(globalSettingsServiceProvider).getSettings();
+});
+
+class GlobalSettingsController extends AsyncNotifier<void> {
+  @override
+  FutureOr<void> build() => null;
+
+  Future<void> save(Map<String, dynamic> updates) async {
+    state = const AsyncValue.loading();
+    state = await AsyncValue.guard(() async {
+      await ref.read(globalSettingsServiceProvider).updateSettings(updates);
+    });
+  }
+}
+
+final globalSettingsControllerProvider =
+    AsyncNotifierProvider<GlobalSettingsController, void>(
+  GlobalSettingsController.new,
+);
+
+
+/// Controller para acciones de Super Admin (crear/editar orgs, roles, etc).
+class SuperAdminController extends AsyncNotifier<void> {
+  @override
+  FutureOr<void> build() => null;
+
+  Future<Organization?> createOrganization({
+    required String name,
+    String? contactEmail,
+    OrgStatus status = OrgStatus.prueba,
+  }) async {
+    state = const AsyncValue.loading();
+    final response = await AsyncValue.guard(() {
+      return ref.read(organizationServiceProvider).createOrganization(
+            name: name,
+            contactEmail: contactEmail,
+            status: status,
+          );
+    });
+    state = response;
+    return response.valueOrNull;
+  }
+
+  Future<Organization?> updateOrganization(
+    String organizationId,
+    Map<String, dynamic> updates,
+  ) async {
+    state = const AsyncValue.loading();
+    final response = await AsyncValue.guard(() {
+      return ref
+          .read(organizationServiceProvider)
+          .updateOrganization(organizationId, updates);
+    });
+    state = response;
+    return response.valueOrNull;
+  }
+
+  Future<Organization?> setOrganizationStatus(
+    String organizationId,
+    OrgStatus status,
+  ) async {
+    state = const AsyncValue.loading();
+    final response = await AsyncValue.guard(() {
+      return ref
+          .read(organizationServiceProvider)
+          .setOrganizationStatus(organizationId, status);
+    });
+    state = response;
+    return response.valueOrNull;
+  }
+
+  Future<void> setOrgAdmin({
+    required String userId,
+    required bool isAdmin,
+    String? organizationId,
+  }) async {
+    state = const AsyncValue.loading();
+    state = await AsyncValue.guard(() {
+      return ref.read(organizationServiceProvider).setOrgAdmin(
+            userId: userId,
+            isAdmin: isAdmin,
+            organizationId: organizationId,
+          );
+    });
+  }
+
+  Future<void> setOrgAdminByEmail({
+    required String email,
+    required String organizationId,
+    bool isAdmin = true,
+  }) async {
+    state = const AsyncValue.loading();
+    state = await AsyncValue.guard(() {
+      return ref.read(organizationServiceProvider).setOrgAdminByEmail(
+            email: email,
+            organizationId: organizationId,
+            isAdmin: isAdmin,
+          );
+    });
+  }
+
+  Future<void> setUserActive({
+    required String userId,
+    required bool isActive,
+  }) async {
+    state = const AsyncValue.loading();
+    state = await AsyncValue.guard(() {
+      return ref
+          .read(organizationServiceProvider)
+          .setUserActive(userId: userId, isActive: isActive);
+    });
+  }
+
+  Future<void> createOrgAdminUser({
+    required String email,
+    required String password,
+    String? fullName,
+    required String organizationId,
+  }) async {
+    state = const AsyncValue.loading();
+    state = await AsyncValue.guard(() {
+      return ref.read(organizationServiceProvider).createOrgAdminUser(
+            email: email,
+            password: password,
+            fullName: fullName,
+            organizationId: organizationId,
+          );
+    });
+  }
+}
+
+final superAdminControllerProvider =
+    AsyncNotifierProvider<SuperAdminController, void>(
+  SuperAdminController.new,
+);
 
 /// Controller para administración de organizaciones
 class OrganizationController extends AsyncNotifier<void> {
   @override
   FutureOr<void> build() => null;
+
+  /// Crea un empleado en la organizacion del admin actual.
+  Future<void> createEmployee({
+    required String email,
+    required String password,
+    String? fullName,
+    String? phone,
+  }) async {
+    state = const AsyncValue.loading();
+    state = await AsyncValue.guard(() async {
+      final profile = await ref.read(profileProvider.future);
+      final orgId = profile?.organizationId;
+      if (orgId == null) {
+        throw Exception('No se encontro organizacion para el admin.');
+      }
+      await ref.read(organizationServiceProvider).createEmployeeUser(
+            email: email,
+            password: password,
+            fullName: fullName,
+            phone: phone,
+            organizationId: orgId,
+          );
+    });
+  }
 
   /// Actualiza configuración de la organización (Admin)
   Future<void> updateOrgConfig(
@@ -320,6 +730,11 @@ final attendanceHistoryProvider = FutureProvider.autoDispose<List<WorkShift>>((
 ) async {
   ref.watch(attendanceControllerProvider);
   return ref.watch(attendanceServiceProvider).getMyHistory();
+});
+
+/// Ubicacion GPS actual del empleado (una sola lectura con fallback interno)
+final currentLocationProvider = FutureProvider.autoDispose<Position?>((ref) async {
+  return LocationHelper.getCurrentLocation();
 });
 
 /// Obtiene estadísticas de hoy (horas trabajadas, etc.)
@@ -414,11 +829,14 @@ final attendanceControllerProvider =
 // ============================================================================
 // 6. NOTIFICACIONES (NOTIFICATIONS)
 // ============================================================================
-/// Stream en tiempo real de notificaciones del usuario
-/// Se actualiza automáticamente cuando hay cambios en la BD
+/// Stream en tiempo real de notificaciones (usuario + organización).
 final notificationsStreamProvider =
-    StreamProvider.autoDispose<List<AppNotification>>((ref) {
-      return ref.watch(notificationServiceProvider).myNotificationsStream;
+    StreamProvider.autoDispose<List<AppNotification>>((ref) async* {
+      final profile = await ref.watch(profileProvider.future);
+      final orgId = profile?.organizationId;
+      yield* ref.watch(notificationServiceProvider).myNotificationsStream(
+            orgId: orgId,
+          );
     });
 
 /// Cuenta de notificaciones no leídas

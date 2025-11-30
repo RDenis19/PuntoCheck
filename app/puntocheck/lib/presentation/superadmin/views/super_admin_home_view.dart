@@ -17,7 +17,8 @@ class SuperAdminHomeView extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final orgsAsync = ref.watch(allOrganizationsProvider);
+    final orgsAsync =
+        ref.watch(organizationsPageProvider(defaultOrganizationsPageRequest));
     final statsAsync = ref.watch(superAdminStatsProvider);
 
     return Scaffold(
@@ -26,7 +27,9 @@ class SuperAdminHomeView extends ConsumerWidget {
         child: RefreshIndicator(
           onRefresh: () async {
             ref.invalidate(superAdminStatsProvider);
-            ref.invalidate(allOrganizationsProvider);
+            ref.invalidate(
+              organizationsPageProvider(defaultOrganizationsPageRequest),
+            );
             ref.invalidate(profileProvider);
           },
           child: SingleChildScrollView(
@@ -63,16 +66,24 @@ class SuperAdminHomeView extends ConsumerWidget {
                       children: const [
                         Text(
                           'Ver todas',
-                          style: TextStyle(fontWeight: FontWeight.w600),
+                          style: TextStyle(
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.primaryRed,
+                          ),
                         ),
                         SizedBox(width: 4),
-                        Icon(Icons.arrow_forward_ios, size: 14),
+                        Icon(
+                          Icons.arrow_forward_ios,
+                          size: 14,
+                          color: AppColors.primaryRed,
+                        ),
                       ],
                     ),
                   ),
                 ),
                 orgsAsync.when(
-                  data: (orgs) => _buildOrganizationsList(context, orgs),
+                  data: (page) =>
+                      _buildOrganizationsList(context, page.items),
                   loading: () => _buildLoadingState(),
                   error: (error, _) => _buildErrorState(error.toString()),
                 ),

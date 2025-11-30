@@ -21,11 +21,18 @@ class AdminQuickActionButton extends StatelessWidget {
 
     return SizedBox(
       width: (MediaQuery.of(context).size.width - 48) / 2,
+      height: 165,
       child: Material(
         color: AppColors.white,
-        borderRadius: cardRadius,
-        elevation: 4,
-        shadowColor: AppColors.black.withValues(alpha: 0.05),
+        elevation: 2,
+        shadowColor: AppColors.primaryRed.withValues(alpha: 0.15),
+        shape: RoundedRectangleBorder(
+          borderRadius: cardRadius,
+          side: BorderSide(
+            color: AppColors.primaryRed.withValues(alpha: 0.1),
+            width: 1,
+          ),
+        ),
         child: InkWell(
           borderRadius: cardRadius,
           onTap: onTap,

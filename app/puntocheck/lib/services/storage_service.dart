@@ -80,4 +80,25 @@ class StorageService {
       return 'https://placehold.co/400x300?text=No+Image';
     }
   }
+
+  /// Sube LOGO de organizacion en bucket publico (reutiliza bucket avatars).
+  /// Path: orgs/{orgId}/logo_timestamp.ext
+  Future<String> uploadOrganizationLogo(File file, String orgId) async {
+    try {
+      _validateSize(file);
+      final fileExt = p.extension(file.path);
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final filePath = 'orgs/$orgId/logo_$timestamp$fileExt';
+
+      await _supabase.storage.from(_bucketAvatars).upload(
+            filePath,
+            file,
+            fileOptions: const FileOptions(cacheControl: '3600', upsert: true),
+          );
+
+      return _supabase.storage.from(_bucketAvatars).getPublicUrl(filePath);
+    } catch (e) {
+      throw Exception('Error subiendo logo: $e');
+    }
+  }
 }
