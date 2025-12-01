@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:puntocheck/presentation/shared/widgets/custom_map_widget.dart';
 import 'package:puntocheck/utils/theme/app_colors.dart';
 import 'package:puntocheck/routes/app_router.dart';
 import 'package:puntocheck/presentation/employee/views/avisos_view.dart';
@@ -67,10 +68,7 @@ class _EmployeeHomeViewState extends ConsumerState<EmployeeHomeView> {
       padding: const EdgeInsets.fromLTRB(16, 20, 16, 24),
       decoration: const BoxDecoration(
         gradient: LinearGradient(
-          colors: [
-            AppColors.primaryRed,
-            Color(0xFFD32F2F),
-          ],
+          colors: [AppColors.primaryRed, Color(0xFFD32F2F)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -132,8 +130,13 @@ class _EmployeeHomeViewState extends ConsumerState<EmployeeHomeView> {
                   ),
                 ],
               ),
-              loading: () => const Center(child: CircularProgressIndicator(color: Colors.white)),
-              error: (_, __) => const Text('Error cargando perfil', style: TextStyle(color: Colors.white)),
+              loading: () => const Center(
+                child: CircularProgressIndicator(color: Colors.white),
+              ),
+              error: (_, __) => const Text(
+                'Error cargando perfil',
+                style: TextStyle(color: Colors.white),
+              ),
             ),
           ),
           Stack(
@@ -316,6 +319,17 @@ class _MapPlaceholder extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
+            // 📍 Mapa aquí
+            Expanded(
+              child: const CustomMapWidget(
+                showMyLocation: true,
+                showMyLocationButton: true,
+                initialZoom: 15,
+              ),
+            ),
+
+            const SizedBox(height: 24),
+
             Icon(
               Icons.map_outlined,
               size: 72,
@@ -332,16 +346,17 @@ class _MapPlaceholder extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              'Pronto podras ver rutas, oficinas y la ubicacion en tiempo real.',
+              'Pronto podras ver rutas, oficinas y la ubicación en tiempo real.',
               textAlign: TextAlign.center,
               style: TextStyle(color: AppColors.black.withOpacity(0.6)),
             ),
             const SizedBox(height: 32),
+
             OutlinedButton(
               onPressed: () {
-                ScaffoldMessenger.of(
-                  context,
-                ).showSnackBar(const SnackBar(content: Text('Mapa en desarrollo')));
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Mapa en desarrollo')),
+                );
               },
               style: OutlinedButton.styleFrom(
                 foregroundColor: AppColors.primaryRed,
@@ -362,4 +377,3 @@ class _MapPlaceholder extends StatelessWidget {
     );
   }
 }
-
