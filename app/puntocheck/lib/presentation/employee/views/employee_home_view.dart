@@ -313,67 +313,9 @@ class _MapPlaceholder extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // 📍 Mapa aquí
-            Expanded(
-              child: const CustomMapWidget(
-                showMyLocation: true,
-                showMyLocationButton: true,
-                initialZoom: 15,
-              ),
-            ),
-
-            const SizedBox(height: 24),
-
-            Icon(
-              Icons.map_outlined,
-              size: 72,
-              color: AppColors.primaryRed.withOpacity(0.7),
-            ),
-            const SizedBox(height: 24),
-            const Text(
-              'Mapa en desarrollo',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.w700,
-                color: AppColors.backgroundDark,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Pronto podras ver rutas, oficinas y la ubicación en tiempo real.',
-              textAlign: TextAlign.center,
-              style: TextStyle(color: AppColors.black.withOpacity(0.6)),
-            ),
-            const SizedBox(height: 32),
-
-            OutlinedButton(
-              onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Mapa en desarrollo')),
-                );
-              },
-              style: OutlinedButton.styleFrom(
-                foregroundColor: AppColors.primaryRed,
-                side: const BorderSide(color: AppColors.primaryRed),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 24,
-                  vertical: 14,
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20),
-                ),
-              ),
-              child: const Text('Actualizar mapa'),
-            ),
-          ],
-        ),
-      ),
+    return const CustomMapWidget(
+      showMyLocation: true,
+      initialZoom: 15,
     );
   }
 }

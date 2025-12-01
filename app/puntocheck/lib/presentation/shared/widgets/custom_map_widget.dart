@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
@@ -6,14 +7,12 @@ class CustomMapWidget extends StatefulWidget {
   final LatLng? initialPosition;
   final double initialZoom;
   final bool showMyLocation;
-  final bool showMyLocationButton;
 
   const CustomMapWidget({
     Key? key,
     this.initialPosition,
     this.initialZoom = 15,
     this.showMyLocation = true,
-    this.showMyLocationButton = true,
   }) : super(key: key);
 
   @override
@@ -22,96 +21,141 @@ class CustomMapWidget extends StatefulWidget {
 
 class _CustomMapWidgetState extends State<CustomMapWidget> {
   GoogleMapController? _mapController;
-  LatLng _currentPosition = const LatLng(-3.9939, -79.2045); // Loja
+  LatLng _currentPosition = const LatLng(-3.9939, -79.2045); // Loja default
   bool _isLoading = true;
+  double _currentZoom = 15;
 
   @override
   void initState() {
     super.initState();
-    _initializeMap();
+    _currentZoom = widget.initialZoom;
+    _initializeLocation();
   }
 
-  Future<void> _initializeMap() async {
+  /// Solicita ubicación solo UNA VEZ al inicio
+  Future<void> _initializeLocation() async {
     if (widget.initialPosition != null) {
-      setState(() {
-        _currentPosition = widget.initialPosition!;
-        _isLoading = false;
-      });
+      _currentPosition = widget.initialPosition!;
+      _isLoading = false;
+      if (mounted) setState(() {});
       return;
     }
 
-    // Obtener ubicación actual si está habilitado
     if (widget.showMyLocation) {
-      await _getCurrentLocation();
-    } else {
+      await _fetchLocation();
+    }
+
+    if (mounted) {
       setState(() => _isLoading = false);
     }
   }
 
-  Future<void> _getCurrentLocation() async {
+  /// Obtiene ubicación y actualiza marker/cámara
+  Future<void> _fetchLocation() async {
     try {
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-      if (!serviceEnabled) {
-        setState(() => _isLoading = false);
-        return;
-      }
+      if (!serviceEnabled) return;
 
       LocationPermission permission = await Geolocator.checkPermission();
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
-        if (permission == LocationPermission.denied) {
-          setState(() => _isLoading = false);
-          return;
-        }
       }
-
-      if (permission == LocationPermission.deniedForever) {
-        setState(() => _isLoading = false);
+      if (permission == LocationPermission.denied ||
+          permission == LocationPermission.deniedForever) {
         return;
       }
 
-      Position position = await Geolocator.getCurrentPosition();
+      Position pos = await Geolocator.getCurrentPosition();
+
+      if (!mounted) return;
+
       setState(() {
-        _currentPosition = LatLng(position.latitude, position.longitude);
-        _isLoading = false;
+        _currentPosition = LatLng(pos.latitude, pos.longitude);
       });
 
       _mapController?.animateCamera(
-        CameraUpdate.newLatLngZoom(_currentPosition, widget.initialZoom),
+        CameraUpdate.newLatLngZoom(_currentPosition, _currentZoom),
       );
     } catch (e) {
-      print('Error obteniendo ubicación: $e');
-      setState(() => _isLoading = false);
+      debugPrint("Error al obtener ubicación: $e");
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    if (_isLoading) {
-      return const Center(
-        child: CircularProgressIndicator(),
-      );
-    }
+  /// Recentrar: vuelve a pedir ubicación y mueve cámara
+  void _recenter() async {
+    await _fetchLocation();
+  }
 
-    return GoogleMap(
-      initialCameraPosition: CameraPosition(
-        target: _currentPosition,
-        zoom: widget.initialZoom,
-      ),
-      myLocationEnabled: widget.showMyLocation,
-      myLocationButtonEnabled: widget.showMyLocationButton,
-      compassEnabled: true,
-      mapToolbarEnabled: false,
-      zoomControlsEnabled: false,
-      onMapCreated: (GoogleMapController controller) {
-        _mapController = controller;
-      },
-    );
+  void _zoomIn() {
+    _currentZoom += 1;
+    _mapController?.animateCamera(CameraUpdate.zoomTo(_currentZoom));
+  }
+
+  void _zoomOut() {
+    _currentZoom -= 1;
+    _mapController?.animateCamera(CameraUpdate.zoomTo(_currentZoom));
   }
 
   @override
   void dispose() {
     _mapController?.dispose();
     super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    return Stack(
+      children: [
+        GoogleMap(
+          initialCameraPosition: CameraPosition(
+            target: _currentPosition,
+            zoom: _currentZoom,
+          ),
+          markers: {
+            Marker(markerId: const MarkerId("me"), position: _currentPosition),
+          },
+          myLocationEnabled: false,
+          myLocationButtonEnabled: false,
+          zoomControlsEnabled: false,
+          compassEnabled: true,
+          mapToolbarEnabled: false,
+          onMapCreated: (controller) => _mapController = controller,
+        ),
+
+        /// BOTONES
+        Positioned(
+          bottom: 20,
+          right: 20,
+          child: Column(
+            children: [
+              FloatingActionButton(
+                heroTag: "recenter",
+                mini: true,
+                child: const Icon(Icons.my_location),
+                onPressed: _recenter,
+              ),
+              const SizedBox(height: 10),
+              FloatingActionButton(
+                heroTag: "zoom_in",
+                mini: true,
+                child: const Icon(Icons.add),
+                onPressed: _zoomIn,
+              ),
+              const SizedBox(height: 10),
+              FloatingActionButton(
+                heroTag: "zoom_out",
+                mini: true,
+                child: const Icon(Icons.remove),
+                onPressed: _zoomOut,
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
   }
 }
