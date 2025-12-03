@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:puntocheck/models/enums.dart';
 import 'package:puntocheck/models/work_schedule_model.dart';
 import 'package:puntocheck/providers/app_providers.dart';
 import 'package:puntocheck/utils/theme/app_colors.dart';
@@ -24,6 +25,14 @@ class HorarioTrabajoView extends ConsumerWidget {
             color: AppColors.backgroundDark,
           ),
         ),
+        actions: [
+          IconButton(
+            onPressed: () => ref.refresh(myScheduleProvider),
+            icon: const Icon(Icons.refresh),
+            color: AppColors.backgroundDark,
+            tooltip: 'Actualizar',
+          ),
+        ],
       ),
       body: scheduleAsync.when(
         data: (schedules) {
@@ -75,13 +84,33 @@ class HorarioTrabajoView extends ConsumerWidget {
                   _TodayScheduleBanner(schedule: todaySchedule),
                   const SizedBox(height: 20),
                 ],
-                const Text(
-                  'Horarios semanales',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.backgroundDark,
-                  ),
+                Row(
+                  children: [
+                    const Text(
+                      'Horarios semanales',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.backgroundDark,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Container(
+                      padding:
+                          const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: AppColors.black.withValues(alpha: 0.05),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        '${schedules.length} dias',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: AppColors.backgroundDark.withValues(alpha: 0.7),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 12),
                 ...schedules.map((schedule) => _ScheduleTile(schedule: schedule)),
@@ -129,11 +158,13 @@ class _TodayScheduleBanner extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           Text(
-            '${_dayLabel(schedule.dayOfWeek)} - ${schedule.startTime.substring(0, 5)} a ${schedule.endTime.substring(0, 5)}',
+            '${_dayLabel(schedule.dayOfWeek)} - ${_fmt(schedule.startTime)} a ${_fmt(schedule.endTime)}',
             style: TextStyle(
               color: AppColors.white.withValues(alpha: 0.8),
             ),
           ),
+          const SizedBox(height: 8),
+          _TypeChip(type: schedule.type, darkMode: true),
         ],
       ),
     );
@@ -194,7 +225,7 @@ class _ScheduleTile extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  '${schedule.startTime.substring(0, 5)} - ${schedule.endTime.substring(0, 5)}',
+                  '${_fmt(schedule.startTime)} - ${_fmt(schedule.endTime)}',
                   style: TextStyle(
                     color: AppColors.black.withValues(alpha: 0.6),
                   ),
@@ -202,7 +233,7 @@ class _ScheduleTile extends StatelessWidget {
               ],
             ),
           ),
-          const Icon(Icons.schedule, color: AppColors.grey),
+          _TypeChip(type: schedule.type),
         ],
       ),
     );
@@ -210,7 +241,76 @@ class _ScheduleTile extends StatelessWidget {
 }
 
 String _dayLabel(int dayOfWeek) {
-  const days = ['Domingo', 'Lunes', 'Martes', 'Miercoles', 'Jueves', 'Viernes', 'Sabado'];
+  const days = [
+    'Domingo',
+    'Lunes',
+    'Martes',
+    'Miercoles',
+    'Jueves',
+    'Viernes',
+    'Sabado'
+  ];
   if (dayOfWeek < 0 || dayOfWeek >= days.length) return 'Dia';
   return days[dayOfWeek];
+}
+
+String _fmt(String hhmmss) => hhmmss.substring(0, 5);
+
+class _TypeChip extends StatelessWidget {
+  const _TypeChip({required this.type, this.darkMode = false});
+
+  final ShiftCategory type;
+  final bool darkMode;
+
+  @override
+  Widget build(BuildContext context) {
+    final config = _typeConfig(type);
+    final bg = darkMode
+        ? Colors.white.withValues(alpha: 0.15)
+        : config.color.withValues(alpha: 0.12);
+    final fg = darkMode ? Colors.white : config.color;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(config.icon, size: 16, color: fg),
+          const SizedBox(width: 6),
+          Text(
+            config.label,
+            style: TextStyle(
+              color: fg,
+              fontWeight: FontWeight.w700,
+              fontSize: 12,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _TypeCfg {
+  const _TypeCfg(this.label, this.color, this.icon);
+  final String label;
+  final Color color;
+  final IconData icon;
+}
+
+_TypeCfg _typeConfig(ShiftCategory type) {
+  switch (type) {
+    case ShiftCategory.reducida:
+      return _TypeCfg('Turno reducido', AppColors.infoBlue, Icons.timelapse);
+    case ShiftCategory.corta:
+      return _TypeCfg('Turno corto', AppColors.warningOrange, Icons.timer);
+    case ShiftCategory.descanso:
+      return _TypeCfg('Descanso', AppColors.successGreen, Icons.self_improvement);
+    case ShiftCategory.completa:
+    default:
+      return _TypeCfg('Turno completo', AppColors.primaryRed, Icons.work_history);
+  }
 }

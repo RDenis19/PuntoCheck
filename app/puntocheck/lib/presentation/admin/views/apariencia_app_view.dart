@@ -1,35 +1,78 @@
 import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:puntocheck/models/organization_model.dart';
 import 'package:puntocheck/providers/app_providers.dart';
 import 'package:puntocheck/presentation/shared/widgets/outlined_dark_button.dart';
 import 'package:puntocheck/presentation/shared/widgets/primary_button.dart';
 import 'package:puntocheck/utils/theme/app_colors.dart';
-
+import 'package:puntocheck/utils/safe_image_picker.dart';
 class AparienciaAppView extends ConsumerStatefulWidget {
   const AparienciaAppView({super.key});
-
   @override
   ConsumerState<AparienciaAppView> createState() => _AparienciaAppViewState();
 }
-
 class _AparienciaAppViewState extends ConsumerState<AparienciaAppView> {
   final _nombreAppController = TextEditingController(text: 'PuntoCheck');
   final _colorController = TextEditingController(text: '#EB283D');
-  final _picker = ImagePicker();
+  final _imagePicker = SafeImagePicker();
   bool _initialized = false;
   bool _isUploadingLogo = false;
   String? _currentLogo;
-
+  String? _orgId;
+  String? _orgName;
+  String? _orgLogoPath;
+  @override
+  void initState() {
+    super.initState();
+    Future.microtask(() {
+      ref.invalidate(currentOrganizationProvider);
+    });
+    _recoverLostLogo();
+  }
   @override
   void dispose() {
     _nombreAppController.dispose();
     _colorController.dispose();
     super.dispose();
   }
+  Future<void> _recoverLostLogo() async {
+    final file = await _imagePicker.recoverLostImage();
+    if (file == null) return;
+    final profile = await ref.read(profileProvider.future);
+    final orgId = profile?.organizationId;
+    final userId = profile?.id;
+    if (orgId == null || userId == null) {
+      return;
+    }
+    await _uploadLogoFile(file, orgId, userId);
+  }
 
+  Future<void> _hydrateFromOrg(Organization org) async {
+    final isSameOrg = _orgId == org.id;
+    final isSameLogo = _orgLogoPath == org.logoUrl;
+    if (_initialized && isSameOrg && isSameLogo && _currentLogo != null) {
+      return;
+    }
+
+    final storage = ref.read(storageServiceProvider);
+    final resolvedLogo = (org.logoUrl?.isNotEmpty ?? false)
+        ? await storage.resolveOrgLogoUrl(org.logoUrl!, expiresInSeconds: 3600)
+        : null;
+
+    if (!mounted) return;
+    setState(() {
+      _initialized = true;
+      _orgId = org.id;
+      _orgName = org.name;
+      _orgLogoPath = org.logoUrl;
+      _nombreAppController.text = org.name;
+      _colorController.text = org.brandColor;
+      _currentLogo = resolvedLogo ?? org.logoUrl;
+    });
+  }
   Future<void> _saveAppearance() async {
     final profile = await ref.read(profileProvider.future);
     if (profile == null || profile.organizationId == null) {
@@ -41,20 +84,16 @@ class _AparienciaAppViewState extends ConsumerState<AparienciaAppView> {
       );
       return;
     }
-
     final updates = {
       'name': _nombreAppController.text,
       'brand_color': _colorController.text,
     };
-
     final controller = ref.read(organizationControllerProvider.notifier);
     await controller.updateOrgConfig(profile.organizationId!, updates);
-
     final state = ref.read(organizationControllerProvider);
     ref.invalidate(currentOrganizationProvider);
     ref.invalidate(allOrganizationsProvider);
     if (!mounted) return;
-
     if (state.hasError) {
       ScaffoldMessenger.of(
         context,
@@ -63,27 +102,20 @@ class _AparienciaAppViewState extends ConsumerState<AparienciaAppView> {
       _showSuccessModal(context, 'Apariencia guardada');
     }
   }
-
   @override
   Widget build(BuildContext context) {
     final orgState = ref.watch(organizationControllerProvider);
     final orgAsync = ref.watch(currentOrganizationProvider);
     final isLoading = orgState.isLoading;
-
     orgAsync.when(
       data: (org) {
-        if (!_initialized && org != null) {
-          _initialized = true;
-          _nombreAppController.text = org.name;
-          _colorController.text = org.brandColor;
-          _currentLogo = org.logoUrl;
-          setState(() {});
+        if (org != null) {
+          _hydrateFromOrg(org);
         }
       },
       loading: () {},
       error: (_, __) {},
     );
-
     return Scaffold(
       appBar: AppBar(
         title: const Text('Apariencia App'),
@@ -98,7 +130,7 @@ class _AparienciaAppViewState extends ConsumerState<AparienciaAppView> {
           Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: AppColors.primaryRed.withValues(alpha: 0.1),
+              color: _colorFromText(_colorController.text).withValues(alpha: 0.08),
               borderRadius: BorderRadius.circular(24),
             ),
             child: Column(
@@ -113,58 +145,21 @@ class _AparienciaAppViewState extends ConsumerState<AparienciaAppView> {
                   ),
                 ),
                 const SizedBox(height: 12),
-                GestureDetector(
-                  onTap: _isUploadingLogo ? null : () => _pickAndUploadLogo(),
-                  child: Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: AppColors.white,
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: AppColors.primaryRed),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(
-                          Icons.file_upload_outlined,
-                          color: AppColors.primaryRed,
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                'Subir logo',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w700,
-                                  color: AppColors.backgroundDark,
-                                ),
-                              ),
-                              Text(
-                                _isUploadingLogo
-                                    ? 'Subiendo...'
-                                    : 'Tamano recomendado: 512x512px (PNG o JPG)',
-                                style: TextStyle(
-                                  color: AppColors.black.withValues(alpha: 0.7),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        _LogoPreview(url: _currentLogo),
-                      ],
-                    ),
-                  ),
+                _BrandHeader(
+                  orgName: _orgName ?? 'Tu organizacion',
+                  brandColor: _colorFromText(_colorController.text),
+                  logoUrl: _currentLogo,
+                  isUploading: _isUploadingLogo,
+                  onUpload: _isUploadingLogo ? null : _pickAndUploadLogo,
                 ),
                 const SizedBox(height: 20),
-                const Text(
-                  'Nombre de la aplicacion',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.backgroundDark,
-                  ),
-                ),
+          const Text(
+            'Nombre de la aplicacion',
+            style: TextStyle(
+              fontWeight: FontWeight.w700,
+              color: AppColors.backgroundDark,
+            ),
+          ),
                 const SizedBox(height: 8),
                 TextField(
                   controller: _nombreAppController,
@@ -258,7 +253,6 @@ class _AparienciaAppViewState extends ConsumerState<AparienciaAppView> {
       ),
     );
   }
-
   Widget _colorPreview(Color color) {
     return Container(
       height: 48,
@@ -268,7 +262,6 @@ class _AparienciaAppViewState extends ConsumerState<AparienciaAppView> {
       ),
     );
   }
-
   InputDecoration _inputDecoration(String hint) {
     return InputDecoration(
       hintText: hint,
@@ -288,7 +281,6 @@ class _AparienciaAppViewState extends ConsumerState<AparienciaAppView> {
       ),
     );
   }
-
   Color _colorFromText(String value) {
     final clean = value.replaceAll('#', '');
     try {
@@ -297,11 +289,9 @@ class _AparienciaAppViewState extends ConsumerState<AparienciaAppView> {
       return AppColors.primaryRed;
     }
   }
-
   void _openColorPicker() {
     final textController = TextEditingController(text: _colorController.text);
     final presets = ['#EB283D', '#1ABC9C', '#1E88E5', '#F5A623', '#8D99AE'];
-
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -385,7 +375,6 @@ class _AparienciaAppViewState extends ConsumerState<AparienciaAppView> {
       },
     );
   }
-
   Future<void> _pickAndUploadLogo() async {
     final profile = await ref.read(profileProvider.future);
     final orgId = profile?.organizationId;
@@ -397,24 +386,56 @@ class _AparienciaAppViewState extends ConsumerState<AparienciaAppView> {
       );
       return;
     }
-
-    final picked = await _picker.pickImage(source: ImageSource.gallery);
-    if (picked == null) return;
-
+    final result = await _imagePicker.pickImage(
+      source: ImageSource.gallery,
+      maxWidth: 1200,
+    );
+    if (result.permissionDenied) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text('Permiso denegado. Habilitalo en ajustes.')),
+        );
+        if (result.permanentlyDenied) {
+          openAppSettings();
+        }
+      }
+      return;
+    }
+    if (result.errorMessage != null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+              content:
+                  Text('No se pudo abrir la galeria: ${result.errorMessage}')),
+        );
+      }
+      return;
+    }
+    final file = result.file;
+    if (file == null) return;
+    await _uploadLogoFile(file, orgId, userId);
+  }
+  Future<void> _uploadLogoFile(File file, String orgId, String userId) async {
     setState(() => _isUploadingLogo = true);
     try {
-      final file = File(picked.path);
       final storage = ref.read(storageServiceProvider);
-      // Usamos el userId para cumplir con posibles policies del bucket (escritura propia)
-      final url = await storage.uploadAvatar(file, userId);
-
+      final url = await storage.uploadOrganizationLogo(
+        file,
+        orgId,
+        userId: userId,
+      );
+      _orgLogoPath = url;
+      final resolved =
+          await storage.resolveOrgLogoUrl(url, expiresInSeconds: 3600);
       final controller = ref.read(organizationControllerProvider.notifier);
       await controller.updateOrgConfig(orgId, {'logo_url': url});
       ref.invalidate(currentOrganizationProvider);
       ref.invalidate(allOrganizationsProvider);
-
       if (!mounted) return;
-      _currentLogo = url;
+      setState(() {
+        _currentLogo = resolved;
+      });
       _showSuccessModal(context, 'Logo actualizado');
     } catch (e) {
       if (!mounted) return;
@@ -426,7 +447,6 @@ class _AparienciaAppViewState extends ConsumerState<AparienciaAppView> {
       if (mounted) setState(() => _isUploadingLogo = false);
     }
   }
-
   void _showSuccessModal(BuildContext context, String message) {
     showDialog<void>(
       context: context,
@@ -479,31 +499,169 @@ class _AparienciaAppViewState extends ConsumerState<AparienciaAppView> {
     );
   }
 }
-
-class _LogoPreview extends StatelessWidget {
-  const _LogoPreview({this.url});
-
+class _LogoPreview extends ConsumerWidget {
+  const _LogoPreview({
+    this.url,
+    required this.orgName,
+    required this.brandColor,
+    this.size = 64,
+  });
   final String? url;
-
+  final String orgName;
+  final Color brandColor;
+  final double size;
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    if (url == null || url!.isEmpty) {
+      return _placeholder();
+    }
+    final storage = ref.read(storageServiceProvider);
     return Container(
-      width: 64,
-      height: 64,
+      width: size,
+      height: size,
       decoration: BoxDecoration(
         color: AppColors.black.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(16),
       ),
       clipBehavior: Clip.hardEdge,
-      child: url != null && url!.isNotEmpty
-          ? Image.network(
-              url!,
-              fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) {
-                return const Icon(Icons.image_not_supported_outlined);
-              },
-            )
-          : const Icon(Icons.image_outlined, color: AppColors.black),
+      child: FutureBuilder<String>(
+        future: storage.resolveOrgLogoUrl(url!, expiresInSeconds: 3600),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(
+              child: SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+            );
+          }
+          final resolved = snapshot.data ?? url!;
+          return Image.network(
+            resolved,
+            fit: BoxFit.cover,
+            errorBuilder: (_, __, ___) => _placeholder(),
+          );
+        },
+      ),
+    );
+  }
+  Widget _placeholder() {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            brandColor.withValues(alpha: 0.8),
+            brandColor.withValues(alpha: 0.6),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      alignment: Alignment.center,
+      child: Text(
+        orgName.isNotEmpty ? orgName[0].toUpperCase() : 'C',
+        style: const TextStyle(
+          color: AppColors.white,
+          fontWeight: FontWeight.w800,
+          fontSize: 20,
+        ),
+      ),
+    );
+  }
+}
+class _BrandHeader extends ConsumerWidget {
+  const _BrandHeader({
+    required this.orgName,
+    required this.brandColor,
+    required this.logoUrl,
+    required this.isUploading,
+    required this.onUpload,
+  });
+  final String orgName;
+  final Color brandColor;
+  final String? logoUrl;
+  final bool isUploading;
+  final VoidCallback? onUpload;
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: brandColor.withValues(alpha: 0.4)),
+      ),
+      child: Row(
+        children: [
+          _LogoPreview(
+            url: logoUrl,
+            orgName: orgName,
+            brandColor: brandColor,
+            size: 72,
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  orgName,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w800,
+                    fontSize: 16,
+                    color: AppColors.backgroundDark,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Logo y color se reflejan en la app',
+                  style: TextStyle(
+                    color: AppColors.black.withValues(alpha: 0.6),
+                    fontSize: 12,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                GestureDetector(
+                  onTap: onUpload,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 10,
+                    ),
+                    decoration: BoxDecoration(
+                      color: brandColor.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          isUploading
+                              ? Icons.cloud_upload
+                              : Icons.file_upload_outlined,
+                          color: brandColor,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          isUploading ? 'Subiendo...' : 'Actualizar logo',
+                          style: TextStyle(
+                            color: brandColor,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

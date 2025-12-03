@@ -16,10 +16,14 @@ class NuevoAnuncioView extends ConsumerStatefulWidget {
 class _NuevoAnuncioViewState extends ConsumerState<NuevoAnuncioView> {
   final _tituloController = TextEditingController();
   final _mensajeController = TextEditingController();
-  int _selectedType = 0;
+  NotifType _selectedType = NotifType.info;
   bool _isSubmitting = false;
 
-  final _chips = ['Informacion', 'Aviso', 'Urgente', 'Evento'];
+  final _chips = const [
+    _TypeChip(label: 'Informativo', type: NotifType.info),
+    _TypeChip(label: 'Alerta', type: NotifType.alerta),
+    _TypeChip(label: 'Sistema', type: NotifType.sistema),
+  ];
 
   @override
   void dispose() {
@@ -80,7 +84,7 @@ class _NuevoAnuncioViewState extends ConsumerState<NuevoAnuncioView> {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  'EnvAe avisos a todos los empleados.',
+                  'Envia avisos a todos los empleados.',
                   style: TextStyle(
                     color: AppColors.white.withValues(alpha: 0.7),
                   ),
@@ -92,18 +96,17 @@ class _NuevoAnuncioViewState extends ConsumerState<NuevoAnuncioView> {
           Wrap(
             spacing: 8,
             runSpacing: 8,
-            children: List.generate(
-              _chips.length,
-              (index) => AnnouncementTypeChip(
-                label: _chips[index],
-                selected: _selectedType == index,
-                onTap: () => setState(() => _selectedType = index),
-              ),
-            ),
+            children: _chips.map((chip) {
+              return AnnouncementTypeChip(
+                label: chip.label,
+                selected: _selectedType == chip.type,
+                onTap: () => setState(() => _selectedType = chip.type),
+              );
+            }).toList(),
           ),
           const SizedBox(height: 20),
           _buildLabeledField(
-            label: 'TAtulo del anuncio',
+            label: 'Titulo del anuncio',
             child: TextField(
               controller: _tituloController,
               maxLength: 60,
@@ -191,16 +194,6 @@ class _NuevoAnuncioViewState extends ConsumerState<NuevoAnuncioView> {
     );
   }
 
-  NotifType get _selectedNotifType {
-    switch (_selectedType) {
-      case 1:
-      case 2:
-        return NotifType.alerta;
-      default:
-        return NotifType.info;
-    }
-  }
-
   Future<void> _publish() async {
     final title = _tituloController.text.trim();
     final body = _mensajeController.text.trim();
@@ -216,7 +209,7 @@ class _NuevoAnuncioViewState extends ConsumerState<NuevoAnuncioView> {
     await controller.createAnnouncement(
       title: title,
       body: body,
-      type: _selectedNotifType,
+      type: _selectedType,
     );
 
     final state = ref.read(announcementControllerProvider);
@@ -232,6 +225,12 @@ class _NuevoAnuncioViewState extends ConsumerState<NuevoAnuncioView> {
     }
     if (mounted) setState(() => _isSubmitting = false);
   }
+}
+
+class _TypeChip {
+  const _TypeChip({required this.label, required this.type});
+  final String label;
+  final NotifType type;
 }
 
 

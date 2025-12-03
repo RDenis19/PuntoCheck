@@ -10,6 +10,7 @@ class NoticeCard extends StatelessWidget {
     required this.color,
     required this.unread,
     required this.onTap,
+    this.icon = Icons.campaign_outlined,
   });
 
   final String titulo;
@@ -18,6 +19,7 @@ class NoticeCard extends StatelessWidget {
   final Color color;
   final bool unread;
   final VoidCallback onTap;
+  final IconData icon;
 
   @override
   Widget build(BuildContext context) {
@@ -49,7 +51,7 @@ class NoticeCard extends StatelessWidget {
                 color: color.withValues(alpha: 0.15),
                 shape: BoxShape.circle,
               ),
-              child: Icon(Icons.campaign_outlined, color: color, size: 24),
+              child: Icon(icon, color: color, size: 24),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -67,6 +69,8 @@ class NoticeCard extends StatelessWidget {
                             fontWeight: FontWeight.w700,
                             color: AppColors.backgroundDark,
                           ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
                       if (unread)
@@ -88,6 +92,8 @@ class NoticeCard extends StatelessWidget {
                       fontSize: 13,
                       color: AppColors.black.withValues(alpha: 0.7),
                     ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 12),
                   Row(

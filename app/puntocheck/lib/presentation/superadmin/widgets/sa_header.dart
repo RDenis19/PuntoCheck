@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:puntocheck/models/profile_model.dart';
 import 'package:puntocheck/providers/app_providers.dart';
 import 'package:puntocheck/utils/theme/app_colors.dart';
+import 'package:puntocheck/services/storage_service.dart';
 
 /// Header para la vista del Super Admin.
 /// Muestra saludo, nombre y estado de notificaciones del usuario.
@@ -63,34 +64,46 @@ class SaHeader extends ConsumerWidget {
       children: [
         Hero(
           tag: 'super_admin_avatar',
-          child: Container(
-            width: 62,
-            height: 62,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: Colors.white,
-              border: Border.all(
-                color: Colors.white.withValues(alpha: 0.5),
-                width: 3,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.1),
-                  blurRadius: 12,
-                  offset: const Offset(0, 4),
+          child: FutureBuilder<String?>(
+            future: avatarUrl == null || avatarUrl.isEmpty
+                ? Future.value(null)
+                : ref
+                    .read(storageServiceProvider)
+                    .resolveAvatarUrl(avatarUrl, expiresInSeconds: 3600),
+            builder: (context, snapshot) {
+              final resolved = snapshot.data ?? avatarUrl;
+              return Container(
+                width: 62,
+                height: 62,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white,
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.5),
+                    width: 3,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.1),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-            child: ClipOval(
-              child: avatarUrl != null && avatarUrl.isNotEmpty
-                  ? Image.network(
-                      avatarUrl,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) =>
-                          _InitialsFallback(initials: userInitials, color: AppColors.primaryRed),
-                    )
-                  : _InitialsFallback(initials: userInitials, color: AppColors.primaryRed),
-            ),
+                child: ClipOval(
+                  child: resolved != null && resolved.isNotEmpty
+                      ? Image.network(
+                          resolved,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => _InitialsFallback(
+                              initials: userInitials,
+                              color: AppColors.primaryRed),
+                        )
+                      : _InitialsFallback(
+                          initials: userInitials, color: AppColors.primaryRed),
+                ),
+              );
+            },
           ),
         ),
         const SizedBox(width: 14),

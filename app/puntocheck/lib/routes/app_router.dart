@@ -71,16 +71,16 @@ class AppRoutes {
 }
 
 final appRouterProvider = Provider<GoRouter>((ref) {
-  // Observar cambios en el perfil del usuario para actualizar el router
+  // Estas dependencias fuerzan el rebuild del router cuando cambian.
+  final authState = ref.watch(authStateProvider);
   ref.watch(profileProvider);
+  final role = ref.watch(userRoleProvider);
 
   return GoRouter(
     initialLocation: '/',
-    refreshListenable: GoRouterRefreshStream(
-      Supabase.instance.client.auth.onAuthStateChange,
-    ),
     redirect: (context, state) {
-      final session = Supabase.instance.client.auth.currentSession;
+      final session = authState.value?.session ??
+          Supabase.instance.client.auth.currentSession;
       final isLoggedIn = session != null;
       final path = state.uri.path;
       final isLoggingIn = path == AppRoutes.login;
@@ -94,7 +94,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             : AppRoutes.login;
       }
 
-      final role = ref.read(userRoleProvider);
       if (role == UserRole.unknown) {
         return null;
       }
@@ -232,20 +231,3 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     ],
   );
 });
-
-class GoRouterRefreshStream extends ChangeNotifier {
-  GoRouterRefreshStream(Stream<dynamic> stream) {
-    notifyListeners();
-    _subscription = stream.asBroadcastStream().listen(
-      (dynamic _) => notifyListeners(),
-    );
-  }
-
-  late final StreamSubscription<dynamic> _subscription;
-
-  @override
-  void dispose() {
-    _subscription.cancel();
-    super.dispose();
-  }
-}

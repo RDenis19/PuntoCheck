@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:puntocheck/models/enums.dart';
 import 'package:puntocheck/models/organization_model.dart';
 import 'package:puntocheck/models/profile_model.dart';
@@ -15,6 +16,7 @@ import 'package:puntocheck/presentation/shared/widgets/primary_button.dart';
 import 'package:puntocheck/services/organization_service.dart';
 import 'package:puntocheck/utils/theme/app_colors.dart';
 import 'package:puntocheck/routes/app_router.dart';
+import 'package:puntocheck/utils/safe_image_picker.dart';
 
 class OrganizacionDetalleView extends ConsumerStatefulWidget {
   const OrganizacionDetalleView({super.key, required this.organization});
@@ -39,7 +41,7 @@ class _OrganizacionDetalleViewState
   int _employeesPage = 1;
   String? _employeesError;
   bool _isUploadingLogo = false;
-  final _picker = ImagePicker();
+  final _imagePicker = SafeImagePicker();
   String? _localLogoUrl;
 
   @override
@@ -51,6 +53,7 @@ class _OrganizacionDetalleViewState
       _hasOrganization = true;
       _employeeSearchController.addListener(_onEmployeeSearchChanged);
       _loadEmployees(reset: true);
+      _recoverLostLogo();
     }
   }
 
@@ -182,6 +185,13 @@ class _OrganizacionDetalleViewState
     _employeeDebounce = Timer(const Duration(milliseconds: 260), () {
       _loadEmployees(reset: true);
     });
+  }
+
+  Future<void> _recoverLostLogo() async {
+    final file = await _imagePicker.recoverLostImage();
+    if (file != null) {
+      await _uploadLogoFile(file);
+    }
   }
 
   Future<void> _loadEmployees({bool reset = false}) async {
@@ -455,14 +465,39 @@ class _OrganizacionDetalleViewState
   }
 
   Future<void> _pickAndUploadLogo() async {
-    final picked = await _picker.pickImage(source: ImageSource.gallery);
-    if (picked == null) return;
+    final result = await _imagePicker.pickImage(
+      source: ImageSource.gallery,
+      maxWidth: 1200,
+    );
 
+    if (result.permissionDenied) {
+      if (mounted) {
+        _showSnackBar('Permiso de fotos denegado. Habilitalo en ajustes.');
+        if (result.permanentlyDenied) {
+          openAppSettings();
+        }
+      }
+      return;
+    }
+
+    if (result.errorMessage != null) {
+      if (mounted) {
+        _showSnackBar('No se pudo abrir la galeria: ${result.errorMessage}');
+      }
+      return;
+    }
+
+    final file = result.file;
+    if (file == null) return;
+
+    await _uploadLogoFile(file);
+  }
+
+  Future<void> _uploadLogoFile(File file) async {
     setState(() => _isUploadingLogo = true);
 
     try {
       final storage = ref.read(storageServiceProvider);
-      final file = File(picked.path);
       final url = await storage.uploadOrganizationLogo(file, _organization.id);
 
       final updated = await ref
@@ -477,24 +512,29 @@ class _OrganizacionDetalleViewState
         });
         ref.invalidate(organizationMetricsProvider(_organization.id));
         ref.invalidate(organizationDashboardStatsProvider(_organization.id));
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Logo actualizado')),
+        ref.invalidate(
+          organizationsPageProvider(defaultOrganizationsPageRequest),
         );
+        ref.invalidate(allOrganizationsProvider);
+        _showSnackBar('Logo actualizado');
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('No se pudo actualizar el logo')),
-        );
+        _showSnackBar('No se pudo actualizar el logo');
       }
     } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error subiendo logo: $e')),
-      );
+      if (mounted) {
+        _showSnackBar('Error subiendo logo: $e');
+      }
     } finally {
       if (mounted) {
         setState(() => _isUploadingLogo = false);
       }
     }
+  }
+
+  void _showSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
   }
 
   String _generatePassword() {
@@ -987,7 +1027,7 @@ class _Header extends StatelessWidget {
       '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
 }
 
-class _Logo extends StatelessWidget {
+class _Logo extends ConsumerWidget {
   const _Logo({
     required this.organization,
     this.overrideLogoUrl,
@@ -997,7 +1037,7 @@ class _Logo extends StatelessWidget {
   final String? overrideLogoUrl;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final brandColor = _brandColor(organization.brandColor);
     final effectiveLogo = overrideLogoUrl?.isNotEmpty == true
         ? overrideLogoUrl
@@ -1032,15 +1072,58 @@ class _Logo extends StatelessWidget {
       );
     }
 
-    return Container(
-      width: 84,
-      height: 84,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
-      ),
-      clipBehavior: Clip.hardEdge,
-      child: Image.network(effectiveLogo, fit: BoxFit.cover),
+    final storage = ref.read(storageServiceProvider);
+    return FutureBuilder<String>(
+      future: storage.resolveOrgLogoUrl(effectiveLogo, expiresInSeconds: 3600),
+      builder: (context, snapshot) {
+        final url = snapshot.data ?? effectiveLogo;
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Container(
+            width: 84,
+            height: 84,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
+            ),
+            child: const Center(
+              child: SizedBox(
+                width: 22,
+                height: 22,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+            ),
+          );
+        }
+
+        return Container(
+          width: 84,
+          height: 84,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
+          ),
+          clipBehavior: Clip.hardEdge,
+          child: Image.network(
+            url,
+            fit: BoxFit.cover,
+            errorBuilder: (_, __, ___) {
+              return Container(
+                color: brandColor.withValues(alpha: 0.2),
+                child: Center(
+                  child: Text(
+                    organization.name.substring(0, 1),
+                    style: const TextStyle(
+                      color: AppColors.white,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 28,
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+        );
+      },
     );
   }
 

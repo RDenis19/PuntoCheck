@@ -130,10 +130,13 @@ class _OrganizacionesListViewState
               ..._organizations.map(
                 (org) => SaOrganizationCardWithStats(
                   organization: org,
-                  onTap: () => context.push(
-                    AppRoutes.superAdminOrganizacionDetalle,
-                    extra: org,
-                  ),
+                  onTap: () async {
+                    await context.push(
+                      AppRoutes.superAdminOrganizacionDetalle,
+                      extra: org,
+                    );
+                    _loadPage(reset: true);
+                  },
                 ),
               ),
           if (_hasMore && _organizations.isNotEmpty)

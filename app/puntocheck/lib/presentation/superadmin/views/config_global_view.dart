@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:puntocheck/models/global_settings.dart';
 import 'package:puntocheck/providers/app_providers.dart';
 import 'package:puntocheck/routes/app_router.dart';
 import 'package:puntocheck/utils/theme/app_colors.dart';
@@ -28,6 +29,8 @@ class _ConfigGlobalViewState extends ConsumerState<ConfigGlobalView> {
   bool _reportesEnabled = false;
   bool _pushEnabled = true;
   bool _initialized = false;
+  GlobalSettings? _currentSettings;
+  bool _isSaving = false;
 
   @override
   void dispose() {
@@ -47,20 +50,16 @@ class _ConfigGlobalViewState extends ConsumerState<ConfigGlobalView> {
     settingsAsync.whenData((data) {
       if (_initialized) return;
       _initialized = true;
-      _toleranciaController.text =
-          '${data['tolerance_minutes'] ?? _toleranciaController.text}';
-      _precisionController.text =
-          '${data['geofence_radius'] ?? _precisionController.text}';
-      _requiereFoto = data['require_photo'] as bool? ?? _requiereFoto;
-      _requiereGeo = (data['geofence_radius'] as int? ?? 0) > 0;
-      _senderController.text = data['sender_email'] as String? ?? '';
-      _alertThresholdController.text =
-          '${data['alert_threshold'] ?? _alertThresholdController.text}';
-      _domainController.text = data['admin_auto_domain'] as String? ?? '';
-      _trialOrgsController.text =
-          '${data['trial_max_orgs'] ?? _trialOrgsController.text}';
-      _trialDaysController.text =
-          '${data['trial_days'] ?? _trialDaysController.text}';
+      _currentSettings = data;
+      _toleranciaController.text = '${data.toleranceMinutes}';
+      _precisionController.text = '${data.geofenceRadius}';
+      _requiereFoto = data.requirePhoto;
+      _requiereGeo = data.geofenceRadius > 0;
+      _senderController.text = data.senderEmail;
+      _alertThresholdController.text = '${data.alertThreshold}';
+      _domainController.text = data.adminAutoDomain ?? '';
+      _trialOrgsController.text = '${data.trialMaxOrgs}';
+      _trialDaysController.text = '${data.trialDays}';
       setState(() {});
     });
 
@@ -84,12 +83,13 @@ class _ConfigGlobalViewState extends ConsumerState<ConfigGlobalView> {
             _buildFeaturesGlobales(),
             const SizedBox(height: 16),
             PrimaryButton(
-              text: 'Guardar cambios',
+              text: _isSaving ? 'Guardando...' : 'Guardar cambios',
+              enabled: !_isSaving,
               onPressed: _saveSettings,
             ),
             const SizedBox(height: 12),
             OutlinedDarkButton(
-              text: 'Cerrar sesión',
+              text: 'Cerrar sesion',
               onPressed: () async {
                 await ref.read(authControllerProvider.notifier).signOut();
                 if (!context.mounted) return;
@@ -119,7 +119,7 @@ class _ConfigGlobalViewState extends ConsumerState<ConfigGlobalView> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              'Términos y Privacidad',
+              'Terminos y Privacidad',
               style: TextStyle(
                 fontWeight: FontWeight.w700,
                 fontSize: 16,
@@ -133,7 +133,7 @@ class _ConfigGlobalViewState extends ConsumerState<ConfigGlobalView> {
             ),
             const SizedBox(height: 4),
             Text(
-              'Editar enlaces o textos de Términos y Condiciones y Política de Privacidad.',
+              'Editar enlaces o textos de Terminos y Condiciones y Politica de Privacidad.',
               style: TextStyle(color: AppColors.black.withValues(alpha: 0.6)),
             ),
             const SizedBox(height: 12),
@@ -144,7 +144,7 @@ class _ConfigGlobalViewState extends ConsumerState<ConfigGlobalView> {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
                       content:
-                          Text('Edición de textos disponible al conectar backend.'),
+                          Text('Edicion de textos disponible al conectar backend.'),
                     ),
                   );
                 },
@@ -178,24 +178,42 @@ class _ConfigGlobalViewState extends ConsumerState<ConfigGlobalView> {
             TextField(
               controller: _toleranciaController,
               keyboardType: TextInputType.number,
-              decoration: _inputDecoration('Minutos de tolerancia (default)'),
+              decoration: _inputDecoration(
+                label: 'Minutos de tolerancia',
+                helper: 'Minutos extra antes de marcar tardanza.',
+              ),
             ),
             const SizedBox(height: 12),
             TextField(
               controller: _precisionController,
               keyboardType: TextInputType.number,
-              decoration: _inputDecoration('Geocerca por defecto (metros)'),
+              decoration: _inputDecoration(
+                label: 'Geocerca (metros)',
+                helper: 'Radio sugerido 30-100m segun tu sitio.',
+              ),
             ),
             const SizedBox(height: 12),
-            SwitchListTile(
+            _switchTile(
               value: _requiereFoto,
-              title: const Text('Requiere foto por defecto'),
-              onChanged: (value) => setState(() => _requiereFoto = value),
+              title: 'Requiere foto en check-in',
+              subtitle: 'Pide foto para validar identidad.',
+              onChanged: (v) => _handleToggle(
+                current: _requiereFoto,
+                next: v,
+                reason: 'Sin foto no podras auditar quien marco asistencia.',
+                onAccept: () => setState(() => _requiereFoto = v),
+              ),
             ),
-            SwitchListTile(
+            _switchTile(
               value: _requiereGeo,
-              title: const Text('Requiere geolocalización por defecto'),
-              onChanged: (value) => setState(() => _requiereGeo = value),
+              title: 'Requiere geolocalizacion',
+              subtitle: 'Valida que el check-in ocurra dentro de la geocerca.',
+              onChanged: (v) => _handleToggle(
+                current: _requiereGeo,
+                next: v,
+                reason: 'Sin geolocalizacion no se detectara si el empleado esta fuera de zona.',
+                onAccept: () => setState(() => _requiereGeo = v),
+              ),
             ),
           ],
         ),
@@ -223,14 +241,19 @@ class _ConfigGlobalViewState extends ConsumerState<ConfigGlobalView> {
             const SizedBox(height: 12),
             TextField(
               controller: _senderController,
-              decoration: _inputDecoration('Remitente email/SMS'),
+              decoration: _inputDecoration(
+                label: 'Remitente email/SMS',
+                helper: 'Ej: noreply@puntocheck.com o +593...',
+              ),
             ),
             const SizedBox(height: 12),
             TextField(
               controller: _alertThresholdController,
               keyboardType: TextInputType.number,
-              decoration:
-                  _inputDecoration('Umbral de alertas (ej. 3 faltas seguidas)'),
+              decoration: _inputDecoration(
+                label: 'Umbral de alertas',
+                helper: 'Ej: 3 faltas seguidas activan alerta.',
+              ),
             ),
           ],
         ),
@@ -248,7 +271,7 @@ class _ConfigGlobalViewState extends ConsumerState<ConfigGlobalView> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              'Políticas de creación de admins',
+              'Politicas de creacion de admins',
               style: TextStyle(
                 fontWeight: FontWeight.w700,
                 fontSize: 16,
@@ -259,7 +282,8 @@ class _ConfigGlobalViewState extends ConsumerState<ConfigGlobalView> {
             TextField(
               controller: _domainController,
               decoration: _inputDecoration(
-                'Dominio permitido para auto-asignar admin (opcional)',
+                label: 'Dominio permitido (opcional)',
+                helper: 'Ej: empresa.com para auto-asignar admin',
               ),
             ),
           ],
@@ -278,7 +302,7 @@ class _ConfigGlobalViewState extends ConsumerState<ConfigGlobalView> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              'Trial y límites globales',
+              'Trial y limites globales',
               style: TextStyle(
                 fontWeight: FontWeight.w700,
                 fontSize: 16,
@@ -290,14 +314,18 @@ class _ConfigGlobalViewState extends ConsumerState<ConfigGlobalView> {
               controller: _trialOrgsController,
               keyboardType: TextInputType.number,
               decoration: _inputDecoration(
-                'Máximo de organizaciones en modo prueba (0 = ilimitado)',
+                label: 'Maximo de organizaciones en trial (0 = ilimitado)',
+                helper: 'Controla cuantos trials simultaneos permites.',
               ),
             ),
             const SizedBox(height: 12),
             TextField(
               controller: _trialDaysController,
               keyboardType: TextInputType.number,
-              decoration: _inputDecoration('Duración del trial (días)'),
+              decoration: _inputDecoration(
+                label: 'Duracion del trial (dias)',
+                helper: 'Periodo antes de pasar a plan pago.',
+              ),
             ),
           ],
         ),
@@ -322,20 +350,38 @@ class _ConfigGlobalViewState extends ConsumerState<ConfigGlobalView> {
               ),
             ),
             const SizedBox(height: 12),
-            SwitchListTile(
+            _switchTile(
               value: _mapaEnabled,
-              title: const Text('Habilitar módulo de mapa de empleados'),
-              onChanged: (value) => setState(() => _mapaEnabled = value),
+              title: 'Mapa de empleados',
+              subtitle: 'Ver posiciones en tiempo real.',
+              onChanged: (v) => _handleToggle(
+                current: _mapaEnabled,
+                next: v,
+                reason: 'Los admins no veran ubicaciones en el mapa.',
+                onAccept: () => setState(() => _mapaEnabled = v),
+              ),
             ),
-            SwitchListTile(
+            _switchTile(
               value: _reportesEnabled,
-              title: const Text('Habilitar reportes avanzados'),
-              onChanged: (value) => setState(() => _reportesEnabled = value),
+              title: 'Reportes avanzados',
+              subtitle: 'KPIs historicos y exportables.',
+              onChanged: (v) => _handleToggle(
+                current: _reportesEnabled,
+                next: v,
+                reason: 'Se ocultaran modulos de reportes y exportacion.',
+                onAccept: () => setState(() => _reportesEnabled = v),
+              ),
             ),
-            SwitchListTile(
+            _switchTile(
               value: _pushEnabled,
-              title: const Text('Habilitar notificaciones push globales'),
-              onChanged: (value) => setState(() => _pushEnabled = value),
+              title: 'Notificaciones push globales',
+              subtitle: 'Alertas en tiempo real a usuarios.',
+              onChanged: (v) => _handleToggle(
+                current: _pushEnabled,
+                next: v,
+                reason: 'Los usuarios dejaran de recibir alertas push.',
+                onAccept: () => setState(() => _pushEnabled = v),
+              ),
             ),
           ],
         ),
@@ -343,9 +389,32 @@ class _ConfigGlobalViewState extends ConsumerState<ConfigGlobalView> {
     );
   }
 
-  InputDecoration _inputDecoration(String hint) {
+  Widget _switchTile({
+    required bool value,
+    required String title,
+    String? subtitle,
+    required ValueChanged<bool> onChanged,
+  }) {
+    return SwitchListTile.adaptive(
+      value: value,
+      title: Text(
+        title,
+        style: const TextStyle(fontWeight: FontWeight.w700),
+      ),
+      subtitle: subtitle != null
+          ? Text(
+              subtitle,
+              style: TextStyle(color: AppColors.black.withValues(alpha: 0.6)),
+            )
+          : null,
+      onChanged: onChanged,
+    );
+  }
+
+  InputDecoration _inputDecoration({required String label, String? helper}) {
     return InputDecoration(
-      hintText: hint,
+      labelText: label,
+      helperText: helper,
       filled: true,
       fillColor: AppColors.lightGrey,
       border: OutlineInputBorder(
@@ -359,7 +428,60 @@ class _ConfigGlobalViewState extends ConsumerState<ConfigGlobalView> {
     );
   }
 
+  Future<void> _handleToggle({
+    required bool current,
+    required bool next,
+    required String reason,
+    required VoidCallback onAccept,
+  }) async {
+    if (current && !next) {
+      final ok = await _confirmDisable(reason);
+      if (!ok) return;
+    }
+    onAccept();
+  }
+
+  Future<bool> _confirmDisable(String reason) async {
+    return await showDialog<bool>(
+          context: context,
+          builder: (context) {
+            return AlertDialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              title: const Text(
+                'Estas seguro de desactivar?',
+                style: TextStyle(
+                  color: AppColors.backgroundDark,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              content: Text(
+                reason,
+                style: const TextStyle(color: AppColors.backgroundDark),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(false),
+                  child: const Text('Cancelar'),
+                ),
+                ElevatedButton(
+                  onPressed: () => Navigator.of(context).pop(true),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primaryRed,
+                    foregroundColor: AppColors.white,
+                  ),
+                  child: const Text('Desactivar'),
+                ),
+              ],
+            );
+          },
+        ) ??
+        false;
+  }
+
   Future<void> _saveSettings() async {
+    setState(() => _isSaving = true);
     final controller = ref.read(globalSettingsControllerProvider.notifier);
     final messenger = ScaffoldMessenger.of(context);
 
@@ -369,16 +491,20 @@ class _ConfigGlobalViewState extends ConsumerState<ConfigGlobalView> {
     final trialOrgs = int.tryParse(_trialOrgsController.text) ?? 0;
     final trialDays = int.tryParse(_trialDaysController.text) ?? 14;
 
-    await controller.save({
-      'tolerance_minutes': tolerance,
-      'geofence_radius': geofence,
-      'require_photo': _requiereFoto,
-      'sender_email': _senderController.text.trim(),
-      'alert_threshold': alertThreshold,
-      'admin_auto_domain': _domainController.text.trim(),
-      'trial_max_orgs': trialOrgs,
-      'trial_days': trialDays,
-    });
+    final baseSettings = _currentSettings ?? GlobalSettings.defaults();
+    final updated = baseSettings.copyWith(
+      toleranceMinutes: tolerance,
+      geofenceRadius: geofence,
+      requirePhoto: _requiereFoto,
+      senderEmail: _senderController.text.trim(),
+      alertThreshold: alertThreshold,
+      adminAutoDomain: _domainController.text.trim(),
+      trialMaxOrgs: trialOrgs,
+      trialDays: trialDays,
+    );
+
+    await controller.save(updated);
+    _currentSettings = updated;
 
     if (!mounted) return;
     final state = ref.read(globalSettingsControllerProvider);
@@ -388,9 +514,10 @@ class _ConfigGlobalViewState extends ConsumerState<ConfigGlobalView> {
       );
     } else {
       messenger.showSnackBar(
-        const SnackBar(content: Text('Configuración guardada')),
+        const SnackBar(content: Text('Configuracion guardada')),
       );
       ref.invalidate(globalSettingsProvider);
     }
+    if (mounted) setState(() => _isSaving = false);
   }
 }

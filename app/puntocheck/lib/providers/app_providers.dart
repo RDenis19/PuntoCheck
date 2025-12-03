@@ -7,6 +7,7 @@ import 'package:supabase_flutter/supabase_flutter.dart' show User, AuthState;
 import '../models/profile_model.dart';
 import '../models/enums.dart';
 import '../models/organization_model.dart';
+import '../models/global_settings.dart';
 import '../models/work_shift_model.dart';
 import '../models/work_schedule_model.dart';
 import '../models/notification_model.dart';
@@ -253,7 +254,11 @@ class ProfileController extends AsyncNotifier<Profile?> {
     state = await AsyncValue.guard(() async {
       final service = ref.read(storageServiceProvider);
       final authService = ref.read(authServiceProvider);
-      final url = await service.uploadAvatar(imageFile, currentProfile.id);
+      final url = await service.uploadAvatar(
+        imageFile,
+        userId: currentProfile.id,
+        organizationId: currentProfile.organizationId,
+      );
       final newProfile = currentProfile.copyWith(avatarUrl: url);
       await authService.updateProfile(newProfile);
       return newProfile;
@@ -537,7 +542,7 @@ final superAdminStatsProvider =
     });
 
 /// Configuracion global (fila unica)
-final globalSettingsProvider = FutureProvider<Map<String, dynamic>>((ref) async {
+final globalSettingsProvider = FutureProvider<GlobalSettings>((ref) async {
   return ref.watch(globalSettingsServiceProvider).getSettings();
 });
 
@@ -545,10 +550,10 @@ class GlobalSettingsController extends AsyncNotifier<void> {
   @override
   FutureOr<void> build() => null;
 
-  Future<void> save(Map<String, dynamic> updates) async {
+  Future<void> save(GlobalSettings settings) async {
     state = const AsyncValue.loading();
     state = await AsyncValue.guard(() async {
-      await ref.read(globalSettingsServiceProvider).updateSettings(updates);
+      await ref.read(globalSettingsServiceProvider).updateSettings(settings);
     });
   }
 }

@@ -1,9 +1,15 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:puntocheck/models/profile_model.dart';
 import 'package:puntocheck/providers/app_providers.dart';
 import 'package:puntocheck/utils/theme/app_colors.dart';
 import 'package:puntocheck/presentation/shared/widgets/primary_button.dart';
+import 'package:puntocheck/services/storage_service.dart';
+import 'package:puntocheck/utils/safe_image_picker.dart';
 
 class PersonalInfoView extends ConsumerStatefulWidget {
   const PersonalInfoView({super.key});
@@ -14,6 +20,108 @@ class PersonalInfoView extends ConsumerStatefulWidget {
 
 class _PersonalInfoViewState extends ConsumerState<PersonalInfoView> {
   bool _isSaving = false;
+  bool _isUploadingAvatar = false;
+  final _imagePicker = SafeImagePicker();
+
+  @override
+  void initState() {
+    super.initState();
+    _recoverLostImage();
+  }
+
+  Future<void> _recoverLostImage() async {
+    final file = await _imagePicker.recoverLostImage();
+    if (file != null) {
+      _uploadAvatarFile(file);
+    }
+  }
+
+  Future<String?> _resolveAvatarUrl(String? rawUrl) async {
+    if (rawUrl == null || rawUrl.isEmpty) return null;
+    return ref
+        .read(storageServiceProvider)
+        .resolveAvatarUrl(rawUrl, expiresInSeconds: 3600);
+  }
+
+  Future<void> _pickAvatar(Profile profile) async {
+    final source = await showModalBottomSheet<ImageSource?>(
+      context: context,
+      builder: (context) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.photo_library_outlined),
+                title: const Text('Elegir de galeria'),
+                onTap: () => Navigator.pop(context, ImageSource.gallery),
+              ),
+              ListTile(
+                leading: const Icon(Icons.photo_camera_outlined),
+                title: const Text('Tomar foto'),
+                onTap: () => Navigator.pop(context, ImageSource.camera),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+    if (source == null) return;
+
+    final result = await _imagePicker.pickImage(
+      source: source,
+      maxWidth: 1200,
+    );
+
+    if (result.permissionDenied) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text('Permiso denegado. Habilitalo en ajustes.')),
+        );
+        if (result.permanentlyDenied) {
+          openAppSettings();
+        }
+      }
+      return;
+    }
+
+    if (result.errorMessage != null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+              content: Text(
+                  'No se pudo abrir la camara/galeria: ${result.errorMessage}')),
+        );
+      }
+      return;
+    }
+
+    final file = result.file;
+    if (file == null) return;
+
+    _uploadAvatarFile(file);
+  }
+
+  Future<void> _uploadAvatarFile(File file) async {
+    setState(() => _isUploadingAvatar = true);
+    try {
+      await ref.read(profileProvider.notifier).uploadAvatar(file);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Foto de perfil actualizada')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('No se pudo subir la foto: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isUploadingAvatar = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -54,39 +162,56 @@ class _PersonalInfoViewState extends ConsumerState<PersonalInfoView> {
           Center(
             child: Stack(
               children: [
-                CircleAvatar(
-                  radius: 56,
-                  backgroundColor: AppColors.primaryRed.withValues(alpha: 0.1),
-                  child: Text(
-                    profile.initials,
-                    style: const TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.primaryRed,
-                    ),
-                  ),
+                FutureBuilder<String?>(
+                  future: _resolveAvatarUrl(profile.avatarUrl),
+                  builder: (context, snapshot) {
+                    final avatarUrl = snapshot.data ?? profile.avatarUrl;
+                    return CircleAvatar(
+                      radius: 56,
+                      backgroundColor:
+                          AppColors.primaryRed.withValues(alpha: 0.08),
+                      backgroundImage: (avatarUrl != null &&
+                              avatarUrl.isNotEmpty)
+                          ? NetworkImage(avatarUrl)
+                          : null,
+                      child: (avatarUrl == null || avatarUrl.isEmpty)
+                          ? Text(
+                              profile.initials,
+                              style: const TextStyle(
+                                fontSize: 22,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.primaryRed,
+                              ),
+                            )
+                          : null,
+                    );
+                  },
                 ),
                 Positioned(
                   right: 0,
                   bottom: 0,
                   child: GestureDetector(
-                    onTap: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Carga de foto disponible al conectar almacenamiento.')),
-                      );
-                    },
+                    onTap: _isUploadingAvatar ? null : () => _pickAvatar(profile),
                     child: Container(
-                      width: 36,
-                      height: 36,
+                      width: 42,
+                      height: 42,
                       decoration: const BoxDecoration(
                         color: AppColors.primaryRed,
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(
-                        Icons.camera_alt,
-                        color: AppColors.white,
-                        size: 20,
-                      ),
+                      child: _isUploadingAvatar
+                          ? const Padding(
+                              padding: EdgeInsets.all(10),
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: AppColors.white,
+                              ),
+                            )
+                          : const Icon(
+                              Icons.photo_camera_outlined,
+                              color: AppColors.white,
+                              size: 20,
+                            ),
                     ),
                   ),
                 ),
@@ -153,7 +278,9 @@ class _PersonalInfoViewState extends ConsumerState<PersonalInfoView> {
             child: ListTile(
               onTap: () {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Actualiza tu clave desde el flujo de recuperacion.')),
+                  const SnackBar(
+                      content:
+                          Text('Actualiza tu clave desde el flujo de recuperacion.')),
                 );
               },
               contentPadding: EdgeInsets.zero,
@@ -189,8 +316,7 @@ class _PersonalInfoViewState extends ConsumerState<PersonalInfoView> {
             ),
           ),
           const SizedBox(height: 24),
-          if (_isSaving)
-            const Center(child: CircularProgressIndicator()),
+          if (_isSaving) const Center(child: CircularProgressIndicator()),
         ],
       ),
     );
@@ -242,6 +368,8 @@ class _PersonalInfoViewState extends ConsumerState<PersonalInfoView> {
       if (mounted) setState(() => _isSaving = false);
     }
   }
+
+
 
   Future<void> _openEditModal({
     required String title,
@@ -361,4 +489,3 @@ class _InfoEditableField extends StatelessWidget {
     );
   }
 }
-

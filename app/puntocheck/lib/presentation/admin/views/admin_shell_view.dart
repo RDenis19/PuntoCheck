@@ -132,6 +132,7 @@ class AdminSettingsTabView extends StatelessWidget {
             child: SettingsView(
               embedded: true,
               personalInfoRoute: AppRoutes.adminPersonalInfo,
+              showSignOut: true,
             ),
           ),
         ],

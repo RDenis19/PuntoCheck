@@ -39,11 +39,14 @@ class AnunciosAdminView extends ConsumerWidget {
                     itemCount: notices.length,
                     itemBuilder: (context, index) {
                       final anuncio = notices[index];
+                      final config = _typeConfig(anuncio.type);
                       return NoticeCard(
                         titulo: anuncio.title,
-                        descripcionCorta: anuncio.body,
+                        descripcionCorta:
+                            anuncio.body.isNotEmpty ? anuncio.body : 'Sin mensaje',
                         fechaTexto: _formatDate(anuncio.createdAt),
-                        color: AppColors.primaryRed,
+                        color: config.color,
+                        icon: config.icon,
                         unread: !anuncio.isRead,
                         onTap: () => _openAnnouncementDetail(context, anuncio, ref),
                       );
@@ -104,6 +107,34 @@ class AnunciosAdminView extends ConsumerWidget {
                         ),
                       ),
                     ),
+                    Row(
+                      children: [
+                        Container(
+                          width: 36,
+                          height: 36,
+                          decoration: BoxDecoration(
+                            color: _typeConfig(anuncio.type)
+                                .color
+                                .withValues(alpha: 0.15),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            _typeConfig(anuncio.type).icon,
+                            color: _typeConfig(anuncio.type).color,
+                            size: 20,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Text(
+                          _typeConfig(anuncio.type).label,
+                          style: TextStyle(
+                            color: _typeConfig(anuncio.type).color,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
                     Text(
                       anuncio.title,
                       style: const TextStyle(
@@ -121,10 +152,14 @@ class AnunciosAdminView extends ConsumerWidget {
                     ),
                     const SizedBox(height: 20),
                     Text(
-                      anuncio.body,
-                      style: const TextStyle(fontSize: 15, height: 1.5),
+                      anuncio.body.isNotEmpty ? anuncio.body : 'Sin mensaje',
+                      style: const TextStyle(
+                        fontSize: 15,
+                        height: 1.5,
+                        color: AppColors.backgroundDark,
+                      ),
                     ),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 24),
                     Row(
                       children: [
                         Expanded(
@@ -197,7 +232,7 @@ class AnunciosAdminView extends ConsumerWidget {
                 top: 16,
                 bottom: MediaQuery.of(context).viewInsets.bottom + 16,
               ),
-              child: Column(
+          child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -245,9 +280,22 @@ class AnunciosAdminView extends ConsumerWidget {
                     runSpacing: 8,
                     children: NotifType.values.map((type) {
                       final selected = selectedType == type;
+                      final config = _typeConfig(type);
                       return ChoiceChip(
-                        label: Text(type.name),
+                        label: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(config.icon, size: 18, color: config.color),
+                            const SizedBox(width: 6),
+                            Text(config.label),
+                          ],
+                        ),
                         selected: selected,
+                        selectedColor: config.color.withValues(alpha: 0.15),
+                        labelStyle: TextStyle(
+                          color: selected ? config.color : AppColors.backgroundDark,
+                          fontWeight: FontWeight.w700,
+                        ),
                         onSelected: (_) => setState(() => selectedType = type),
                       );
                     }).toList(),
@@ -318,6 +366,42 @@ class AnunciosAdminView extends ConsumerWidget {
         ],
       ),
     );
+  }
+}
+
+class _NotifConfig {
+  const _NotifConfig({
+    required this.label,
+    required this.color,
+    required this.icon,
+  });
+
+  final String label;
+  final Color color;
+  final IconData icon;
+}
+
+_NotifConfig _typeConfig(NotifType type) {
+  switch (type) {
+    case NotifType.alerta:
+      return const _NotifConfig(
+        label: 'Alerta',
+        color: AppColors.primaryRed,
+        icon: Icons.warning_amber_rounded,
+      );
+    case NotifType.sistema:
+      return const _NotifConfig(
+        label: 'Sistema',
+        color: AppColors.infoBlue,
+        icon: Icons.settings_suggest_outlined,
+      );
+    case NotifType.info:
+    default:
+      return const _NotifConfig(
+        label: 'Informativo',
+        color: AppColors.successGreen,
+        icon: Icons.campaign_outlined,
+      );
   }
 }
 

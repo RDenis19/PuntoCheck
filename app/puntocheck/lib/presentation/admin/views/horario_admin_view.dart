@@ -437,7 +437,7 @@ class _CalendarSection extends StatelessWidget {
             children: ShiftCategory.values
                 .map(
                   (type) => _ShiftChip(
-                    label: type.name,
+                    type: type,
                     selected: bulkType == type,
                     onTap: () => onTypeChanged(type),
                   ),
@@ -575,51 +575,62 @@ class _DayCard extends StatelessWidget {
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
             children: [
-              Expanded(
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        vertical: 6,
-                        horizontal: 10,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppColors.black.withValues(alpha: 0.04),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        label,
-                        style: const TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w800,
-                          color: AppColors.backgroundDark,
+              Row(
+                children: [
+                  Expanded(
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            vertical: 6,
+                            horizontal: 10,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.black.withValues(alpha: 0.04),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(
+                                Icons.calendar_today_outlined,
+                                size: 16,
+                                color: AppColors.primaryRed,
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                label,
+                                style: const TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w800,
+                                  color: AppColors.backgroundDark,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
+                        const SizedBox(width: 10),
+                        Text(
+                          isEnabled ? 'Activo' : 'Pausado',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: isEnabled
+                                ? AppColors.primaryRed
+                                : AppColors.black.withValues(alpha: 0.5),
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(width: 10),
-                    Text(
-                      isEnabled ? 'Activo' : 'Pausado',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                        color: isEnabled
-                            ? AppColors.primaryRed
-                            : AppColors.black.withValues(alpha: 0.5),
-                      ),
-                    ),
-                  ],
+                  ),
+                  Switch.adaptive(
+                    value: isEnabled,
+                    onChanged: onToggle,
+                  activeColor: AppColors.primaryRed,
                 ),
-              ),
-              Switch.adaptive(
-                value: isEnabled,
-                onChanged: onToggle,
-                activeColor: AppColors.primaryRed,
-              ),
-            ],
-          ),
+              ],
+            ),
           const SizedBox(height: 12),
           IgnorePointer(
             ignoring: !isEnabled,
@@ -665,7 +676,7 @@ class _DayCard extends StatelessWidget {
                     children: ShiftCategory.values.map((type) {
                       final selected = config.type == type;
                       return _ShiftChip(
-                        label: type.name,
+                        type: type,
                         selected: selected,
                         onTap: () => onTypeChanged(type),
                       );
@@ -683,45 +694,49 @@ class _DayCard extends StatelessWidget {
 
 class _ShiftChip extends StatelessWidget {
   const _ShiftChip({
-    required this.label,
+    required this.type,
     required this.selected,
     required this.onTap,
   });
 
-  final String label;
+  final ShiftCategory type;
   final bool selected;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
+    final cfg = _typeConfig(type);
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 120),
         padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
         decoration: BoxDecoration(
-          color:
-              selected ? AppColors.primaryRed : AppColors.black.withValues(alpha: 0.04),
+          color: selected
+              ? cfg.color.withValues(alpha: 0.15)
+              : AppColors.black.withValues(alpha: 0.04),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: selected
-                ? AppColors.primaryRed
+                ? cfg.color
                 : AppColors.black.withValues(alpha: 0.07),
           ),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            if (selected) ...[
-              const Icon(Icons.check, color: AppColors.white, size: 16),
-              const SizedBox(width: 6),
-            ],
+            Icon(
+              cfg.icon,
+              color: selected ? cfg.color : AppColors.backgroundDark,
+              size: 16,
+            ),
+            const SizedBox(width: 6),
             Text(
-              label,
+              cfg.label,
               style: TextStyle(
                 color: selected
-                    ? AppColors.white
-                    : AppColors.black.withValues(alpha: 0.75),
+                    ? cfg.color
+                    : AppColors.backgroundDark.withValues(alpha: 0.75),
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -824,5 +839,26 @@ class _TimeChip extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+class _TypeCfg {
+  const _TypeCfg(this.label, this.color, this.icon);
+  final String label;
+  final Color color;
+  final IconData icon;
+}
+
+_TypeCfg _typeConfig(ShiftCategory type) {
+  switch (type) {
+    case ShiftCategory.reducida:
+      return _TypeCfg('Turno reducido', AppColors.infoBlue, Icons.timelapse);
+    case ShiftCategory.corta:
+      return _TypeCfg('Turno corto', AppColors.warningOrange, Icons.timer);
+    case ShiftCategory.descanso:
+      return _TypeCfg('Descanso', AppColors.successGreen, Icons.self_improvement);
+    case ShiftCategory.completa:
+    default:
+      return _TypeCfg('Turno completo', AppColors.primaryRed, Icons.work_history);
   }
 }

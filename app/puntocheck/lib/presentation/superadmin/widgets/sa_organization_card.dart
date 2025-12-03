@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:puntocheck/models/enums.dart';
 import 'package:puntocheck/models/organization_model.dart';
+import 'package:puntocheck/providers/app_providers.dart';
 import 'package:puntocheck/utils/theme/app_colors.dart';
 
-class SaOrganizationCard extends StatelessWidget {
+class SaOrganizationCard extends ConsumerWidget {
   const SaOrganizationCard({
     super.key,
     required this.organization,
@@ -24,7 +26,7 @@ class SaOrganizationCard extends StatelessWidget {
   final bool hasStatsError;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final Color statusColor = switch (organization.status) {
       OrgStatus.activa => AppColors.successGreen,
       OrgStatus.prueba => AppColors.warningOrange,
@@ -64,7 +66,7 @@ class SaOrganizationCard extends StatelessWidget {
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildLogo(brandColor),
+                  _buildLogo(ref, brandColor),
                   const SizedBox(width: 14),
                   Expanded(
                     child: Column(
@@ -146,7 +148,7 @@ class SaOrganizationCard extends StatelessWidget {
     );
   }
 
-  Widget _buildLogo(Color brandColor) {
+  Widget _buildLogo(WidgetRef ref, Color brandColor) {
     if (organization.logoUrl == null || organization.logoUrl!.isEmpty) {
       return Container(
         width: 60,
@@ -184,19 +186,36 @@ class SaOrganizationCard extends StatelessWidget {
         border: Border.all(color: AppColors.black.withValues(alpha: 0.06)),
       ),
       clipBehavior: Clip.hardEdge,
-      child: Image.network(
-        organization.logoUrl!,
-        fit: BoxFit.cover,
-        errorBuilder: (_, __, ___) => CircleAvatar(
-          backgroundColor: brandColor.withValues(alpha: 0.15),
-          child: Text(
-            organization.name.substring(0, 1),
-            style: const TextStyle(
-              color: AppColors.primaryRed,
-              fontWeight: FontWeight.w800,
+      child: FutureBuilder<String>(
+        future: ref
+            .read(storageServiceProvider)
+            .resolveOrgLogoUrl(organization.logoUrl!, expiresInSeconds: 3600),
+        builder: (context, snapshot) {
+          final url = snapshot.data ?? organization.logoUrl!;
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(
+              child: SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+            );
+          }
+          return Image.network(
+            url,
+            fit: BoxFit.cover,
+            errorBuilder: (_, __, ___) => CircleAvatar(
+              backgroundColor: brandColor.withValues(alpha: 0.15),
+              child: Text(
+                organization.name.substring(0, 1),
+                style: const TextStyle(
+                  color: AppColors.primaryRed,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
             ),
-          ),
-        ),
+          );
+        },
       ),
     );
   }

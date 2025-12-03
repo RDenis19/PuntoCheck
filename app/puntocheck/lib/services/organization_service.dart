@@ -2,6 +2,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models/enums.dart';
 import '../models/organization_model.dart';
+import '../models/organization_plan.dart';
 import '../models/profile_model.dart';
 
 /// Contenedor generico para paginaciones server side.
@@ -518,8 +519,10 @@ class OrganizationService {
           .order('renews_at', ascending: false)
           .limit(1)
           .maybeSingle();
+      final plan =
+          data != null ? OrganizationPlan.fromJson(data) : null;
 
-      if (data == null) {
+      if (plan == null) {
         return PlanSummary(
           planName: 'Sin plan asignado',
           userLimit: null,
@@ -530,12 +533,10 @@ class OrganizationService {
       }
 
       return PlanSummary(
-        planName: data['plan_name'] as String? ?? 'Personalizado',
-        userLimit: data['user_limit'] as int?,
-        renewalDate: data['renews_at'] != null
-            ? DateTime.parse(data['renews_at'] as String)
-            : null,
-        status: (data['status'] as String?) ?? 'active',
+        planName: plan.planName.isNotEmpty ? plan.planName : 'Personalizado',
+        userLimit: plan.userLimit,
+        renewalDate: plan.renewsAt,
+        status: plan.status.isNotEmpty ? plan.status : 'active',
         seatsUsed: seatsUsed,
       );
     } catch (_) {
@@ -574,19 +575,19 @@ class OrganizationService {
         );
         response = AuthResponse(session: null, user: adminRes.user);
       } on AuthException {
-        // Fallback con signUp cuando no hay permisos de service key.
+        // Fallback para entornos sin service role: usa signUp (cuidado,
+        // esto cambia la sesion actual; se recomienda usar service role).
+        response = await _supabase.auth.signUp(
+          email: email,
+          password: password,
+          data: {
+            'full_name': fullName,
+            'organization_id': organizationId,
+            'is_org_admin': true,
+            'is_active': true,
+          },
+        );
       }
-
-      response ??= await _supabase.auth.signUp(
-        email: email,
-        password: password,
-        data: {
-          'full_name': fullName,
-          'organization_id': organizationId,
-          'is_org_admin': true,
-          'is_active': true,
-        },
-      );
 
       final userId = response.user?.id;
       if (userId == null) {

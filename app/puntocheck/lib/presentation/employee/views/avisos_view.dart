@@ -32,9 +32,11 @@ class AvisosView extends ConsumerWidget {
             for (final notice in notices)
               NoticeCard(
                 titulo: notice.title,
-                descripcionCorta: notice.body,
+                descripcionCorta:
+                    notice.body.isNotEmpty ? notice.body : 'Sin mensaje',
                 fechaTexto: _formatDate(notice.createdAt),
                 color: _colorForType(notice.type),
+                icon: _iconForType(notice.type),
                 unread: !notice.isRead,
                 onTap: () => _showNoticeDetail(context, ref, notice),
               ),
@@ -81,7 +83,13 @@ class AvisosView extends ConsumerWidget {
     WidgetRef ref,
     AppNotification notice,
   ) async {
-    await ref.read(notificationControllerProvider.notifier).markAsRead(notice.id);
+    try {
+      await ref
+          .read(notificationControllerProvider.notifier)
+          .markAsRead(notice.id);
+    } catch (_) {
+      // Si falla el mark-as-read no rompemos la UX.
+    }
 
     showModalBottomSheet(
       context: context,
@@ -143,7 +151,7 @@ class AvisosView extends ConsumerWidget {
                     ),
                     const SizedBox(height: 20),
                     Text(
-                      notice.body,
+                      notice.body.isNotEmpty ? notice.body : 'Sin mensaje',
                       style: TextStyle(
                         fontSize: 15,
                         height: 1.5,
@@ -182,6 +190,18 @@ class AvisosView extends ConsumerWidget {
       case NotifType.info:
       default:
         return AppColors.successGreen;
+    }
+  }
+
+  static IconData _iconForType(NotifType type) {
+    switch (type) {
+      case NotifType.alerta:
+        return Icons.warning_amber_rounded;
+      case NotifType.sistema:
+        return Icons.settings_suggest_outlined;
+      case NotifType.info:
+      default:
+        return Icons.campaign_outlined;
     }
   }
 }

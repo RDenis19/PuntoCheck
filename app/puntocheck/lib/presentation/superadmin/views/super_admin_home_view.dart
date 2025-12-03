@@ -83,7 +83,7 @@ class SuperAdminHomeView extends ConsumerWidget {
                 ),
                 orgsAsync.when(
                   data: (page) =>
-                      _buildOrganizationsList(context, page.items),
+                      _buildOrganizationsList(context, ref, page.items),
                   loading: () => _buildLoadingState(),
                   error: (error, _) => _buildErrorState(error.toString()),
                 ),
@@ -106,6 +106,7 @@ class SuperAdminHomeView extends ConsumerWidget {
 
   Widget _buildOrganizationsList(
     BuildContext context,
+    WidgetRef ref,
     List<Organization> orgs,
   ) {
     if (orgs.isEmpty) {
@@ -118,10 +119,16 @@ class SuperAdminHomeView extends ConsumerWidget {
           .map(
             (org) => SaOrganizationCardWithStats(
               organization: org,
-              onTap: () => context.push(
-                AppRoutes.superAdminOrganizacionDetalle,
-                extra: org,
-              ),
+              onTap: () async {
+                await context.push(
+                  AppRoutes.superAdminOrganizacionDetalle,
+                  extra: org,
+                );
+                ref.invalidate(
+                  organizationsPageProvider(defaultOrganizationsPageRequest),
+                );
+                ref.invalidate(superAdminStatsProvider);
+              },
             ),
           )
           .toList(),

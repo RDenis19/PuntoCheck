@@ -1,5 +1,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../models/global_settings.dart';
+
 /// Servicio para manejar configuraciones globales (fila unica en `global_settings`).
 class GlobalSettingsService {
   final SupabaseClient _supabase = Supabase.instance.client;
@@ -7,7 +9,7 @@ class GlobalSettingsService {
   static const String _rowId = 'default';
 
   /// Obtiene la configuracion global. Crea una fila por defecto si no existe.
-  Future<Map<String, dynamic>> getSettings() async {
+  Future<GlobalSettings> getSettings() async {
     try {
       final response = await _supabase
           .from(_table)
@@ -16,37 +18,29 @@ class GlobalSettingsService {
           .maybeSingle();
 
       if (response != null) {
-        return Map<String, dynamic>.from(response);
+        return GlobalSettings.fromJson(response);
       }
 
-      // Si no hay fila, creamos una por defecto.
-      final defaults = _defaultSettings();
-      await _supabase.from(_table).upsert(defaults);
+      final defaults = GlobalSettings.defaults();
+      await _supabase.from(_table).upsert(defaults.toJson());
       return defaults;
     } catch (e) {
-      throw Exception('Error obteniendo configuración global: $e');
+      throw Exception('Error obteniendo configuracion global: $e');
     }
   }
 
-  /// Actualiza parcial o totalmente la configuracion global.
-  Future<void> updateSettings(Map<String, dynamic> updates) async {
+  /// Guarda la configuracion global (upsert de la fila unica).
+  Future<GlobalSettings> updateSettings(GlobalSettings settings) async {
     try {
-      final payload = <String, dynamic>{'id': _rowId, ...updates};
-      await _supabase.from(_table).upsert(payload);
+      final payload = settings.copyWith(id: _rowId).toJson();
+      final data = await _supabase
+          .from(_table)
+          .upsert(payload)
+          .select()
+          .single();
+      return GlobalSettings.fromJson(data);
     } catch (e) {
-      throw Exception('Error guardando configuración global: $e');
+      throw Exception('Error guardando configuracion global: $e');
     }
   }
-
-  Map<String, dynamic> _defaultSettings() => {
-        'id': _rowId,
-        'tolerance_minutes': 5,
-        'geofence_radius': 50,
-        'require_photo': true,
-        'sender_email': '',
-        'alert_threshold': 3,
-        'admin_auto_domain': '',
-        'trial_max_orgs': 0,
-        'trial_days': 14,
-      };
 }
