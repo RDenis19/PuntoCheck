@@ -67,7 +67,6 @@ CREATE TYPE public.gravedad_alerta AS ENUM (
     'legal_grave'    -- Ej: >40h semanales, <11h descanso
 );
 
-RAISE NOTICE 'Bloque 1: Tipos y Extensiones configurados correctamente.';
 
 -- ==============================================================================
 -- BLOQUE 2: ESTRUCTURA ORGANIZACIONAL (MT-DAT-501, MT-PLAN-502)
@@ -171,7 +170,6 @@ CREATE TABLE public.sucursales (
     creado_en TIMESTAMPTZ DEFAULT NOW()
 );
 
-RAISE NOTICE 'Bloque 2: Tablas Core y Multi-tenancy creadas.';
 
 -- ==============================================================================
 -- BLOQUE 3: GESTIÓN DE TIEMPO (SCH-PLT-101, ASS-GPS-001)
@@ -259,7 +257,6 @@ CREATE TABLE public.qr_codigos (
     creado_en TIMESTAMPTZ DEFAULT NOW()
 );
 
-RAISE NOTICE 'Bloque 3: Tablas Operativas creadas.';
 
 -- ==============================================================================
 -- BLOQUE 4: PERMISOS Y CUMPLIMIENTO (PER-CAT-201, NOT-LEG-302)
@@ -354,7 +351,6 @@ CREATE TABLE public.notificaciones (
     creado_en TIMESTAMPTZ DEFAULT NOW()
 );
 
-RAISE NOTICE 'Bloque 4: Tablas RRHH y Auditoría listas.';
 
 -- ==============================================================================
 -- BLOQUE 5: POLÍTICAS DE SEGURIDAD (ROW LEVEL SECURITY)
@@ -498,7 +494,6 @@ WITH CHECK (
     organizacion_id = public.get_my_org_id() AND public.get_my_role() = 'org_admin'
 );
 
-RAISE NOTICE 'Bloque 5: Seguridad RLS aplicada.';
 
 -- ==============================================================================
 -- BLOQUE 6: STORAGE Y SUS POLÍTICAS
@@ -511,8 +506,6 @@ INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_typ
 ('comprobantes_pago', 'comprobantes_pago', false, 2097152, ARRAY['image/jpeg', 'image/png', 'application/pdf'])
 ON CONFLICT (id) DO NOTHING;
 
--- Activar RLS en Storage
-ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;
 
 -- 6.1 Política: Evidencias (Cualquier empleado sube, staff ve)
 CREATE POLICY "Subir evidencia propia" ON storage.objects FOR INSERT TO authenticated
@@ -543,7 +536,6 @@ USING (bucket_id = 'comprobantes_pago' AND EXISTS (
     SELECT 1 FROM public.perfiles WHERE id = auth.uid() AND rol IN ('org_admin', 'super_admin')
 ));
 
-RAISE NOTICE 'Bloque 6: Storage configurado.';
 
 -- ==============================================================================
 -- BLOQUE 7: AUTOMATIZACIÓN Y REGLAS DE NEGOCIO
@@ -673,5 +665,3 @@ BEGIN
     RETURN json_build_object('success', true, 'id', nuevo_id, 'dentro_rango', dentro_rango);
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
-
-RAISE NOTICE 'Base de datos completada al 100%.';
