@@ -84,3 +84,20 @@ enum GravedadAlerta {
   factory GravedadAlerta.fromString(String value) =>
       GravedadAlerta.values.firstWhere((e) => e.value == value);
 }
+
+// Mapeo del tipo SQL: public.estado_pago
+enum EstadoPago {
+  pendiente('pendiente'),
+  aprobado('aprobado'),
+  rechazado('rechazado');
+
+  final String value;
+  const EstadoPago(this.value);
+
+  factory EstadoPago.fromString(String value) {
+    return EstadoPago.values.firstWhere(
+      (e) => e.value == value,
+      orElse: () => throw Exception('Estado de pago desconocido: $value'),
+    );
+  }
+}
