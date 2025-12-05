@@ -1,58 +1,76 @@
-// Mapeo exacto de los ENUMs de PostgreSQL
-enum OrgStatus {
-  prueba,
-  activa,
-  suspendida;
+// lib/models/enums.dart
 
-  String toJson() => name;
-  static OrgStatus fromJson(String json) => values.firstWhere(
-        (e) => e.name == json,
-        orElse: () => OrgStatus.prueba,
-      );
-}
+enum RolUsuario {
+  superAdmin,
+  orgAdmin,
+  manager,
+  auditor,
+  employee;
 
-enum AttendanceStatus {
-  puntual,
-  tardanza,
-  falta,
-  salida_temprana; // camelCase para Dart, snake_case en DB se maneja en el mapper
-
-  String toJson() {
-    switch (this) {
-      case AttendanceStatus.salida_temprana:
-        return 'salida_temprana';
-      default:
-        return name;
-    }
+  // Método helper para parsear string a Enum
+  static RolUsuario fromString(String val) {
+    return switch (val) {
+      'super_admin' => RolUsuario.superAdmin,
+      'org_admin' => RolUsuario.orgAdmin,
+      'manager' => RolUsuario.manager,
+      'auditor' => RolUsuario.auditor,
+      'employee' => RolUsuario.employee,
+      _ => RolUsuario.employee, // Fallback seguro
+    };
   }
 
-  static AttendanceStatus fromJson(String json) => values.firstWhere(
-        (e) => e.toJson() == json,
-        orElse: () => AttendanceStatus.puntual,
-      );
+  String toDbString() {
+    return switch (this) {
+      RolUsuario.superAdmin => 'super_admin',
+      RolUsuario.orgAdmin => 'org_admin',
+      RolUsuario.manager => 'manager',
+      RolUsuario.auditor => 'auditor',
+      RolUsuario.employee => 'employee',
+    };
+  }
 }
 
-enum ShiftCategory {
-  completa,
-  reducida,
-  corta,
-  descanso;
+enum EstadoSuscripcion { prueba, activo, vencido, cancelado }
 
-  String toJson() => name;
-  static ShiftCategory fromJson(String json) => values.firstWhere(
-        (e) => e.name == json,
-        orElse: () => ShiftCategory.completa,
-      );
+enum TipoPermiso {
+  enfermedad,
+  maternidadPaternidad,
+  calamidadDomestica,
+  vacaciones,
+  legalVotacion,
+  otro;
+
+  static TipoPermiso fromString(String val) {
+    // Mapeo simple manejando camelCase manual si es necesario
+    if (val == 'maternidad_paternidad') return TipoPermiso.maternidadPaternidad;
+    if (val == 'calamidad_domestica') return TipoPermiso.calamidadDomestica;
+    if (val == 'legal_votacion') return TipoPermiso.legalVotacion;
+    return TipoPermiso.values.firstWhere(
+      (e) => e.name == val,
+      orElse: () => TipoPermiso.otro,
+    );
+  }
+
+  String toDbString() {
+    if (this == TipoPermiso.maternidadPaternidad)
+      return 'maternidad_paternidad';
+    if (this == TipoPermiso.calamidadDomestica) return 'calamidad_domestica';
+    if (this == TipoPermiso.legalVotacion) return 'legal_votacion';
+    return name;
+  }
 }
 
-enum NotifType {
-  info,
-  alerta,
-  sistema;
+enum EstadoAprobacion { pendiente, aprobado, rechazado, escalado }
 
-  String toJson() => name;
-  static NotifType fromJson(String json) => values.firstWhere(
-        (e) => e.name == json,
-        orElse: () => NotifType.info,
-      );
+enum OrigenMarcacion {
+  gpsMovil,
+  qrFijo,
+  offlineSync;
+
+  static OrigenMarcacion fromString(String val) {
+    if (val == 'gps_movil') return OrigenMarcacion.gpsMovil;
+    if (val == 'qr_fijo') return OrigenMarcacion.qrFijo;
+    if (val == 'offline_sync') return OrigenMarcacion.offlineSync;
+    return OrigenMarcacion.gpsMovil;
+  }
 }
