@@ -1,144 +1,51 @@
 import 'package:flutter/material.dart';
-import 'package:puntocheck/utils/theme/app_colors.dart';
-import 'package:puntocheck/presentation/admin/views/admin_home_view.dart';
-import 'package:puntocheck/presentation/admin/views/horario_admin_view.dart';
-import 'package:puntocheck/presentation/admin/views/apariencia_app_view.dart';
-import 'package:puntocheck/presentation/employee/views/settings_view.dart';
-import 'package:puntocheck/routes/app_router.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:puntocheck/models/perfiles.dart';
+import 'package:puntocheck/providers/app_providers.dart';
+import 'package:puntocheck/presentation/admin/views/admin_dashboard_view.dart';
+import 'package:puntocheck/presentation/admin/views/admin_settings_view.dart';
+import 'package:puntocheck/presentation/admin/views/admin_team_view.dart';
+import 'package:puntocheck/presentation/admin/widgets/admin_header.dart';
+import 'package:puntocheck/presentation/admin/widgets/admin_tab_navigation.dart';
 
-class AdminShellView extends StatefulWidget {
+class AdminShellView extends ConsumerStatefulWidget {
   const AdminShellView({super.key});
 
   @override
-  State<AdminShellView> createState() => _AdminShellViewState();
+  ConsumerState<AdminShellView> createState() => _AdminShellViewState();
 }
 
-class _AdminShellViewState extends State<AdminShellView> {
-  int _currentIndex = 0;
+class _AdminShellViewState extends ConsumerState<AdminShellView> {
+  int _index = 0;
+
+  Perfiles? get _profile => ref.read(profileProvider).maybeWhen(
+        data: (p) => p,
+        orElse: () => null,
+      );
 
   @override
   Widget build(BuildContext context) {
-    final pages = [
-      const AdminHomeView(),
-      const HorarioAdminView(),
-      const AparienciaAppView(),
-      const AdminSettingsTabView(),
+    final pages = const [
+      AdminDashboardView(),
+      AdminTeamView(),
+      AdminSettingsView(),
     ];
 
     return Scaffold(
-      body: IndexedStack(index: _currentIndex, children: pages),
-      bottomNavigationBar: _buildBottomNav(),
-    );
-  }
-
-  Widget _buildBottomNav() {
-    const icons = [
-      Icons.home_outlined,
-      Icons.calendar_month_outlined,
-      Icons.brush_outlined,
-      Icons.settings_outlined,
-    ];
-
-    const labels = ['Inicio', 'Horario', 'Editar App', 'Ajustes'];
-
-    return Container(
-      decoration: const BoxDecoration(
-        color: AppColors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Color(0x22000000),
-            blurRadius: 8,
-            offset: Offset(0, -2),
+      body: Column(
+        children: [
+          AdminHeader(
+            userName: _profile?.nombres ?? '—',
+            roleLabel: 'Admin de organización',
+            organizationName: _profile?.organizacionId ?? 'Sin organización',
           ),
+          Expanded(child: pages[_index]),
         ],
       ),
-      padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
-      child: SafeArea(
-        top: false,
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: List.generate(icons.length, (index) {
-            final isSelected = index == _currentIndex;
-            return Expanded(
-              child: GestureDetector(
-                onTap: () => setState(() => _currentIndex = index),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 160),
-                  margin: const EdgeInsets.symmetric(horizontal: 4),
-                  padding: const EdgeInsets.symmetric(
-                    vertical: 6,
-                    horizontal: 8,
-                  ),
-                  decoration: BoxDecoration(
-                    color: isSelected
-                        ? AppColors.primaryRed.withValues(alpha: 0.08)
-                        : Colors.transparent,
-                    borderRadius: BorderRadius.circular(20),
-                    border: isSelected
-                        ? Border.all(color: AppColors.primaryRed, width: 1.4)
-                        : null,
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        icons[index],
-                        size: 22,
-                        color: isSelected ? AppColors.primaryRed : Colors.grey,
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        labels[index],
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: isSelected
-                              ? AppColors.primaryRed
-                              : Colors.grey,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            );
-          }),
-        ),
+      bottomNavigationBar: AdminTabNavigation(
+        currentIndex: _index,
+        onTap: (i) => setState(() => _index = i),
       ),
     );
   }
 }
-
-class AdminSettingsTabView extends StatelessWidget {
-  const AdminSettingsTabView({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return SafeArea(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: const [
-          Padding(
-            padding: EdgeInsets.fromLTRB(20, 24, 20, 12),
-            child: Text(
-              'Configuración Admin',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.w700,
-                color: AppColors.backgroundDark,
-              ),
-              ),
-            ),
-          Expanded(
-            child: SettingsView(
-              embedded: true,
-              personalInfoRoute: AppRoutes.adminPersonalInfo,
-              showSignOut: true,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-

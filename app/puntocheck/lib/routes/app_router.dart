@@ -1,233 +1,152 @@
 import 'dart:async';
-import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:puntocheck/models/organization_model.dart';
+import 'package:puntocheck/models/enums.dart';
+import 'package:puntocheck/models/perfiles.dart';
 import 'package:puntocheck/providers/app_providers.dart';
-
-// Login
-import 'package:puntocheck/presentation/login/login_view.dart';
-import 'package:puntocheck/presentation/login/forgot_password_email_view.dart';
-import 'package:puntocheck/presentation/login/forgot_password_code_view.dart';
-import 'package:puntocheck/presentation/login/reset_password_view.dart';
-import 'package:puntocheck/presentation/login/reset_password_success_view.dart';
-
-// Splash
-import 'package:puntocheck/presentation/splash/views/splash_view.dart';
-
-// Admin
+import 'package:puntocheck/presentation/login/views/login_view.dart';
+import 'package:puntocheck/presentation/auditor/views/auditor_shell_view.dart';
+import 'package:puntocheck/presentation/employee/views/employee_shell_view.dart';
+import 'package:puntocheck/presentation/manager/views/manager_shell_view.dart';
 import 'package:puntocheck/presentation/admin/views/admin_shell_view.dart';
-import 'package:puntocheck/presentation/admin/views/nuevo_empleado_view.dart';
-import 'package:puntocheck/presentation/admin/views/empleados_list_view.dart';
-import 'package:puntocheck/presentation/admin/views/empleado_detalle_view.dart';
-import 'package:puntocheck/presentation/admin/views/anuncios_admin_view.dart';
-import 'package:puntocheck/presentation/admin/views/nuevo_anuncio_view.dart';
-
-// Employee
-import 'package:puntocheck/presentation/employee/views/employee_home_view.dart';
-import 'package:puntocheck/presentation/employee/views/horario_trabajo_view.dart';
-import 'package:puntocheck/presentation/employee/views/registro_asistencia_view.dart';
-import 'package:puntocheck/presentation/employee/views/settings_view.dart';
-import 'package:puntocheck/presentation/employee/views/personal_info_view.dart';
-
-// SuperAdmin
 import 'package:puntocheck/presentation/superadmin/views/super_admin_shell_view.dart';
-import 'package:puntocheck/presentation/superadmin/views/organizaciones_list_view.dart';
-import 'package:puntocheck/presentation/superadmin/views/organizacion_detalle_view.dart';
-import 'package:puntocheck/presentation/superadmin/views/organizacion_empleados_full_view.dart';
+import 'package:puntocheck/presentation/splash/views/splash_view.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:puntocheck/presentation/superadmin/views/super_admin_org_detail_view.dart';
+import 'package:puntocheck/presentation/superadmin/views/super_admin_org_staff_view.dart';
+import 'package:puntocheck/presentation/superadmin/views/super_admin_org_payments_view.dart';
 
 class AppRoutes {
-  static const String splash = '/';
-  static const String login = '/login';
-  static const String forgotEmail = '/forgot-email';
-  static const String forgotCode = '/forgot-code';
-  static const String resetPassword = '/reset-password';
-  static const String resetPasswordSuccess = '/reset-password-success';
+  static const splash = '/';
+  static const login = '/login';
 
-  // Admin
-  static const String adminHome = '/admin';
-  static const String adminNuevoEmpleado = '/admin/nuevo-empleado';
-  static const String adminEmpleadosList = '/admin/empleados';
-  static const String adminEmpleadoDetalle = '/admin/empleado-detalle';
-  static const String adminAnuncios = '/admin/anuncios';
-  static const String adminNuevoAnuncio = '/admin/nuevo-anuncio';
-  static const String adminPersonalInfo = '/admin/personal-info';
+  static const superAdminHome = '/super-admin';
+  static const orgAdminHome = '/org-admin';
+  static const managerHome = '/manager';
+  static const auditorHome = '/auditor';
+  static const employeeHome = '/employee';
 
-  // Employee
-  static const String employeeHome = '/employee';
-  static const String horarioTrabajo = '/employee/horario';
-  static const String registroAsistencia = '/employee/asistencia';
-  static const String personalInfo = '/employee/personal-info';
-  static const String settings = '/employee/settings';
-
-  // SuperAdmin
-  static const String superAdminHome = '/superadmin';
-  static const String superAdminOrganizaciones = '/superadmin/organizaciones';
-  static const String superAdminOrganizacionDetalle =
-      '/superadmin/organizacion-detalle';
-  static const String superAdminOrganizacionEmpleados =
-      '/superadmin/organizacion-empleados';
+  static String homeForRole(RolUsuario role) {
+    switch (role) {
+      case RolUsuario.superAdmin:
+        return AppRoutes.superAdminHome;
+      case RolUsuario.orgAdmin:
+        return AppRoutes.orgAdminHome;
+      case RolUsuario.manager:
+        return AppRoutes.managerHome;
+      case RolUsuario.auditor:
+        return AppRoutes.auditorHome;
+      case RolUsuario.employee:
+        return AppRoutes.employeeHome;
+    }
+  }
 }
 
 final appRouterProvider = Provider<GoRouter>((ref) {
-  // Estas dependencias fuerzan el rebuild del router cuando cambian.
   final authState = ref.watch(authStateProvider);
-  ref.watch(profileProvider);
-  final role = ref.watch(userRoleProvider);
+  final profileAsync = ref.watch(profileProvider);
+  final authStream = ref.watch(authServiceProvider).authStateChanges;
+  final refresher = GoRouterRefreshStream(authStream);
+  ref.onDispose(refresher.dispose);
+
+  // Forzar refresh cuando el perfil pasa de loading -> data/error.
+  ref.listen<AsyncValue<Perfiles?>>(profileProvider, (_, __) {
+    refresher.refresh();
+  });
 
   return GoRouter(
-    initialLocation: '/',
+    initialLocation: AppRoutes.splash,
+    // Escucha cambios de sesión para recalcular redirect sin necesitar hot-reload.
+    refreshListenable: refresher,
     redirect: (context, state) {
-      final session = authState.value?.session ??
+      final session =
+          authState.asData?.value.session ??
           Supabase.instance.client.auth.currentSession;
       final isLoggedIn = session != null;
-      final path = state.uri.path;
-      final isLoggingIn = path == AppRoutes.login;
-      final isForgotFlow =
-          path.startsWith('/forgot') || path.startsWith('/reset');
+      final path = state.uri.toString();
+
+      final isAuthFlow = path == AppRoutes.login;
       final isSplash = path == AppRoutes.splash;
 
       if (!isLoggedIn) {
-        return (isLoggingIn || isSplash || isForgotFlow)
-            ? null
-            : AppRoutes.login;
+        return isAuthFlow ? null : AppRoutes.login;
       }
 
-      if (role == UserRole.unknown) {
+      if (profileAsync.isLoading) {
+        // Evita loop en splash/login mientras carga el perfil.
         return null;
       }
 
-      String roleHome;
-      switch (role) {
-        case UserRole.superAdmin:
-          roleHome = AppRoutes.superAdminHome;
-          break;
-        case UserRole.admin:
-          roleHome = AppRoutes.adminHome;
-          break;
-        case UserRole.employee:
-        default:
-          roleHome = AppRoutes.employeeHome;
-          break;
-      }
+      if (profileAsync.hasError) return AppRoutes.login;
+      final profile = profileAsync.asData?.value;
+      final role = profile?.rol;
+      if (profile == null || role == null) return AppRoutes.login;
 
+      final roleHome = AppRoutes.homeForRole(role);
       final isOnRolePath = path == roleHome || path.startsWith('$roleHome/');
 
-      if (isLoggingIn || isSplash) {
-        return roleHome;
-      }
-
-      if (!isOnRolePath && !isForgotFlow) {
-        return roleHome;
-      }
+      if (isSplash || isAuthFlow) return roleHome;
+      if (!isOnRolePath) return roleHome;
 
       return null;
     },
     routes: [
-      GoRoute(path: '/', builder: (context, state) => const SplashView()),
-      GoRoute(path: '/login', builder: (context, state) => const LoginView()),
+      GoRoute(path: AppRoutes.splash, builder: (_, __) => const SplashView()),
+      GoRoute(path: AppRoutes.login, builder: (_, __) => const LoginView()),
       GoRoute(
-        path: '/forgot-email',
-        builder: (context, state) => const ForgotPasswordEmailView(),
+        path: AppRoutes.superAdminHome,
+        builder: (_, __) => const SuperAdminShellView(),
       ),
       GoRoute(
-        path: '/forgot-code',
-        builder: (context, state) => const ForgotPasswordCodeView(),
+        path: '${AppRoutes.superAdminHome}/org/:orgId',
+        builder: (_, state) =>
+            SuperAdminOrgDetailView(orgId: state.pathParameters['orgId'] ?? ''),
       ),
       GoRoute(
-        path: '/reset-password',
-        builder: (context, state) => const ResetPasswordView(),
+        path: '${AppRoutes.superAdminHome}/org/:orgId/staff',
+        builder: (_, state) =>
+            SuperAdminOrgStaffView(orgId: state.pathParameters['orgId'] ?? ''),
       ),
       GoRoute(
-        path: '/reset-password-success',
-        builder: (context, state) => const ResetPasswordSuccessView(),
+        path: '${AppRoutes.superAdminHome}/org/:orgId/payments',
+        builder: (_, state) => SuperAdminOrgPaymentsView(
+          orgId: state.pathParameters['orgId'] ?? '',
+        ),
       ),
-
-      // Admin Routes
       GoRoute(
-        path: '/admin',
-        builder: (context, state) => const AdminShellView(),
-        routes: [
-          GoRoute(
-            path: 'nuevo-empleado',
-            builder: (context, state) => const NuevoEmpleadoView(),
-          ),
-          GoRoute(
-            path: 'empleados',
-            builder: (context, state) => const EmpleadosListView(),
-          ),
-          GoRoute(
-            path: 'empleado-detalle',
-            builder: (context, state) {
-              final employee = state.extra;
-              return EmpleadoDetalleView(employee: employee);
-            },
-          ),
-          GoRoute(
-            path: 'anuncios',
-            builder: (context, state) => const AnunciosAdminView(),
-          ),
-          GoRoute(
-            path: 'nuevo-anuncio',
-            builder: (context, state) => const NuevoAnuncioView(),
-          ),
-          GoRoute(
-            path: 'personal-info',
-            builder: (context, state) => const PersonalInfoView(),
-          ),
-        ],
+        path: AppRoutes.orgAdminHome,
+        builder: (_, __) => const AdminShellView(),
       ),
-
-      // Employee Routes
       GoRoute(
-        path: '/employee',
-        builder: (context, state) => const EmployeeHomeView(),
-        routes: [
-          GoRoute(
-            path: 'horario',
-            builder: (context, state) => const HorarioTrabajoView(),
-          ),
-          GoRoute(
-            path: 'asistencia',
-            builder: (context, state) => const RegistroAsistenciaView(),
-          ),
-          GoRoute(
-            path: 'personal-info',
-            builder: (context, state) => const PersonalInfoView(),
-          ),
-          GoRoute(
-            path: 'settings',
-            builder: (context, state) => const SettingsView(),
-          ),
-        ],
+        path: AppRoutes.managerHome,
+        builder: (_, __) => const ManagerShellView(),
       ),
-
-      // SuperAdmin Routes
       GoRoute(
-        path: '/superadmin',
-        builder: (context, state) => const SuperAdminShellView(),
-        routes: [
-          GoRoute(
-            path: 'organizaciones',
-            builder: (context, state) => const OrganizacionesListView(),
-          ),
-          GoRoute(
-            path: 'organizacion-detalle',
-            builder: (context, state) {
-              final org = state.extra as Organization?;
-              return OrganizacionDetalleView(organization: org);
-            },
-          ),
-          GoRoute(
-            path: 'organizacion-empleados',
-            builder: (context, state) {
-              final org = state.extra as Organization?;
-              return OrganizacionEmpleadosFullView(organization: org);
-            },
-          ),
-        ],
+        path: AppRoutes.auditorHome,
+        builder: (_, __) => const AuditorShellView(),
+      ),
+      GoRoute(
+        path: AppRoutes.employeeHome,
+        builder: (_, __) => const EmployeeShellView(),
       ),
     ],
   );
 });
+
+/// Notificador simple para refrescar GoRouter cuando cambia un stream (ej: auth).
+class GoRouterRefreshStream extends ChangeNotifier {
+  GoRouterRefreshStream(Stream<dynamic> stream) {
+    _sub = stream.asBroadcastStream().listen((_) => notifyListeners());
+  }
+
+  late final StreamSubscription<dynamic> _sub;
+
+  void refresh() => notifyListeners();
+
+  @override
+  void dispose() {
+    _sub.cancel();
+    super.dispose();
+  }
+}

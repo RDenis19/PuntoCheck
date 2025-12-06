@@ -1,3 +1,5 @@
+import 'package:supabase_flutter/supabase_flutter.dart';
+
 import '../models/perfiles.dart';
 import 'supabase_client.dart';
 
@@ -51,6 +53,16 @@ class StaffService {
       final data = perfil.toJson();
       // data['id'] debe venir del Auth User creado previamente por Admin
       await supabase.from('perfiles').insert(data);
+    } on PostgrestException catch (e) {
+      if (e.code == '23505') {
+        throw Exception('El usuario ya tiene un perfil registrado.');
+      }
+      if (e.code == '42501') {
+        throw Exception(
+          'Sin permisos para crear perfiles (revisa políticas RLS).',
+        );
+      }
+      throw Exception('Error creando perfil: ${e.message}');
     } catch (e) {
       throw Exception('Error creando perfil: $e');
     }

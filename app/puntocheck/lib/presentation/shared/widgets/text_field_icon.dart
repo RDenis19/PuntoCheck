@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:puntocheck/utils/theme/app_colors.dart';
 
 class TextFieldIcon extends StatelessWidget {
   const TextFieldIcon({
@@ -27,31 +26,34 @@ class TextFieldIcon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final borderColor = scheme.outlineVariant;
+
     return TextFormField(
       controller: controller,
       obscureText: obscure,
       keyboardType: keyboardType,
       validator: validator,
       onChanged: onChanged,
-       enabled: enabled,
+      enabled: enabled,
       decoration: InputDecoration(
         hintText: hintText,
-        prefixIcon: Icon(prefixIcon, color: AppColors.black.withValues(alpha: 0.3)),
+        prefixIcon: Icon(prefixIcon, color: scheme.onSurface.withValues(alpha: 0.5)),
         suffixIcon: suffix,
         filled: true,
-        fillColor: AppColors.white,
+        fillColor: scheme.surface,
         contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(color: AppColors.black.withValues(alpha: 0.1)),
+          borderSide: BorderSide(color: borderColor),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(color: AppColors.black.withValues(alpha: 0.1)),
+          borderSide: BorderSide(color: borderColor),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(color: AppColors.primaryRed),
+          borderSide: BorderSide(color: scheme.primary),
         ),
       ),
     );

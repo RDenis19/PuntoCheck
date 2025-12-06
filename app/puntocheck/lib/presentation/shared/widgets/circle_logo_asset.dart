@@ -12,7 +12,7 @@ class CircleLogoAsset extends StatelessWidget {
       width: radius * 2,
       height: radius * 2,
       decoration: const BoxDecoration(
-        color: AppColors.backgroundDark,
+        color: AppColors.neutral900,
         shape: BoxShape.circle,
       ),
       child: Center(

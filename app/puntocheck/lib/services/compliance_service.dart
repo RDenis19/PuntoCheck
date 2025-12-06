@@ -99,7 +99,8 @@ class ComplianceService {
         query = query.eq('estado', 'pendiente');
       }
 
-      final response = await query.order('fecha_deteccion', ascending: false);
+      // La tabla no tiene columna fecha_deteccion según el esquema; usamos creado_en.
+      final response = await query.order('creado_en', ascending: false);
       return (response as List)
           .map((e) => AlertasCumplimiento.fromJson(e))
           .toList();

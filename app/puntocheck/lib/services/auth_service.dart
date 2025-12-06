@@ -56,4 +56,30 @@ class AuthService {
       throw Exception('Error cargando perfil: ${e.message}');
     }
   }
+
+  /// Crear usuario en Auth (email/password) con metadata opcional.
+  /// Útil para que el Super Admin genere admins de organización en un solo paso
+  /// y que el trigger `handle_new_user` cree la fila en `perfiles`.
+  Future<User> createUser({
+    required String email,
+    required String password,
+    Map<String, dynamic>? metadata,
+  }) async {
+    try {
+      final response = await supabase.auth.signUp(
+        email: email,
+        password: password,
+        data: metadata,
+      );
+      final user = response.user;
+      if (user == null) {
+        throw Exception('No se obtuvo usuario al crear la cuenta');
+      }
+      return user;
+    } on AuthException catch (e) {
+      throw Exception(e.message);
+    } catch (e) {
+      throw Exception('Error creando usuario: $e');
+    }
+  }
 }

@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:puntocheck/utils/theme/app_colors.dart';
-import 'package:puntocheck/routes/app_router.dart';
+import 'package:puntocheck/models/enums.dart';
 import 'package:puntocheck/providers/app_providers.dart';
+import 'package:puntocheck/routes/app_router.dart';
+import 'package:puntocheck/utils/theme/app_colors.dart';
 
 class SplashView extends ConsumerStatefulWidget {
   const SplashView({super.key});
@@ -64,30 +65,36 @@ class _SplashViewState extends ConsumerState<SplashView> with SingleTickerProvid
     final authState = await ref.read(authStateProvider.future);
     final user = authState.session?.user;
 
-    if (user != null) {
-      // Usuario autenticado, obtener perfil para saber rol
-      try {
-        final profile = await ref.read(profileProvider.future);
-        if (!mounted) return;
-        
-        if (profile != null) {
-          if (profile.isSuperAdmin) {
-            context.go(AppRoutes.superAdminHome);
-          } else if (profile.isOrgAdmin) {
-            context.go(AppRoutes.adminHome);
-          } else {
-            context.go(AppRoutes.employeeHome);
-          }
-          return;
-        }
-      } catch (e) {
-        // Error obteniendo perfil, tal vez internet o data corrupta
-        // Fallback a login
-      }
+    if (user == null) {
+      if (mounted) context.go(AppRoutes.login);
+      return;
     }
 
-    if (!mounted) return;
-    context.go(AppRoutes.login);
+    try {
+      final profile = await ref.read(profileProvider.future);
+      if (!mounted) return;
+      final role = profile?.rol ?? RolUsuario.employee;
+
+      switch (role) {
+        case RolUsuario.superAdmin:
+          context.go(AppRoutes.superAdminHome);
+          break;
+        case RolUsuario.orgAdmin:
+          context.go(AppRoutes.orgAdminHome);
+          break;
+        case RolUsuario.manager:
+          context.go(AppRoutes.managerHome);
+          break;
+        case RolUsuario.auditor:
+          context.go(AppRoutes.auditorHome);
+          break;
+        case RolUsuario.employee:
+          context.go(AppRoutes.employeeHome);
+          break;
+      }
+    } catch (_) {
+      if (mounted) context.go(AppRoutes.login);
+    }
   }
 
   @override
@@ -99,7 +106,7 @@ class _SplashViewState extends ConsumerState<SplashView> with SingleTickerProvid
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.backgroundDark,
+      backgroundColor: AppColors.neutral900,
       body: Center(
         child: FadeTransition(
           opacity: _opacity,
@@ -108,7 +115,7 @@ class _SplashViewState extends ConsumerState<SplashView> with SingleTickerProvid
             child: ScaleTransition(
               scale: _scale,
               child: SizedBox(
-                width: 160,
+                width: 200,
                 child: Image.asset(
                   'assets/puntocheck_rojo_splash.png',
                   fit: BoxFit.contain,

@@ -85,4 +85,22 @@ class AttendanceService {
       throw Exception('Error verificando estado actual: $e');
     }
   }
+
+  /// Obtener registros recientes por organizacion (soporte / super admin).
+  Future<List<RegistrosAsistencia>> getRecentByOrg(String orgId, {int limit = 10}) async {
+    try {
+      final response = await supabase
+          .from('registros_asistencia')
+          .select()
+          .eq('organizacion_id', orgId)
+          .order('fecha_hora_marcacion', ascending: false)
+          .limit(limit);
+
+      return (response as List)
+          .map((json) => RegistrosAsistencia.fromJson(json))
+          .toList();
+    } catch (e) {
+      throw Exception('Error obteniendo asistencia reciente: $e');
+    }
+  }
 }

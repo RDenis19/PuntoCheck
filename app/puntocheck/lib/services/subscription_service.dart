@@ -2,6 +2,7 @@ import '../models/planes_suscripcion.dart';
 import '../models/pagos_suscripciones.dart';
 import '../models/enums.dart';
 import 'supabase_client.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class SubscriptionService {
   SubscriptionService._();
@@ -18,11 +19,28 @@ class SubscriptionService {
           .from('planes_suscripcion')
           .select()
           .order('precio_mensual', ascending: true);
-      return (response as List)
-          .map((e) => PlanesSuscripcion.fromJson(e))
-          .toList();
+      final rows = response as List;
+      final plans = <PlanesSuscripcion>[];
+
+      for (var i = 0; i < rows.length; i++) {
+        final raw = rows[i];
+        try {
+          final map = Map<String, dynamic>.from(raw as Map);
+          plans.add(PlanesSuscripcion.fromJson(map));
+        } catch (e) {
+          // Evita que un registro mal formado rompa todo el dashboard.
+          // Se loguea para poder corregir el dato en DB.
+          // ignore: avoid_print
+          print('WARN getPlans: fila $i ignorada por parseo: $e | raw=$raw');
+          continue;
+        }
+      }
+      return plans;
     } catch (e) {
-      throw Exception('Error al obtener planes: $e');
+      // Evita que se caiga el dashboard: devolvemos lista vacía y registramos.
+      // ignore: avoid_print
+      print('ERROR getPlans: $e');
+      return [];
     }
   }
 
@@ -88,6 +106,29 @@ class SubscriptionService {
           .toList();
     } catch (e) {
       throw Exception('Error obteniendo pagos pendientes: $e');
+    }
+  }
+
+  /// Obtener historial de pagos de una organizacion
+  Future<List<PagosSuscripciones>> getPaymentsByOrganization(
+    String orgId,
+  ) async {
+    try {
+      final response = await supabase
+          .from('pagos_suscripciones')
+          .select()
+          .eq('organizacion_id', orgId)
+          .order('fecha_pago', ascending: false);
+
+      return (response as List)
+          .map((e) => PagosSuscripciones.fromJson(e))
+          .toList();
+    } on PostgrestException catch (e) {
+      throw Exception(
+        'Error obteniendo pagos de la organizacion: ${e.message}',
+      );
+    } catch (e) {
+      throw Exception('Error obteniendo pagos de la organizacion: $e');
     }
   }
 
