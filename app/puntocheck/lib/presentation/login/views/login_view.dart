@@ -22,18 +22,6 @@ class _LoginViewState extends ConsumerState<LoginView> {
   bool _hasNavigated = false;
 
   @override
-  void initState() {
-    super.initState();
-    // Redirige de inmediato si ya hay sesiケn activa y evita que el login quede en pantalla.
-    ref.listen<AsyncValue<AuthState>>(authStateProvider, (prev, next) {
-      final session = next.asData?.value.session;
-      if (session != null && !_hasNavigated) {
-        _redirectByRole();
-      }
-    });
-  }
-
-  @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
@@ -100,6 +88,14 @@ class _LoginViewState extends ConsumerState<LoginView> {
 
   @override
   Widget build(BuildContext context) {
+    // Escucha cambios de auth durante el build (uso permitido) para redirigir si ya hay sesion.
+    ref.listen<AsyncValue<AuthState>>(authStateProvider, (prev, next) {
+      final session = next.asData?.value.session;
+      if (session != null && !_hasNavigated) {
+        _redirectByRole();
+      }
+    });
+
     final authState = ref.watch(authControllerProvider);
     final isLoading = authState.isLoading;
 
