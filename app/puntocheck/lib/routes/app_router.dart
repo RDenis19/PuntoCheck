@@ -9,7 +9,7 @@ import 'package:puntocheck/presentation/login/views/login_view.dart';
 import 'package:puntocheck/presentation/auditor/views/auditor_shell_view.dart';
 import 'package:puntocheck/presentation/employee/views/employee_shell_view.dart';
 import 'package:puntocheck/presentation/manager/views/manager_shell_view.dart';
-import 'package:puntocheck/presentation/admin/views/admin_shell_view.dart';
+import 'package:puntocheck/presentation/admin/views/org_admin_shell_view.dart';
 import 'package:puntocheck/presentation/superadmin/views/super_admin_shell_view.dart';
 import 'package:puntocheck/presentation/splash/views/splash_view.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -116,7 +116,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: AppRoutes.orgAdminHome,
-        builder: (_, __) => const AdminShellView(),
+        builder: (_, __) => const OrgAdminShellView(),
       ),
       GoRoute(
         path: AppRoutes.managerHome,

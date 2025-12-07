@@ -18,7 +18,7 @@ class AuditorDashboardView extends StatelessWidget {
               Expanded(
                 child: AdminStatCard(
                   label: 'Alertas legales',
-                  value: '—',
+                  value: '--',
                   hint: 'Pendientes de revisión',
                   icon: Icons.gavel_outlined,
                   color: AppColors.primaryRed,
@@ -28,7 +28,7 @@ class AuditorDashboardView extends StatelessWidget {
               Expanded(
                 child: AdminStatCard(
                   label: 'Exportes',
-                  value: '—',
+                  value: '--',
                   hint: 'Generados este mes',
                   icon: Icons.file_download_outlined,
                   color: AppColors.infoBlue,
@@ -42,7 +42,7 @@ class AuditorDashboardView extends StatelessWidget {
               Expanded(
                 child: AdminStatCard(
                   label: 'Tardanzas críticas',
-                  value: '—',
+                  value: '--',
                   hint: 'Superan tolerancia',
                   icon: Icons.timer_off_outlined,
                   color: AppColors.warningOrange,
@@ -52,7 +52,7 @@ class AuditorDashboardView extends StatelessWidget {
               Expanded(
                 child: AdminStatCard(
                   label: 'Turnos nocturnos',
-                  value: '—',
+                  value: '--',
                   hint: 'Marcados 22:00-06:00',
                   icon: Icons.nights_stay_outlined,
                   color: AppColors.neutral700,

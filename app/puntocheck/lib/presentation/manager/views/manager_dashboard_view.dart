@@ -18,7 +18,7 @@ class ManagerDashboardView extends StatelessWidget {
               Expanded(
                 child: AdminStatCard(
                   label: 'Presentes hoy',
-                  value: '—',
+                  value: '--',
                   hint: 'Equipo en turno',
                   icon: Icons.check_circle_outline,
                   color: AppColors.successGreen,
@@ -28,7 +28,7 @@ class ManagerDashboardView extends StatelessWidget {
               Expanded(
                 child: AdminStatCard(
                   label: 'Tardanzas',
-                  value: '—',
+                  value: '--',
                   hint: 'Supera tolerancia',
                   icon: Icons.schedule_outlined,
                   color: AppColors.warningOrange,
@@ -42,7 +42,7 @@ class ManagerDashboardView extends StatelessWidget {
               Expanded(
                 child: AdminStatCard(
                   label: 'Permisos pendientes',
-                  value: '—',
+                  value: '--',
                   hint: 'Aprobaciones del equipo',
                   icon: Icons.mail_outline,
                   color: AppColors.primaryRed,
@@ -52,7 +52,7 @@ class ManagerDashboardView extends StatelessWidget {
               Expanded(
                 child: AdminStatCard(
                   label: 'Horas extra',
-                  value: '—',
+                  value: '--',
                   hint: 'Acumulado semanal',
                   icon: Icons.trending_up,
                   color: AppColors.infoBlue,

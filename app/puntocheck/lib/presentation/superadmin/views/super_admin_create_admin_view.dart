@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:puntocheck/models/perfiles.dart';
 import 'package:puntocheck/models/enums.dart';
 import 'package:puntocheck/presentation/shared/widgets/app_snackbar.dart';
 import 'package:puntocheck/providers/app_providers.dart';
@@ -42,7 +41,7 @@ class _SuperAdminCreateAdminViewState
     try {
       final auth = ref.read(authServiceProvider);
 
-      final user = await auth.createUser(
+      await auth.createUser(
         email: _emailCtrl.text.trim(),
         password: _passCtrl.text,
         metadata: {

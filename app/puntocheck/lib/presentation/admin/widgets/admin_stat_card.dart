@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:puntocheck/utils/theme/app_colors.dart';
 
-/// Tarjeta compacta para métricas clave del Org Admin.
+/// Tarjeta compacta para metricas clave del Org Admin.
 class AdminStatCard extends StatelessWidget {
   final String label;
   final String value;

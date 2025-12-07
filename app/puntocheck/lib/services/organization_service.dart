@@ -5,7 +5,6 @@ import '../models/organizaciones.dart';
 import '../models/plantillas_horarios.dart';
 import '../models/sucursales.dart';
 import 'supabase_client.dart';
-import '../models/perfiles.dart';
 
 class OrganizationService {
   OrganizationService._();

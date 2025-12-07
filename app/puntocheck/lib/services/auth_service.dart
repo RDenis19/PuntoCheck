@@ -11,23 +11,39 @@ class AuthService {
   /// Obtener usuario actual de Auth (Email/ID)
   User? get currentUser => supabase.auth.currentUser;
 
-  /// Stream para escuchar cambios de sesión (Login/Logout)
+  /// Sesion activa (evita que la UI acceda directo al cliente Supabase).
+  Session? get currentSession => supabase.auth.currentSession;
+
+  /// Stream para escuchar cambios de sesiИn (Login/Logout)
   Stream<AuthState> get authStateChanges => supabase.auth.onAuthStateChange;
 
-  /// Iniciar sesión
+  /// Iniciar sesiИn
   Future<void> signIn(String email, String password) async {
     try {
       await supabase.auth.signInWithPassword(email: email, password: password);
     } on AuthException catch (e) {
-      throw Exception(e.message); // "Credenciales inválidas", etc.
+      throw Exception(e.message); // "Credenciales invケlidas", etc.
     } catch (e) {
-      throw Exception('Error inesperado al iniciar sesión: $e');
+      throw Exception('Error inesperado al iniciar sesiИn: $e');
     }
   }
 
-  /// Cerrar sesión
+  /// Cerrar sesiИn
   Future<void> signOut() async {
     await supabase.auth.signOut();
+  }
+
+  /// Actualizar contraseña del usuario actual.
+  Future<void> updatePassword(String newPassword) async {
+    try {
+      await supabase.auth.updateUser(
+        UserAttributes(password: newPassword),
+      );
+    } on AuthException catch (e) {
+      throw Exception(e.message);
+    } catch (e) {
+      throw Exception('Error actualizando contraseña: $e');
+    }
   }
 
   /// Obtener el perfil completo del usuario logueado
@@ -43,7 +59,7 @@ class AuthService {
           .eq('id', userId)
           .single();
 
-      // Mapeamos manualmente para separar Perfil y Organización
+      // Mapeamos manualmente para separar Perfil y OrganizaciИn
       final perfil = Perfiles.fromJson(response);
 
       Organizaciones? org;
@@ -58,7 +74,7 @@ class AuthService {
   }
 
   /// Crear usuario en Auth (email/password) con metadata opcional.
-  /// Útil para que el Super Admin genere admins de organización en un solo paso
+  /// れtil para que el Super Admin genere admins de organizaciИn en un solo paso
   /// y que el trigger `handle_new_user` cree la fila en `perfiles`.
   Future<User> createUser({
     required String email,

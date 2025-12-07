@@ -18,7 +18,7 @@ class EmployeeDashboardView extends StatelessWidget {
               Expanded(
                 child: AdminStatCard(
                   label: 'Estado de turno',
-                  value: '—',
+                  value: '--',
                   hint: 'Entrada/Salida pendiente',
                   icon: Icons.fingerprint,
                   color: AppColors.primaryRed,
@@ -28,7 +28,7 @@ class EmployeeDashboardView extends StatelessWidget {
               Expanded(
                 child: AdminStatCard(
                   label: 'Horas extra',
-                  value: '—',
+                  value: '--',
                   hint: 'Acumulado semanal',
                   icon: Icons.trending_up,
                   color: AppColors.infoBlue,
@@ -42,7 +42,7 @@ class EmployeeDashboardView extends StatelessWidget {
               Expanded(
                 child: AdminStatCard(
                   label: 'Permisos',
-                  value: '—',
+                  value: '--',
                   hint: 'Pendientes/Activos',
                   icon: Icons.mail_outline,
                   color: AppColors.successGreen,
@@ -52,7 +52,7 @@ class EmployeeDashboardView extends StatelessWidget {
               Expanded(
                 child: AdminStatCard(
                   label: 'Alertas',
-                  value: '—',
+                  value: '--',
                   hint: 'Tardanzas o faltas',
                   icon: Icons.warning_amber_rounded,
                   color: AppColors.warningOrange,

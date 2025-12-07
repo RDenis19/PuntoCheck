@@ -7,33 +7,33 @@ class StaffService {
   StaffService._();
   static final instance = StaffService._();
 
-  /// Obtener lista de personal con búsqueda
-  Future<List<Perfiles>> getStaff(String orgId, {String? searchQuery}) async {
+  /// Obtener lista de personal con bカsqueda.
+  /// El orden por defecto es por fecha de creaciИn (desc) para priorizar ingresos recientes.
+  Future<List<Perfiles>> getStaff(
+    String orgId, {
+    String? searchQuery,
+    String orderBy = 'creado_en',
+    bool ascending = false,
+  }) async {
     try {
-      // 1. Iniciamos la construcción de la query (PostgrestFilterBuilder)
       var query = supabase
           .from('perfiles')
           .select()
           .eq('organizacion_id', orgId)
           .eq('eliminado', false);
 
-      // 2. Aplicamos el filtro condicional usando .filter()
-      // Sintaxis Dart: .filter('columna', 'operador', 'valor')
       if (searchQuery != null && searchQuery.isNotEmpty) {
         query = query.filter('apellidos', 'ilike', '%$searchQuery%');
       }
 
-      // 3. Ordenamos y ejecutamos
-      // Nota: .order() transforma el Builder, por eso se hace al final
-      final response = await query.order('apellidos', ascending: true);
-
+      final response = await query.order(orderBy, ascending: ascending);
       return (response as List).map((e) => Perfiles.fromJson(e)).toList();
     } catch (e) {
       throw Exception('Error cargando personal: $e');
     }
   }
 
-  /// Obtener perfil específico (Detalle empleado)
+  /// Obtener perfil especヴfico (Detalle empleado)
   Future<Perfiles> getProfile(String userId) async {
     try {
       final response = await supabase
@@ -59,7 +59,7 @@ class StaffService {
       }
       if (e.code == '42501') {
         throw Exception(
-          'Sin permisos para crear perfiles (revisa políticas RLS).',
+          'Sin permisos para crear perfiles (revisa polヴticas RLS).',
         );
       }
       throw Exception('Error creando perfil: ${e.message}');

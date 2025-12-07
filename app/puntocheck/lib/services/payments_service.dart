@@ -58,7 +58,7 @@ class PaymentsService {
       }
 
       final response =
-          await query.order('fecha_pago', ascending: false) as List<dynamic>;
+          await query.order('fecha_pago', ascending: false);
 
       return response
           .map((e) => PagosSuscripciones.fromJson(e as Map<String, dynamic>))
