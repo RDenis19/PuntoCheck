@@ -170,10 +170,12 @@ class OrganizationService {
   Future<List<Sucursales>> getBranches(String orgId) async {
     try {
       final response = await supabase
-          .from('sucursales')
-          .select()
+          .from('sucursales_app')
+          .select(
+            'id, organizacion_id, nombre, direccion, ubicacion_central, radio_metros, tiene_qr_habilitado, device_id_qr_asignado, eliminado, creado_en',
+          )
           .eq('organizacion_id', orgId)
-          .eq('eliminado', false);
+          .or('eliminado.is.null,eliminado.eq.false');
       return (response as List).map((e) => Sucursales.fromJson(e)).toList();
     } catch (e) {
       throw Exception('Error obteniendo sucursales: $e');
@@ -187,9 +189,90 @@ class OrganizationService {
       final data = sucursal.toJson();
       data.remove('id');
       data.remove('creado_en');
+
+      final orgId = data['organizacion_id'] as String?;
+      if (orgId == null || orgId.isEmpty) {
+        throw Exception(
+          'Falta organization_id al crear la sucursal. Asegura cargar la organizacion antes de guardar.',
+        );
+      }
+
+      // Convertimos GeoJSON a WKT si viene como mapa.
+      final geo = sucursal.ubicacionCentral;
+      if (geo != null && geo['coordinates'] is List && geo['coordinates'].length == 2) {
+        final coords = geo['coordinates'] as List;
+        final lon = (coords[0] as num).toDouble();
+        final lat = (coords[1] as num).toDouble();
+        data['ubicacion_central'] = 'SRID=4326;POINT($lon $lat)';
+      }
+
+      // Asegura radio_metros numérico.
+      if (data['radio_metros'] == null && sucursal.radioMetros != null) {
+        data['radio_metros'] = sucursal.radioMetros;
+      }
+
       await supabase.from('sucursales').insert(data);
+    } on PostgrestException catch (e) {
+      if (e.code == '42501') {
+        // RLS sin permisos
+        throw Exception(
+          'No tienes permisos para crear sucursales. Revisa las policies RLS para org_admin sobre la tabla sucursales.',
+        );
+      }
+      rethrow;
     } catch (e) {
       throw Exception('Error creando sucursal: $e');
+    }
+  }
+
+  /// Obtener sucursales bajo RLS (sin filtrar por orgId explícito).
+  Future<List<Sucursales>> getBranchesRls() async {
+    try {
+      final response = await supabase
+          .from('sucursales_app')
+          .select(
+            'id, nombre, direccion, organizacion_id, ubicacion_central, radio_metros, tiene_qr_habilitado, device_id_qr_asignado, eliminado, creado_en',
+          )
+          .or('eliminado.is.null,eliminado.eq.false');
+      return (response as List).map((e) => Sucursales.fromJson(e)).toList();
+    } catch (e) {
+      throw Exception('Error obteniendo sucursales: $e');
+    }
+  }
+
+  /// Actualizar sucursal (Org Admin/Super Admin según RLS).
+  Future<void> updateBranch({
+    required String branchId,
+    String? nombre,
+    String? direccion,
+    double? lat,
+    double? lon,
+    int? radioMetros,
+    bool? tieneQrHabilitado,
+  }) async {
+    try {
+      final updates = <String, dynamic>{};
+      if (nombre != null) updates['nombre'] = nombre;
+      if (direccion != null) updates['direccion'] = direccion;
+      if (radioMetros != null) updates['radio_metros'] = radioMetros;
+      if (tieneQrHabilitado != null) {
+        updates['tiene_qr_habilitado'] = tieneQrHabilitado;
+      }
+      if (lat != null && lon != null) {
+        updates['ubicacion_central'] = 'SRID=4326;POINT($lon $lat)';
+      }
+      if (updates.isEmpty) return;
+
+      await supabase.from('sucursales').update(updates).eq('id', branchId);
+    } on PostgrestException catch (e) {
+      if (e.code == '42501') {
+        throw Exception(
+          'No tienes permisos para actualizar sucursales. Revisa las policies RLS.',
+        );
+      }
+      rethrow;
+    } catch (e) {
+      throw Exception('Error actualizando sucursal: $e');
     }
   }
 

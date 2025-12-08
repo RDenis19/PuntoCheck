@@ -1,222 +1,206 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:puntocheck/models/sucursales.dart';
-import 'package:puntocheck/providers/app_providers.dart';
+import 'package:puntocheck/presentation/admin/views/org_admin_branch_detail_view.dart';
+import 'package:puntocheck/presentation/admin/views/org_admin_branches_map_view.dart';
+import 'package:puntocheck/presentation/admin/views/org_admin_new_branch_view.dart';
+import 'package:puntocheck/presentation/admin/widgets/org_admin_branch_item.dart';
+import 'package:puntocheck/presentation/admin/widgets/empty_state.dart';
+import 'package:puntocheck/presentation/admin/widgets/async_error_view.dart';
 import 'package:puntocheck/utils/theme/app_colors.dart';
+import 'package:puntocheck/providers/app_providers.dart';
 
-class OrgAdminBranchesView extends ConsumerStatefulWidget {
+class OrgAdminBranchesView extends ConsumerWidget {
   const OrgAdminBranchesView({super.key});
 
   @override
-  ConsumerState<OrgAdminBranchesView> createState() => _OrgAdminBranchesViewState();
+  Widget build(BuildContext context, WidgetRef ref) {
+    final branchesFuture = ref.watch(_branchesProvider);
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Sucursales'),
+        backgroundColor: Colors.white,
+        foregroundColor: AppColors.neutral900,
+        elevation: 0.5,
+      ),
+      body: SafeArea(
+        child: branchesFuture.when(
+          data: (branches) {
+            if (branches.isEmpty) {
+              return EmptyState(
+                icon: Icons.store_mall_directory_outlined,
+                title: 'Aun no tienes sucursales',
+                subtitle: 'Crea tu primera sucursal para definir geocercas y QR.',
+                primaryLabel: 'Crear sucursal',
+                onPrimary: () => _openCreate(context, ref),
+              );
+            }
+            return RefreshIndicator(
+              onRefresh: () async {
+                ref.invalidate(_branchesProvider);
+                await ref.read(_branchesProvider.future);
+              },
+              child: ListView.separated(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 80),
+                itemCount: branches.length,
+                separatorBuilder: (_, __) => const SizedBox(height: 10),
+                itemBuilder: (context, index) {
+                  final b = branches[index];
+                  return OrgAdminBranchItem(
+                    branch: b,
+                    onTap: () async {
+                      final updated = await Navigator.of(context).push<bool>(
+                        MaterialPageRoute(
+                          builder: (_) => OrgAdminBranchDetailView(branch: b),
+                        ),
+                      );
+                      if (updated == true) {
+                        ref.invalidate(_branchesProvider);
+                      }
+                    },
+                  );
+                },
+              ),
+            );
+          },
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (e, _) => AsyncErrorView(
+            error: e,
+            onRetry: () => ref.invalidate(_branchesProvider),
+          ),
+        ),
+      ),
+      floatingActionButton: _FabActions(
+        onCreate: () => _openCreate(context, ref),
+        onMap: () => _openMap(context),
+      ),
+    );
+  }
+
+  void _openCreate(BuildContext context, WidgetRef ref) async {
+    final created = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(builder: (_) => const OrgAdminNewBranchView()),
+    );
+    if (created == true && context.mounted) {
+      ref.invalidate(_branchesProvider);
+    }
+  }
+
+  void _openMap(BuildContext context) {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const OrgAdminBranchesMapView()),
+    );
+  }
 }
 
-class _OrgAdminBranchesViewState extends ConsumerState<OrgAdminBranchesView> {
-  late Future<List<Sucursales>> _future;
+final _branchesProvider = FutureProvider<List<Sucursales>>((ref) async {
+  final profile = await ref.watch(profileProvider.future);
+  final orgId = profile?.organizacionId;
+  if (orgId == null || orgId.isEmpty) {
+    throw Exception('No se pudo resolver la organizacion del admin.');
+  }
+  return ref.read(organizationServiceProvider).getBranches(orgId);
+});
+
+class _FabActions extends StatefulWidget {
+  final VoidCallback onCreate;
+  final VoidCallback onMap;
+
+  const _FabActions({required this.onCreate, required this.onMap});
 
   @override
-  void initState() {
-    super.initState();
-    _future = _load();
-  }
+  State<_FabActions> createState() => _FabActionsState();
+}
 
-  Future<List<Sucursales>> _load() async {
-    final org = await ref.read(orgAdminOrganizationProvider.future);
-    return ref.read(organizationServiceProvider).getBranches(org.id);
-  }
+class _FabActionsState extends State<_FabActions> {
+  bool _expanded = false;
 
-  Future<void> _createBranch() async {
-    final org = await ref.read(orgAdminOrganizationProvider.future);
-    final formKey = GlobalKey<FormState>();
-    final nameCtrl = TextEditingController();
-    final addressCtrl = TextEditingController();
-    final latCtrl = TextEditingController();
-    final lonCtrl = TextEditingController();
-    final radiusCtrl = TextEditingController(text: '100');
-
-    final result = await showDialog<bool>(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('Nueva sucursal'),
-        content: Form(
-          key: formKey,
-          child: SingleChildScrollView(
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      alignment: Alignment.bottomRight,
+      children: [
+        if (_expanded)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 80, right: 8),
             child: Column(
               mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                TextFormField(
-                  controller: nameCtrl,
-                  decoration: const InputDecoration(
-                    labelText: 'Nombre',
-                    prefixIcon: Icon(Icons.store_mall_directory_outlined),
-                  ),
-                  validator: (v) =>
-                      v == null || v.isEmpty ? 'Requerido' : null,
+                _ActionChip(
+                  icon: Icons.map_outlined,
+                  label: 'Ver mapa',
+                  onTap: () {
+                    setState(() => _expanded = false);
+                    widget.onMap();
+                  },
                 ),
-                TextFormField(
-                  controller: addressCtrl,
-                  decoration: const InputDecoration(
-                    labelText: 'Dirección',
-                    prefixIcon: Icon(Icons.place_outlined),
-                  ),
-                ),
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextFormField(
-                        controller: latCtrl,
-                        decoration: const InputDecoration(
-                          labelText: 'Latitud',
-                          prefixIcon: Icon(Icons.my_location_outlined),
-                        ),
-                        keyboardType: TextInputType.number,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: TextFormField(
-                        controller: lonCtrl,
-                        decoration: const InputDecoration(
-                          labelText: 'Longitud',
-                          prefixIcon: Icon(Icons.my_location_outlined),
-                        ),
-                        keyboardType: TextInputType.number,
-                      ),
-                    ),
-                  ],
-                ),
-                TextFormField(
-                  controller: radiusCtrl,
-                  decoration: const InputDecoration(
-                    labelText: 'Radio geocerca (m)',
-                    prefixIcon: Icon(Icons.radio_button_checked),
-                  ),
-                  keyboardType: TextInputType.number,
+                const SizedBox(height: 10),
+                _ActionChip(
+                  icon: Icons.add,
+                  label: 'Crear sucursal',
+                  onTap: () {
+                    setState(() => _expanded = false);
+                    widget.onCreate();
+                  },
                 ),
               ],
             ),
           ),
+        FloatingActionButton(
+          backgroundColor: AppColors.primaryRed,
+          foregroundColor: Colors.white,
+          onPressed: () => setState(() => _expanded = !_expanded),
+          child: Icon(_expanded ? Icons.close : Icons.add),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancelar'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primaryRed,
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('Crear'),
-          ),
-        ],
-      ),
-    );
-
-    if (result != true) return;
-    if (!formKey.currentState!.validate()) return;
-
-    final lat = double.tryParse(latCtrl.text);
-    final lon = double.tryParse(lonCtrl.text);
-    final radius = int.tryParse(radiusCtrl.text);
-
-    try {
-      final branch = Sucursales(
-        id: '',
-        organizacionId: org.id,
-        nombre: nameCtrl.text.trim(),
-        direccion: addressCtrl.text.trim().isEmpty ? null : addressCtrl.text.trim(),
-        ubicacionCentral: (lat != null && lon != null)
-            ? {
-                'type': 'Point',
-                'coordinates': [lon, lat],
-              }
-            : null,
-        radioGeocercaMetros: radius,
-        tieneQrHabilitado: true,
-      );
-      await ref.read(organizationServiceProvider).createBranch(branch);
-      setState(() => _future = _load());
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Sucursal creada')),
-      );
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
-      );
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Sucursales')),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _createBranch,
-        backgroundColor: AppColors.primaryRed,
-        child: const Icon(Icons.add, color: Colors.white),
-      ),
-      body: FutureBuilder<List<Sucursales>>(
-        future: _future,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}'));
-          }
-          final data = snapshot.data ?? [];
-          if (data.isEmpty) {
-            return const _EmptyState(
-              icon: Icons.store_mall_directory_outlined,
-              text: 'No hay sucursales registradas.',
-            );
-          }
-          return ListView.separated(
-            itemCount: data.length,
-            separatorBuilder: (_, __) => const Divider(height: 1),
-            itemBuilder: (context, index) {
-              final s = data[index];
-              return ListTile(
-                title: Text(s.nombre),
-                subtitle: Text(s.direccion ?? 'Sin dirección'),
-                trailing: Chip(
-                  label: Text(
-                    (s.tieneQrHabilitado ?? false) ? 'QR activo' : 'QR apagado',
-                  ),
-                ),
-              );
-            },
-          );
-        },
-      ),
+      ],
     );
   }
 }
 
-class _EmptyState extends StatelessWidget {
+class _ActionChip extends StatelessWidget {
   final IconData icon;
-  final String text;
+  final String label;
+  final VoidCallback onTap;
 
-  const _EmptyState({required this.icon, required this.text});
+  const _ActionChip({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 36, color: AppColors.neutral500),
-          const SizedBox(height: 8),
-          Text(
-            text,
-            style: const TextStyle(color: AppColors.neutral700),
+    return Material(
+      color: Colors.white,
+      elevation: 4,
+      borderRadius: BorderRadius.circular(20),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(20),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, color: AppColors.primaryRed, size: 20),
+              const SizedBox(width: 8),
+              Text(
+                label,
+                style: const TextStyle(
+                  color: AppColors.neutral900,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
 }
+
+
+
+

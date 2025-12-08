@@ -15,8 +15,8 @@ import 'core_providers.dart';
 // ============================================================================
 // Helpers
 // ============================================================================
-String _requireOrgId(Ref ref) {
-  final profile = ref.read(profileProvider).asData?.value;
+Future<String> _requireOrgId(Ref ref) async {
+  final profile = await ref.watch(profileProvider.future);
   final orgId = profile?.organizacionId;
   if (orgId == null || orgId.isEmpty) {
     throw Exception('No se pudo resolver la organizacion del admin.');
@@ -29,13 +29,27 @@ String _requireOrgId(Ref ref) {
 // ============================================================================
 final orgAdminOrganizationProvider =
     FutureProvider<Organizaciones>((ref) async {
-      final orgId = _requireOrgId(ref);
+      final orgId = await _requireOrgId(ref);
       return ref.read(organizationServiceProvider).getMyOrganization(orgId);
     });
 
+final orgAdminPersonProvider =
+    FutureProvider.family<Perfiles, String>((ref, userId) async {
+      return ref.read(staffServiceProvider).getProfile(userId);
+    });
+
+final orgAdminPersonAttendanceProvider =
+    FutureProvider.family<List<RegistrosAsistencia>, String>(
+  (ref, userId) async {
+    return ref
+        .read(operationsServiceProvider)
+        .getAttendanceLogs(targetUserId: userId, limit: 50);
+  },
+);
+
 final orgAdminStaffProvider = FutureProvider.family<List<Perfiles>,
     OrgAdminPeopleFilter>((ref, filter) async {
-  final orgId = _requireOrgId(ref);
+  final orgId = await _requireOrgId(ref);
   final staff = await ref
       .read(staffServiceProvider)
       .getStaff(orgId, searchQuery: filter.search);
@@ -49,7 +63,7 @@ final orgAdminStaffProvider = FutureProvider.family<List<Perfiles>,
 
 final orgAdminAlertsProvider =
     FutureProvider.autoDispose<List<AlertasCumplimiento>>((ref) async {
-      final orgId = _requireOrgId(ref);
+      final orgId = await _requireOrgId(ref);
       return ref
           .read(complianceServiceProvider)
           .getAlerts(orgId, onlyPending: true);
@@ -64,10 +78,10 @@ final orgAdminPermissionsProvider = FutureProvider.autoDispose
 
 final orgAdminPaymentsProvider =
     FutureProvider.autoDispose<List<PagosSuscripciones>>((ref) async {
-      final orgId = _requireOrgId(ref);
+      final orgId = await _requireOrgId(ref);
       return ref
           .read(paymentsServiceProvider)
-          .listPayments(orgId: orgId, estado: EstadoPago.pendiente);
+          .listPayments(orgId: orgId);
     });
 
 final orgAdminAttendanceProvider = FutureProvider.family
@@ -111,7 +125,7 @@ class OrgAdminHomeSummary {
 
 final orgAdminHomeSummaryProvider =
     FutureProvider<OrgAdminHomeSummary>((ref) async {
-      final orgId = _requireOrgId(ref);
+      final orgId = await _requireOrgId(ref);
 
       final organization =
           await ref.read(organizationServiceProvider).getMyOrganization(orgId);

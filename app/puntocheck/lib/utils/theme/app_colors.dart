@@ -10,6 +10,7 @@ class AppColors {
   // Neutros para backgrounds y bordes.
   static const Color neutral100 = Color(0xFFF7F8FA);
   static const Color neutral200 = Color(0xFFF0F1F4);
+  static const Color neutral300 = Color(0xFFE6E8EE);
   static const Color neutral500 = Color(0xFF9BA2AE);
   static const Color neutral600 = Color(0xFF6B7280);
   static const Color neutral400 = Color(0xFFCDD1D9);

@@ -6,6 +6,7 @@ class Perfiles {
   final String nombres;
   final String apellidos;
   final String? cedula;
+  final String? correo;
   final RolUsuario? rol;
   final String? cargo;
   final String? jefeInmediatoId;
@@ -22,6 +23,7 @@ class Perfiles {
     required this.nombres,
     required this.apellidos,
     this.cedula,
+    this.correo,
     this.rol,
     this.cargo,
     this.jefeInmediatoId,
@@ -40,6 +42,7 @@ class Perfiles {
       nombres: json['nombres'],
       apellidos: json['apellidos'],
       cedula: json['cedula'],
+      correo: json['correo'] ?? json['email'],
       rol: json['rol'] != null ? RolUsuario.fromString(json['rol']) : null,
       cargo: json['cargo'],
       jefeInmediatoId: json['jefe_inmediato_id'],
@@ -62,6 +65,7 @@ class Perfiles {
     'nombres': nombres,
     'apellidos': apellidos,
     'cedula': cedula,
+    'correo': correo,
     'rol': rol?.value,
     'cargo': cargo,
     'jefe_inmediato_id': jefeInmediatoId,

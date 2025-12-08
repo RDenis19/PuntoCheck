@@ -59,3 +59,7 @@ final userRoleProvider = Provider<RolUsuario?>((ref) {
   final profileAsync = ref.watch(profileProvider);
   return profileAsync.asData?.value?.rol;
 });
+
+/// Indicador para saltar redirecciones breves mientras se preserva la sesión
+/// original (por ejemplo al crear empleados sin cerrar la sesión actual).
+final authSessionTransitionProvider = StateProvider<bool>((_) => false);

@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/perfiles.dart';
 import '../models/organizaciones.dart';
@@ -95,6 +97,57 @@ class AuthService {
     } on AuthException catch (e) {
       throw Exception(e.message);
     } catch (e) {
+      throw Exception('Error creando usuario: $e');
+    }
+  }
+
+  /// Crea un usuario SIN perder la sesión actual del admin.
+  /// Retorna el usuario creado y restaura la sesión previa (si existía).
+  Future<User> createUserPreservingSession({
+    required String email,
+    required String password,
+    Map<String, dynamic>? metadata,
+    Future<void> Function(User user)? runWithNewUserSession,
+  }) async {
+    final prevSession = supabase.auth.currentSession;
+    final prevPersisted =
+        prevSession != null ? jsonEncode(prevSession.toJson()) : null;
+    var restored = false;
+
+    Future<void> restorePreviousSession() async {
+      if (restored || prevPersisted == null) {
+        restored = true;
+        return;
+      }
+      await supabase.auth.signOut();
+      await supabase.auth.recoverSession(prevPersisted);
+      restored = true;
+    }
+
+    try {
+      final response = await supabase.auth.signUp(
+        email: email,
+        password: password,
+        data: metadata,
+      );
+      final user = response.user;
+      if (user == null) {
+        throw Exception('No se obtuvo usuario al crear la cuenta');
+      }
+
+      // Ejecuta acciones usando la sesión del usuario recién creado (si se requiere).
+      if (runWithNewUserSession != null) {
+        await runWithNewUserSession(user);
+      }
+
+      await restorePreviousSession();
+
+      return user;
+    } on AuthException catch (e) {
+      await restorePreviousSession();
+      throw Exception(e.message);
+    } catch (e) {
+      await restorePreviousSession();
       throw Exception('Error creando usuario: $e');
     }
   }

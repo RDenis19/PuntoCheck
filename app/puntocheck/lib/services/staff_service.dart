@@ -1,5 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../models/enums.dart';
 import '../models/perfiles.dart';
 import 'supabase_client.dart';
 
@@ -89,6 +90,50 @@ class StaffService {
           .eq('id', userId);
     } catch (e) {
       throw Exception('Error dando de baja: $e');
+    }
+  }
+
+  /// Crea un perfil ligado a un usuario ya creado en Auth.
+  /// Solo roles manager, auditor o employee.
+  Future<void> createOrgProfile({
+    required String userId,
+    required String orgId,
+    required String nombres,
+    required String apellidos,
+    required RolUsuario rol,
+    String? cedula,
+    String? telefono,
+    String? cargo,
+    String? correo,
+  }) async {
+    final data = {
+      'id': userId,
+      'organizacion_id': orgId,
+      'nombres': nombres,
+      'apellidos': apellidos,
+      'rol': rol.value,
+      'cedula': cedula,
+      'telefono': telefono,
+      'cargo': cargo,
+      'correo': correo,
+      'activo': true,
+      'eliminado': false,
+    }..removeWhere((key, value) => value == null);
+
+    try {
+      await supabase.from('perfiles').insert(data);
+    } on PostgrestException catch (e) {
+      if (e.code == '23505') {
+        throw Exception('El usuario ya tiene un perfil registrado.');
+      }
+      if (e.code == '42501') {
+        throw Exception(
+          'Sin permisos para crear perfiles (revisa políticas RLS).',
+        );
+      }
+      throw Exception('Error creando perfil: ${e.message}');
+    } catch (e) {
+      throw Exception('Error creando perfil: $e');
     }
   }
 

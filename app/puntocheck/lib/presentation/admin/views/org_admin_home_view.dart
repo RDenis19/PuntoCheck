@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:puntocheck/presentation/admin/views/org_admin_alerts_view.dart';
 import 'package:puntocheck/presentation/admin/views/org_admin_branches_view.dart';
 import 'package:puntocheck/presentation/admin/views/org_admin_edit_org_view.dart';
+import 'package:puntocheck/presentation/admin/views/org_admin_legal_config_view.dart';
 import 'package:puntocheck/presentation/admin/views/org_admin_payments_view.dart';
 import 'package:puntocheck/presentation/admin/widgets/admin_stat_card.dart';
 import 'package:puntocheck/providers/app_providers.dart';
@@ -21,8 +22,6 @@ class _OrgAdminHomeViewState extends ConsumerState<OrgAdminHomeView> {
   @override
   Widget build(BuildContext context) {
     final summaryAsync = ref.watch(orgAdminHomeSummaryProvider);
-    final alertsAsync = ref.watch(orgAdminAlertsProvider);
-    final paymentsAsync = ref.watch(orgAdminPaymentsProvider);
 
     return summaryAsync.when(
       data: (summary) => RefreshIndicator(
@@ -84,75 +83,66 @@ class _OrgAdminHomeViewState extends ConsumerState<OrgAdminHomeView> {
                   ],
                 ),
                 const SizedBox(height: 18),
-                _SectionCard(
-                  title: 'Pagos de suscripci\u00f3n',
-                  child: paymentsAsync.when(
-                    data: (list) {
-                      if (list.isEmpty) {
-                        return const _EmptyWithIcon(
-                          icon: Icons.receipt_long_outlined,
-                          text: 'Sin pagos pendientes',
-                        );
-                      }
-                      return Column(
-                        children: list.take(3).map((pago) {
-                          return ListTile(
-                            contentPadding: EdgeInsets.zero,
-                            title: Text(
-                              'Pago ${pago.id}',
-                              style: const TextStyle(fontWeight: FontWeight.w700),
-                            ),
-                            subtitle: Text(
-                              'Monto: ${pago.monto.toStringAsFixed(2)} | Estado: ${pago.estado?.value ?? 'pendiente'}',
-                            ),
-                          );
-                        }).toList(),
-                      );
-                    },
-                    loading: () => const Center(
-                      child: Padding(
-                        padding: EdgeInsets.all(12),
-                        child: CircularProgressIndicator(),
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryRed,
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Color(0x12000000),
+                        blurRadius: 10,
+                        offset: Offset(0, 4),
                       ),
-                    ),
-                    error: (e, _) => _ErrorText('$e'),
+                    ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(Icons.rule, color: Colors.white),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Configuracion legal',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w800,
+                                fontSize: 16,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      const Text(
+                        'Ajusta tolerancia, descanso, horas extra e inicio nocturno.',
+                        style: TextStyle(color: Colors.white70),
+                      ),
+                      const SizedBox(height: 12),
+                      SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton.icon(
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: Colors.white,
+                            side: const BorderSide(color: Colors.white70),
+                          ),
+                          icon: const Icon(Icons.edit_calendar_outlined),
+                          label: const Text('Ajustar configuracion'),
+                          onPressed: () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => const OrgAdminLegalConfigView(),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 12),
-                _SectionCard(
-                  title: 'Alertas de cumplimiento',
-                  child: alertsAsync.when(
-                    data: (list) {
-                      if (list.isEmpty) {
-                        return const _EmptyWithIcon(
-                          icon: Icons.shield_outlined,
-                          text: 'Sin alertas pendientes',
-                        );
-                      }
-                      return Column(
-                        children: list.take(3).map((alert) {
-                          return ListTile(
-                            contentPadding: EdgeInsets.zero,
-                            leading: const Icon(Icons.shield_moon_outlined),
-                            title: Text(
-                              alert.tipoIncumplimiento,
-                              style: const TextStyle(fontWeight: FontWeight.w700),
-                            ),
-                            subtitle: Text(alert.detalleTecnico?['descripcion'] ??
-                                'Detalle no disponible'),
-                          );
-                        }).toList(),
-                      );
-                    },
-                    loading: () => const Center(
-                      child: Padding(
-                        padding: EdgeInsets.all(12),
-                        child: CircularProgressIndicator(),
-                      ),
-                    ),
-                    error: (e, _) => _ErrorText('$e'),
-                  ),
-                ),
+
               ],
             ),
             Positioned(
@@ -164,7 +154,7 @@ class _OrgAdminHomeViewState extends ConsumerState<OrgAdminHomeView> {
                   if (_showActions) ...[
                     _QuickAction(
                       icon: Icons.edit,
-                      label: 'Editar organización',
+                      label: 'Editar organizacion',
                       onTap: () {
                         setState(() => _showActions = false);
                         Navigator.of(context).push(
@@ -190,7 +180,7 @@ class _OrgAdminHomeViewState extends ConsumerState<OrgAdminHomeView> {
                     const SizedBox(height: 10),
                     _QuickAction(
                       icon: Icons.receipt_long,
-                      label: 'Pagos y suscripción',
+                      label: 'Pagos y suscripcion',
                       onTap: () {
                         setState(() => _showActions = false);
                         Navigator.of(context).push(

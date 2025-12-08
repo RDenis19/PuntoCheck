@@ -44,14 +44,15 @@ class AppRoutes {
 }
 
 final appRouterProvider = Provider<GoRouter>((ref) {
-  final authState = ref.watch(authStateProvider);
-  final profileAsync = ref.watch(profileProvider);
-  final authStream = ref.watch(authServiceProvider).authStateChanges;
+  final authStream = ref.read(authServiceProvider).authStateChanges;
   final refresher = GoRouterRefreshStream(authStream);
   ref.onDispose(refresher.dispose);
 
   // Forzar refresh cuando el perfil pasa de loading -> data/error.
   ref.listen<AsyncValue<Perfiles?>>(profileProvider, (_, __) {
+    refresher.refresh();
+  });
+  ref.listen<bool>(authSessionTransitionProvider, (_, __) {
     refresher.refresh();
   });
 
@@ -60,6 +61,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     // Escucha cambios de sesión para recalcular redirect sin necesitar hot-reload.
     refreshListenable: refresher,
     redirect: (context, state) {
+      final authState = ref.read(authStateProvider);
+      final profileAsync = ref.read(profileProvider);
+      final isAuthTransitioning = ref.read(authSessionTransitionProvider);
+
       final session =
           authState.asData?.value.session ??
           Supabase.instance.client.auth.currentSession;
@@ -68,6 +73,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
 
       final isAuthFlow = path == AppRoutes.login;
       final isSplash = path == AppRoutes.splash;
+
+      if (isAuthTransitioning) {
+        return null;
+      }
 
       if (!isLoggedIn) {
         return isAuthFlow ? null : AppRoutes.login;
