@@ -18,18 +18,24 @@ class ManagerTabNavigation extends StatelessWidget {
       onTap: onTap,
       selectedItemColor: AppColors.primaryRed,
       unselectedItemColor: AppColors.neutral700,
+      type: BottomNavigationBarType.fixed,
+      elevation: 8,
       items: const [
         BottomNavigationBarItem(
           icon: Icon(Icons.dashboard_outlined),
-          label: 'Dashboard',
+          label: 'Inicio',
         ),
         BottomNavigationBarItem(
-          icon: Icon(Icons.mail_outlined),
-          label: 'Aprobaciones',
+          icon: Icon(Icons.people_outline),
+          label: 'Equipo',
         ),
         BottomNavigationBarItem(
-          icon: Icon(Icons.calendar_month_outlined),
-          label: 'Turnos',
+          icon: Icon(Icons.access_time_outlined),
+          label: 'Asistencia',
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.person_outline),
+          label: 'Perfil',
         ),
       ],
     );

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../services/attendance_service.dart';
 import '../services/auth_service.dart';
 import '../services/compliance_service.dart';
+import '../services/manager_service.dart';
 import '../services/operations_service.dart';
 import '../services/organization_service.dart';
 import '../services/payments_service.dart';
@@ -52,4 +53,8 @@ final storageServiceProvider = Provider<StorageService>((ref) {
 
 final superAdminServiceProvider = Provider<SuperAdminService>((ref) {
   return SuperAdminService.instance;
+});
+
+final managerServiceProvider = Provider((ref) {
+  return ManagerService.instance;
 });
