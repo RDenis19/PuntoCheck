@@ -18,6 +18,10 @@ class _OrgAdminLegalConfigViewState extends ConsumerState<OrgAdminLegalConfigVie
   final _descansoCtrl = TextEditingController();
   final _maxExtrasCtrl = TextEditingController();
   final _inicioNocturnaCtrl = TextEditingController();
+  final _vacacionesCtrl = TextEditingController();
+  final _horasSemanalesCtrl = TextEditingController();
+  final _recargoNocturnoCtrl = TextEditingController();
+  final _recargoExtraCtrl = TextEditingController();
   bool _saving = false;
 
   @override
@@ -26,6 +30,10 @@ class _OrgAdminLegalConfigViewState extends ConsumerState<OrgAdminLegalConfigVie
     _descansoCtrl.dispose();
     _maxExtrasCtrl.dispose();
     _inicioNocturnaCtrl.dispose();
+    _vacacionesCtrl.dispose();
+    _horasSemanalesCtrl.dispose();
+    _recargoNocturnoCtrl.dispose();
+    _recargoExtraCtrl.dispose();
     super.dispose();
   }
 
@@ -34,7 +42,12 @@ class _OrgAdminLegalConfigViewState extends ConsumerState<OrgAdminLegalConfigVie
     _toleranciaCtrl.text = '${cfg['tolerancia_entrada_min'] ?? 15}';
     _descansoCtrl.text = '${cfg['tiempo_descanso_min'] ?? 60}';
     _maxExtrasCtrl.text = '${cfg['max_horas_extras_dia'] ?? 4}';
-    _inicioNocturnaCtrl.text = cfg['inicio_jornada_nocturna']?.toString() ?? '22:00';
+    _inicioNocturnaCtrl.text =
+        cfg['inicio_jornada_nocturna']?.toString() ?? '22:00';
+    _vacacionesCtrl.text = '${cfg['dias_vacaciones_anuales'] ?? 15}';
+    _horasSemanalesCtrl.text = '${cfg['horas_laborables_semana'] ?? 40}';
+    _recargoNocturnoCtrl.text = '${cfg['porcentaje_recargo_nocturno'] ?? 25}';
+    _recargoExtraCtrl.text = '${cfg['porcentaje_recargo_extra'] ?? 50}';
   }
 
   @override
@@ -93,6 +106,40 @@ class _OrgAdminLegalConfigViewState extends ConsumerState<OrgAdminLegalConfigVie
                       validator: (v) =>
                           v == null || v.trim().isEmpty ? 'Campo requerido' : null,
                     ),
+                    const SizedBox(height: 16),
+                    const Divider(),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Configuración adicional',
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.neutral900,
+                          ),
+                    ),
+                    const SizedBox(height: 12),
+                    _NumberField(
+                      controller: _vacacionesCtrl,
+                      label: 'Días de vacaciones anuales',
+                      icon: Icons.beach_access_outlined,
+                    ),
+                    const SizedBox(height: 12),
+                    _NumberField(
+                      controller: _horasSemanalesCtrl,
+                      label: 'Horas laborables por semana',
+                      icon: Icons.schedule_outlined,
+                    ),
+                    const SizedBox(height: 12),
+                    _NumberField(
+                      controller: _recargoNocturnoCtrl,
+                      label: 'Recargo nocturno (%)',
+                      icon: Icons.percent_outlined,
+                    ),
+                    const SizedBox(height: 12),
+                    _NumberField(
+                      controller: _recargoExtraCtrl,
+                      label: 'Recargo horas extra (%)',
+                      icon: Icons.trending_up_outlined,
+                    ),
                     const SizedBox(height: 20),
                     SizedBox(
                       width: double.infinity,
@@ -123,6 +170,14 @@ class _OrgAdminLegalConfigViewState extends ConsumerState<OrgAdminLegalConfigVie
                                         int.tryParse(_maxExtrasCtrl.text.trim()) ?? 0,
                                     'inicio_jornada_nocturna':
                                         _inicioNocturnaCtrl.text.trim(),
+                                    'dias_vacaciones_anuales':
+                                        int.tryParse(_vacacionesCtrl.text.trim()) ?? 15,
+                                    'horas_laborables_semana':
+                                        int.tryParse(_horasSemanalesCtrl.text.trim()) ?? 40,
+                                    'porcentaje_recargo_nocturno':
+                                        int.tryParse(_recargoNocturnoCtrl.text.trim()) ?? 25,
+                                    'porcentaje_recargo_extra':
+                                        int.tryParse(_recargoExtraCtrl.text.trim()) ?? 50,
                                   };
                                   await ref
                                       .read(organizationServiceProvider)

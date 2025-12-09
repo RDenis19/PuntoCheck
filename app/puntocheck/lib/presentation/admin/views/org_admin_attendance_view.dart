@@ -1,127 +1,498 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:puntocheck/models/registros_asistencia.dart';
+import 'package:puntocheck/presentation/admin/widgets/attendance_filter_sheet.dart';
+import 'package:puntocheck/presentation/admin/widgets/attendance_record_card.dart';
+import 'package:puntocheck/presentation/admin/widgets/attendance_stats_section.dart';
+import 'package:puntocheck/presentation/admin/widgets/empty_state.dart';
 import 'package:puntocheck/providers/app_providers.dart';
 import 'package:puntocheck/utils/theme/app_colors.dart';
 
-class OrgAdminAttendanceView extends ConsumerWidget {
+class OrgAdminAttendanceView extends ConsumerStatefulWidget {
   const OrgAdminAttendanceView({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final now = DateTime.now();
-    final startOfDay = DateTime(now.year, now.month, now.day);
-    final attendanceAsync = ref.watch(
-      orgAdminAttendanceProvider(
-        OrgAdminAttendanceFilter(
-          startDate: startOfDay,
-          endDate: now,
-          limit: 100,
-        ),
-      ),
-    );
-
-    return attendanceAsync.when(
-      data: (logs) {
-        if (logs.isEmpty) {
-          return const _EmptyState(
-            icon: Icons.access_time_outlined,
-            text: 'No hay marcas de asistencia registradas.',
-          );
-        }
-        return ListView.separated(
-          padding: const EdgeInsets.all(16),
-          itemCount: logs.length,
-          separatorBuilder: (_, __) => const Divider(height: 1),
-          itemBuilder: (context, index) {
-            final item = logs[index];
-            return _AttendanceTile(item: item);
-          },
-        );
-      },
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, _) => Center(child: Text('Error cargando asistencia: $e')),
-    );
-  }
+  ConsumerState<OrgAdminAttendanceView> createState() =>
+      _OrgAdminAttendanceViewState();
 }
 
-class _AttendanceTile extends StatelessWidget {
-  final RegistrosAsistencia item;
-
-  const _AttendanceTile({required this.item});
+class _OrgAdminAttendanceViewState
+    extends ConsumerState<OrgAdminAttendanceView> {
+  DateTime _selectedDate = DateTime.now();
+  AttendanceFilters _filters = const AttendanceFilters();
 
   @override
   Widget build(BuildContext context) {
-    final time =
-        '${item.fechaHoraMarcacion.hour.toString().padLeft(2, '0')}:${item.fechaHoraMarcacion.minute.toString().padLeft(2, '0')}';
-    final inside = item.estaDentroGeocerca ?? true;
-    final legal = item.esValidoLegalmente ?? true;
+    final now = DateTime.now();
+    final startOfDay =
+        DateTime(_selectedDate.year, _selectedDate.month, _selectedDate.day);
+    final endOfDay = startOfDay.add(const Duration(hours: 23, minutes: 59));
 
-    Color badgeColor;
-    String badgeText;
-    if (!inside) {
-      badgeColor = AppColors.warningOrange;
-      badgeText = 'Fuera de geocerca';
-    } else if (!legal) {
-      badgeColor = AppColors.errorRed;
-      badgeText = 'Revisar';
-    } else {
-      badgeColor = AppColors.successGreen;
-      badgeText = 'OK';
-    }
-
-    return ListTile(
-      contentPadding: EdgeInsets.zero,
-      leading: CircleAvatar(
-        backgroundColor: badgeColor.withValues(alpha: 0.15),
-        child: Icon(
-          Icons.access_time,
-          color: badgeColor,
+    // Aplicar filtros
+    final attendanceAsync = ref.watch(
+      orgAdminAttendanceProvider(
+        OrgAdminAttendanceFilter(
+          startDate: _filters.startDate ?? startOfDay,
+          endDate: _filters.endDate ?? endOfDay,
+          userId: _filters.employeeId, // employeeId se usa como userId
+          limit: 200,
         ),
       ),
-      title: Text(
-        '${item.tipoRegistro ?? "Marca"} - $time',
-        style: const TextStyle(fontWeight: FontWeight.w700),
+    );
+
+    // Filtrar en cliente (tipos, geocerca y sucursal)
+    final filteredRecords = attendanceAsync.when(
+      data: (records) {
+        var filtered = records;
+
+        // Filtrar por sucursal
+        if (_filters.branchId != null) {
+          filtered = filtered
+              .where((r) => r.sucursalId == _filters.branchId)
+              .toList();
+        }
+
+        // Filtrar por tipos
+        if (_filters.types != null && _filters.types!.isNotEmpty) {
+          filtered = filtered
+              .where((r) => _filters.types!.contains(r.tipoRegistro))
+              .toList();
+        }
+
+        // Filtrar por geocerca
+        if (_filters.insideGeofence != null) {
+          filtered = filtered
+              .where((r) =>
+                  (r.estaDentroGeocerca ?? true) == _filters.insideGeofence)
+              .toList();
+        }
+
+        return filtered;
+      },
+      loading: () => <RegistrosAsistencia>[],
+      error: (_, __) => <RegistrosAsistencia>[],
+    );
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Asistencia'),
+        backgroundColor: Colors.white,
+        foregroundColor: AppColors.neutral900,
+        elevation: 0.5,
+        actions: [
+          // Badge de filtros activos
+          Stack(
+            children: [
+              IconButton(
+                icon: const Icon(Icons.filter_list_rounded),
+                tooltip: 'Filtros avanzados',
+                onPressed: _openFilters,
+              ),
+              if (_filters.hasActiveFilters)
+                Positioned(
+                  right: 8,
+                  top: 8,
+                  child: Container(
+                    width: 8,
+                    height: 8,
+                    decoration: const BoxDecoration(
+                      color: AppColors.primaryRed,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          IconButton(
+            icon: const Icon(Icons.refresh_rounded),
+            tooltip: 'Actualizar',
+            onPressed: () {
+              ref.invalidate(orgAdminAttendanceProvider);
+            },
+          ),
+        ],
       ),
-      subtitle: Text('Empleado: ${item.perfilId}'),
-      trailing: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-        decoration: BoxDecoration(
-          color: badgeColor.withValues(alpha: 0.12),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Text(
-          badgeText,
-          style: TextStyle(
-            color: badgeColor,
-            fontWeight: FontWeight.w700,
+      body: SafeArea(
+        child: RefreshIndicator(
+          onRefresh: () async {
+            ref.invalidate(orgAdminAttendanceProvider);
+            await ref.read(orgAdminAttendanceProvider(
+              OrgAdminAttendanceFilter(
+                startDate: startOfDay,
+                endDate: endOfDay,
+                limit: 200,
+              ),
+            ).future);
+          },
+          child: attendanceAsync.when(
+            data: (records) {
+              // Calcular estadísticas con records filtrados
+              final stats = _calculateStats(filteredRecords);
+
+              if (filteredRecords.isEmpty) {
+                return EmptyState(
+                  icon: Icons.access_time_outlined,
+                  title: 'Sin registros',
+                  subtitle: _filters.hasActiveFilters
+                      ? 'No hay registros que coincidan con los filtros'
+                      : _selectedDate.day == now.day &&
+                              _selectedDate.month == now.month &&
+                              _selectedDate.year == now.year
+                          ? 'No hay marcas de asistencia hoy'
+                          : 'No hay marcas de asistencia en esta fecha',
+                  primaryLabel: _filters.hasActiveFilters
+                      ? 'Limpiar filtros'
+                      : 'Cambiar fecha',
+                  onPrimary: () {
+                    if (_filters.hasActiveFilters) {
+                      setState(() => _filters = const AttendanceFilters());
+                    } else {
+                      _selectDate(context);
+                    }
+                  },
+                );
+              }
+
+              return CustomScrollView(
+                slivers: [
+                  // Selector de fecha
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: _DateSelector(
+                        selectedDate: _selectedDate,
+                        onDateChanged: (date) {
+                          setState(() => _selectedDate = date);
+                        },
+                      ),
+                    ),
+                  ),
+
+                  // Estadísticas
+                  SliverToBoxAdapter(
+                    child: AttendanceStatsSection(
+                      total: stats.total,
+                      valid: stats.valid,
+                      outsideGeofence: stats.outsideGeofence,
+                      errors: stats.errors,
+                    ),
+                  ),
+
+                  // Header de lista
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 24, 16, 12),
+                      child: Row(
+                        children: [
+                          const Text(
+                            'Registros',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w900,
+                              color: AppColors.neutral900,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppColors.neutral200,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              '${filteredRecords.length}',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w700,
+                                fontSize: 13,
+                                color: AppColors.neutral700,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  // Lista de registros
+                  SliverPadding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 80),
+                    sliver: SliverList(
+                      delegate: SliverChildBuilderDelegate(
+                        (context, index) {
+                          final record = filteredRecords[index];
+                          return AttendanceRecordCard(
+                            record: record,
+                            onTap: () {
+                              // TODO: Abrir detalle
+                            },
+                          );
+                        },
+                        childCount: filteredRecords.length,
+                      ),
+                    ),
+                  ),
+                ],
+              );
+            },
+            loading: () => const Center(
+              child: CircularProgressIndicator(
+                color: AppColors.primaryRed,
+              ),
+            ),
+            error: (error, _) => Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.error_outline,
+                      size: 48,
+                      color: AppColors.errorRed,
+                    ),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'Error cargando asistencia',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      '$error',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(color: AppColors.neutral700),
+                    ),
+                    const SizedBox(height: 16),
+                    OutlinedButton.icon(
+                      onPressed: () {
+                        ref.invalidate(orgAdminAttendanceProvider);
+                      },
+                      icon: const Icon(Icons.refresh),
+                      label: const Text('Reintentar'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ),
         ),
       ),
     );
   }
+
+  void _openFilters() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => AttendanceFilterSheet(
+        initialFilters: _filters,
+        onApply: (filters) {
+          setState(() => _filters = filters);
+        },
+      ),
+    );
+  }
+
+  Future<void> _selectDate(BuildContext context) async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate,
+      firstDate: DateTime(2020),
+      lastDate: DateTime.now(),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: AppColors.primaryRed,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+    if (picked != null && picked != _selectedDate) {
+      setState(() => _selectedDate = picked);
+    }
+  }
+
+  _AttendanceStats _calculateStats(List<RegistrosAsistencia> records) {
+    int total = records.length;
+    int valid = 0;
+    int outsideGeofence = 0;
+    int errors = 0;
+
+    for (final record in records) {
+      final inside = record.estaDentroGeocerca ?? true;
+      final legal = record.esValidoLegalmente ?? true;
+
+      if (!inside) {
+        outsideGeofence++;
+      } else if (!legal) {
+        errors++;
+      } else {
+        valid++;
+      }
+    }
+
+    return _AttendanceStats(
+      total: total,
+      valid: valid,
+      outsideGeofence: outsideGeofence,
+      errors: errors,
+    );
+  }
 }
 
-class _EmptyState extends StatelessWidget {
-  final IconData icon;
-  final String text;
+// ============================================================================
+// Widgets auxiliares
+// ============================================================================
 
-  const _EmptyState({required this.icon, required this.text});
+class _DateSelector extends StatelessWidget {
+  final DateTime selectedDate;
+  final ValueChanged<DateTime> onDateChanged;
+
+  const _DateSelector({
+    required this.selectedDate,
+    required this.onDateChanged,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
+    final now = DateTime.now();
+    final isToday = selectedDate.day == now.day &&
+        selectedDate.month == now.month &&
+        selectedDate.year == now.year;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            AppColors.primaryRed,
+            AppColors.primaryRed.withValues(alpha: 0.8),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primaryRed.withValues(alpha: 0.3),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
         children: [
-          Icon(icon, size: 36, color: AppColors.neutral500),
-          const SizedBox(height: 8),
-          Text(
-            text,
-            style: const TextStyle(color: AppColors.neutral700),
+          const Icon(
+            Icons.calendar_today_rounded,
+            color: Colors.white,
+            size: 24,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  isToday ? 'Hoy' : _formatDate(selectedDate),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 18,
+                  ),
+                ),
+                Text(
+                  _formatLongDate(selectedDate),
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.9),
+                    fontSize: 13,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          IconButton(
+            onPressed: () async {
+              final picked = await showDatePicker(
+                context: context,
+                initialDate: selectedDate,
+                firstDate: DateTime(2020),
+                lastDate: DateTime.now(),
+                builder: (context, child) {
+                  return Theme(
+                    data: Theme.of(context).copyWith(
+                      colorScheme: const ColorScheme.light(
+                        primary: AppColors.primaryRed,
+                      ),
+                    ),
+                    child: child!,
+                  );
+                },
+              );
+              if (picked != null) {
+                onDateChanged(picked);
+              }
+            },
+            icon: const Icon(Icons.edit_calendar_rounded, color: Colors.white),
+            tooltip: 'Cambiar fecha',
           ),
         ],
       ),
     );
   }
+
+  String _formatDate(DateTime date) {
+    return '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
+  }
+
+  String _formatLongDate(DateTime date) {
+    const months = [
+      'Enero',
+      'Febrero',
+      'Marzo',
+      'Abril',
+      'Mayo',
+      'Junio',
+      'Julio',
+      'Agosto',
+      'Septiembre',
+      'Octubre',
+      'Noviembre',
+      'Diciembre'
+    ];
+    const days = [
+      'Lunes',
+      'Martes',
+      'Miércoles',
+      'Jueves',
+      'Viernes',
+      'Sábado',
+      'Domingo'
+    ];
+    return '${days[date.weekday - 1]}, ${date.day} de ${months[date.month - 1]} de ${date.year}';
+  }
+}
+
+// ============================================================================
+// Modelos auxiliares
+// ============================================================================
+
+class _AttendanceStats {
+  final int total;
+  final int valid;
+  final int outsideGeofence;
+  final int errors;
+
+  const _AttendanceStats({
+    required this.total,
+    required this.valid,
+    required this.outsideGeofence,
+    required this.errors,
+  });
 }

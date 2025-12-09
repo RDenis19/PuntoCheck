@@ -6,7 +6,7 @@ class PlantillasHorarios {
   final String horaSalida;
   final int? tiempoDescansoMinutos;
   final List<int>? diasLaborales; // INT[]
-  final bool? esNocturno;
+  final bool? esRotativo;
   final bool? eliminado;
   final DateTime? creadoEn;
 
@@ -18,7 +18,7 @@ class PlantillasHorarios {
     required this.horaSalida,
     this.tiempoDescansoMinutos,
     this.diasLaborales,
-    this.esNocturno,
+    this.esRotativo,
     this.eliminado,
     this.creadoEn,
   });
@@ -34,7 +34,7 @@ class PlantillasHorarios {
       diasLaborales: json['dias_laborales'] != null
           ? List<int>.from(json['dias_laborales'])
           : null,
-      esNocturno: json['es_nocturno'],
+      esRotativo: json['es_rotativo'],
       eliminado: json['eliminado'],
       creadoEn: json['creado_en'] != null
           ? DateTime.parse(json['creado_en'])
@@ -50,7 +50,7 @@ class PlantillasHorarios {
     'hora_salida': horaSalida,
     'tiempo_descanso_minutos': tiempoDescansoMinutos,
     'dias_laborales': diasLaborales,
-    'es_nocturno': esNocturno,
+    'es_rotativo': esRotativo,
     'eliminado': eliminado,
   };
 }

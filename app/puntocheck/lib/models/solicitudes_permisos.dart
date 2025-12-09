@@ -45,7 +45,7 @@ class SolicitudesPermisos {
       fechaFin: DateTime.parse(json['fecha_fin']),
       diasTotales: json['dias_totales'],
       motivoDetalle: json['motivo_detalle'],
-      documentoSoporteUrl: json['documento_soporte_url'],
+      documentoSoporteUrl: json['documento_url'],
       estado: json['estado'] != null
           ? EstadoAprobacion.fromString(json['estado'])
           : null,
@@ -72,7 +72,7 @@ class SolicitudesPermisos {
     'fecha_fin': fechaFin.toIso8601String(),
     'dias_totales': diasTotales,
     'motivo_detalle': motivoDetalle,
-    'documento_soporte_url': documentoSoporteUrl,
+    'documento_url': documentoSoporteUrl,
     'estado': estado?.value,
     // ...resto de campos
   };

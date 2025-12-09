@@ -1,10 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:puntocheck/models/organizaciones.dart';
 import 'package:puntocheck/presentation/admin/views/org_admin_alerts_view.dart';
 import 'package:puntocheck/presentation/admin/views/org_admin_branches_view.dart';
 import 'package:puntocheck/presentation/admin/views/org_admin_edit_org_view.dart';
+import 'package:puntocheck/presentation/admin/views/org_admin_hours_bank_view.dart';
+import 'package:puntocheck/presentation/admin/views/org_admin_leaves_hours_view.dart';
 import 'package:puntocheck/presentation/admin/views/org_admin_legal_config_view.dart';
 import 'package:puntocheck/presentation/admin/views/org_admin_payments_view.dart';
+import 'package:puntocheck/presentation/admin/views/org_admin_schedule_assignments_view.dart';
+import 'package:puntocheck/presentation/admin/views/org_admin_schedules_view.dart';
 import 'package:puntocheck/presentation/admin/widgets/admin_stat_card.dart';
 import 'package:puntocheck/providers/app_providers.dart';
 import 'package:puntocheck/utils/theme/app_colors.dart';
@@ -45,6 +50,9 @@ class _OrgAdminHomeViewState extends ConsumerState<OrgAdminHomeView> {
                         color: AppColors.neutral900,
                       ),
                 ),
+                const SizedBox(height: 12),
+                // Banner de suscripción
+                _SubscriptionBanner(org: summary.organization),
                 const SizedBox(height: 12),
                 GridView.count(
                   crossAxisCount: 2,
@@ -203,7 +211,59 @@ class _OrgAdminHomeViewState extends ConsumerState<OrgAdminHomeView> {
                         );
                       },
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 10),
+                    _QuickAction(
+                      icon: Icons.schedule_outlined,
+                      label: 'Plantillas Horarios',
+                      onTap: () {
+                        setState(() => _showActions = false);
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => const OrgAdminSchedulesView(),
+                          ),
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 10),
+                    _QuickAction(
+                      icon: Icons.assignment_ind_rounded,
+                      label: 'Asignaciones',
+                      onTap: () {
+                        setState(() => _showActions = false);
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => const OrgAdminScheduleAssignmentsView(),
+                          ),
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 10),
+                    _QuickAction(
+                      icon: Icons.access_time_filled,
+                      label: 'Banco de Horas',
+                      onTap: () {
+                        setState(() => _showActions = false);
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => const OrgAdminHoursBankView(),
+                          ),
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 10),
+                    _QuickAction(
+                      icon: Icons.event_note_outlined,
+                      label: 'Permisos',
+                      onTap: () {
+                        setState(() => _showActions = false);
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => const OrgAdminLeavesAndHoursView(),
+                          ),
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 10),
                   ],
                   FloatingActionButton(
                     backgroundColor: AppColors.primaryRed,
@@ -351,4 +411,133 @@ class _QuickAction extends StatelessWidget {
       ),
     );
   }
+}
+
+// ============================================================================
+// Banner de estado de suscripción
+// ============================================================================
+class _SubscriptionBanner extends StatelessWidget {
+  final Organizaciones org;
+
+  const _SubscriptionBanner({required this.org});
+
+  @override
+  Widget build(BuildContext context) {
+    final estado = _getSubscriptionState();
+    if (estado == null) return const SizedBox.shrink();
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: estado.backgroundColor,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: estado.borderColor, width: 1.5),
+      ),
+      child: Row(
+        children: [
+          Icon(estado.icon, color: estado.iconColor, size: 22),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  estado.title,
+                  style: TextStyle(
+                    fontWeight: FontWeight.w700,
+                    color: estado.textColor,
+                    fontSize: 14,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  estado.message,
+                  style: TextStyle(
+                    color: estado.textColor.withValues(alpha: 0.8),
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  _SubscriptionState? _getSubscriptionState() {
+    final now = DateTime.now();
+    final fechaFin = org.fechaFinSuscripcion;
+    final estado = org.estadoSuscripcion;
+
+    // Si no hay fecha fin, no mostrar banner
+    if (fechaFin == null) return null;
+
+    final diasRestantes = fechaFin.difference(now).inDays;
+
+    // Suscripción vencida
+    if (diasRestantes < 0 || estado?.value == 'vencida') {
+      return _SubscriptionState(
+        icon: Icons.error_outline,
+        iconColor: Colors.red.shade700,
+        backgroundColor: Colors.red.shade50,
+        borderColor: Colors.red.shade300,
+        textColor: Colors.red.shade900,
+        title: '⚠️ Suscripción vencida',
+        message:
+            'Tu suscripción venció hace ${diasRestantes.abs()} días. Contacta a soporte.',
+      );
+    }
+
+    // Próxima a vencer (menos de 7 días)
+    if (diasRestantes <= 7) {
+      return _SubscriptionState(
+        icon: Icons.warning_amber_rounded,
+        iconColor: AppColors.warningOrange,
+        backgroundColor: const Color(0xFFFFF4E6),
+        borderColor: const Color(0xFFFFD699),
+        textColor: const Color(0xFF996600),
+        title: 'Suscripción por vencer',
+        message:
+            'Tu suscripción vence en $diasRestantes día${diasRestantes == 1 ? '' : 's'}. Renueva pronto.',
+      );
+    }
+
+    // Próxima a vencer (menos de 15 días)
+    if (diasRestantes <= 15) {
+      return _SubscriptionState(
+        icon: Icons.info_outline,
+        iconColor: AppColors.infoBlue,
+        backgroundColor: const Color(0xFFE3F2FD),
+        borderColor: const Color(0xFF90CAF9),
+        textColor: const Color(0xFF0D47A1),
+        title: 'Renovación próxima',
+        message: 'Tu suscripción vence en $diasRestantes días.',
+      );
+    }
+
+    // Activa y con tiempo suficiente - no mostrar banner
+    return null;
+  }
+}
+
+// Clase helper para estado de suscripción
+class _SubscriptionState {
+  final IconData icon;
+  final Color iconColor;
+  final Color backgroundColor;
+  final Color borderColor;
+  final Color textColor;
+  final String title;
+  final String message;
+
+  const _SubscriptionState({
+    required this.icon,
+    required this.iconColor,
+    required this.backgroundColor,
+    required this.borderColor,
+    required this.textColor,
+    required this.title,
+    required this.message,
+  });
 }

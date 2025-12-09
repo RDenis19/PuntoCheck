@@ -1,6 +1,8 @@
 import '../models/solicitudes_permisos.dart';
 import '../models/alertas_cumplimiento.dart';
 import '../models/banco_horas_compensatorias.dart';
+import '../models/notificacion.dart';
+import '../models/auditoria_log.dart';
 import '../models/enums.dart';
 import 'supabase_client.dart';
 
@@ -66,17 +68,33 @@ class ComplianceService {
     required EstadoAprobacion status,
     String? comment,
   }) async {
+    print('📝 ComplianceService.resolveRequest iniciado');
+    print('📝 Request ID: $requestId');
+    print('📝 Status: ${status.value}');
+    print('📝 Comment: ${comment ?? "null"}');
+    print('📝 User ID: ${supabase.auth.currentUser?.id}');
+    
     try {
-      await supabase
+      final updateData = {
+        'estado': status.value,
+        'aprobado_por_id': supabase.auth.currentUser!.id,
+        'fecha_resolucion': DateTime.now().toIso8601String(),
+        'comentario_resolucion': comment,
+      };
+      
+      print('📝 Update data: $updateData');
+      
+      final result = await supabase
           .from('solicitudes_permisos')
-          .update({
-            'estado': status.value,
-            'aprobado_por_id': supabase.auth.currentUser!.id,
-            'fecha_resolucion': DateTime.now().toIso8601String(),
-            'comentario_resolucion': comment,
-          })
-          .eq('id', requestId);
-    } catch (e) {
+          .update(updateData)
+          .eq('id', requestId)
+          .select();
+      
+      print('✅ Resultado: $result');
+      print('✅ Solicitud resuelta');
+    } catch (e, stackTrace) {
+      print('❌ ERROR: $e');
+      print('❌ Stack: $stackTrace');
       throw Exception('Error resolviendo solicitud: $e');
     }
   }
@@ -137,14 +155,13 @@ class ComplianceService {
         'organizacion_id': registro.organizacionId,
         'empleado_id': registro.empleadoId,
         'cantidad_horas': registro.cantidadHoras,
-        'fecha_origen': registro.fechaOrigen.toIso8601String(),
-        'motivo': registro.motivo,
-        'advertencia_legal_aceptada': registro.advertenciaLegalAceptada,
+        'concepto': registro.concepto,
+        'acepta_renuncia_pago': registro.aceptaRenunciaPago,
         // El usuario logueado es quien aprueba/registra la acción
         'aprobado_por_id': supabase.auth.currentUser!.id,
       };
 
-      await supabase.from('banco_horas_compensatorias').insert(data);
+      await supabase.from('banco_horas').insert(data);
     } catch (e) {
       throw Exception('Error modificando banco de horas: $e');
     }
@@ -154,7 +171,7 @@ class ComplianceService {
   Future<double> getHoursBalance(String employeeId) async {
     try {
       final response = await supabase
-          .from('banco_horas_compensatorias')
+          .from('banco_horas')
           .select('cantidad_horas')
           .eq('empleado_id', employeeId);
 
@@ -168,6 +185,112 @@ class ComplianceService {
       return total;
     } catch (e) {
       throw Exception('Error calculando saldo: $e');
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // RESOLVER ALERTA (Cambiar estado)
+  // ---------------------------------------------------------------------------
+
+  /// Resolver alerta con estado y justificación
+  Future<void> resolveAlert({
+    required String alertId,
+    required String newStatus,
+    String? justification,
+  }) async {
+    try {
+      await supabase.from('alertas_cumplimiento').update({
+        'estado': newStatus,
+        'justificacion_auditor': justification,
+      }).eq('id', alertId);
+    } catch (e) {
+      throw Exception('Error resolviendo alerta: $e');
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // NOTIFICACIONES
+  // ---------------------------------------------------------------------------
+
+  /// Obtener notificaciones del usuario
+  Future<List<Notificacion>> getNotifications(String userId) async {
+    try {
+      final response = await supabase
+          .from('notificaciones')
+          .select()
+          .eq('usuario_destino_id', userId)
+          .order('creado_en', ascending: false)
+          .limit(50);
+
+      return (response as List)
+          .map((e) => Notificacion.fromJson(e))
+          .toList();
+    } catch (e) {
+      throw Exception('Error cargando notificaciones: $e');
+    }
+  }
+
+  /// Marcar notificación como leída
+  Future<void> markNotificationAsRead(String notificationId) async {
+    try {
+      await supabase
+          .from('notificaciones')
+          .update({'leido': true})
+          .eq('id', notificationId);
+    } catch (e) {
+      throw Exception('Error marcando notificación: $e');
+    }
+  }
+
+  /// Obtener conteo de notificaciones no leídas
+  Future<int> getUnreadNotificationsCount(String userId) async {
+    try {
+      final response = await supabase
+          .from('notificaciones')
+          .select('id')
+          .eq('usuario_destino_id', userId)
+          .eq('leido', false)
+          .count();
+
+      return response.count;
+    } catch (e) {
+      throw Exception('Error contando notificaciones: $e');
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // AUDITORÍA
+  // ---------------------------------------------------------------------------
+
+  /// Obtener logs de auditoría
+  Future<List<AuditoriaLog>> getAuditLog({
+    String? orgId,
+    String? actorId,
+    String? tabla,
+    int limit = 100,
+  }) async {
+    try {
+      var query = supabase.from('auditoria_log').select();
+
+      if (orgId != null) {
+        query = query.eq('organizacion_id', orgId);
+      }
+      if (actorId != null) {
+        query = query.eq('actor_id', actorId);
+      }
+      if (tabla != null) {
+        query = query.eq('tabla_afectada', tabla);
+      }
+
+      final response = await query
+          .order('creado_en', ascending: false)
+          .limit(limit);
+
+      return (response as List)
+          .map((e) => AuditoriaLog.fromJson(e))
+          .toList();
+    } catch (e) {
+      throw Exception('Error cargando auditoría: $e');
     }
   }
 }

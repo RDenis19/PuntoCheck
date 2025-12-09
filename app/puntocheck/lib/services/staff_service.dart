@@ -8,8 +8,8 @@ class StaffService {
   StaffService._();
   static final instance = StaffService._();
 
-  /// Obtener lista de personal con bカsqueda.
-  /// El orden por defecto es por fecha de creaciИn (desc) para priorizar ingresos recientes.
+  /// Obtener lista de personal con búsqueda.
+  /// El orden por defecto es por fecha de creación (desc) para priorizar ingresos recientes.
   Future<List<Perfiles>> getStaff(
     String orgId, {
     String? searchQuery,
@@ -34,16 +34,14 @@ class StaffService {
     }
   }
 
-  /// Obtener perfil especヴfico (Detalle empleado)
+  /// Obtener perfil específico (Detalle empleado)
   Future<Perfiles> getProfile(String userId) async {
     try {
       final response = await supabase
-          .from('perfiles')
-          .select()
-          .eq('id', userId)
+          .rpc('get_perfil_with_email', params: {'p_user_id': userId})
           .single();
       return Perfiles.fromJson(response);
-    } catch (e) {
+    } catch (e, _) {
       throw Exception('Error cargando perfil: $e');
     }
   }
@@ -60,7 +58,7 @@ class StaffService {
       }
       if (e.code == '42501') {
         throw Exception(
-          'Sin permisos para crear perfiles (revisa polヴticas RLS).',
+          'Sin permisos para crear perfiles (revisa políticas RLS).',
         );
       }
       throw Exception('Error creando perfil: ${e.message}');
@@ -75,7 +73,10 @@ class StaffService {
     Map<String, dynamic> updates,
   ) async {
     try {
-      await supabase.from('perfiles').update(updates).eq('id', userId);
+      final data = Map<String, dynamic>.from(updates)
+        ..remove('correo')
+        ..removeWhere((key, value) => value == null);
+      await supabase.from('perfiles').update(data).eq('id', userId);
     } catch (e) {
       throw Exception('Error actualizando perfil: $e');
     }
@@ -104,7 +105,6 @@ class StaffService {
     String? cedula,
     String? telefono,
     String? cargo,
-    String? correo,
   }) async {
     final data = {
       'id': userId,
@@ -115,7 +115,6 @@ class StaffService {
       'cedula': cedula,
       'telefono': telefono,
       'cargo': cargo,
-      'correo': correo,
       'activo': true,
       'eliminado': false,
     }..removeWhere((key, value) => value == null);

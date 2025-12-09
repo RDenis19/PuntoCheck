@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:puntocheck/models/enums.dart';
 import 'package:puntocheck/presentation/admin/views/org_admin_new_person_view.dart';
 import 'package:puntocheck/presentation/admin/views/org_admin_person_detail_view.dart';
+import 'package:puntocheck/presentation/admin/widgets/async_error_view.dart';
 import 'package:puntocheck/presentation/admin/widgets/empty_state.dart';
 import 'package:puntocheck/presentation/admin/widgets/org_admin_person_item.dart';
 import 'package:puntocheck/providers/app_providers.dart';
@@ -18,7 +19,7 @@ class OrgAdminPeopleView extends ConsumerStatefulWidget {
 class _OrgAdminPeopleViewState extends ConsumerState<OrgAdminPeopleView> {
   String? _search;
   RolUsuario? _role;
-  final bool _active = true;
+  bool? _active = true; // null = todos, true = activos, false = inactivos
   final ScrollController _scrollController = ScrollController();
 
   @override
@@ -56,9 +57,9 @@ class _OrgAdminPeopleViewState extends ConsumerState<OrgAdminPeopleView> {
                   Text(
                     'Lista de empleados',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w800,
-                          color: AppColors.neutral900,
-                        ),
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.neutral900,
+                    ),
                   ),
                   const SizedBox(height: 10),
                   TextField(
@@ -81,19 +82,48 @@ class _OrgAdminPeopleViewState extends ConsumerState<OrgAdminPeopleView> {
                           child: ChoiceChip(
                             label: Text(entry.key),
                             selected: selected,
-                            onSelected: (_) => setState(() => _role = entry.value),
-                            selectedColor:
-                                AppColors.primaryRed.withValues(alpha: 0.12),
+                            onSelected: (_) =>
+                                setState(() => _role = entry.value),
+                            selectedColor: AppColors.primaryRed.withValues(
+                              alpha: 0.12,
+                            ),
                             labelStyle: TextStyle(
                               color: selected
                                   ? AppColors.primaryRed
                                   : AppColors.neutral700,
-                              fontWeight:
-                                  selected ? FontWeight.w700 : FontWeight.w500,
+                              fontWeight: selected
+                                  ? FontWeight.w700
+                                  : FontWeight.w500,
                             ),
                           ),
                         );
                       }).toList(),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  // Chips de filtro por estado
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: [
+                        _StatusChip(
+                          label: 'Todos',
+                          selected: _active == null,
+                          onSelected: () => setState(() => _active = null),
+                        ),
+                        const SizedBox(width: 8),
+                        _StatusChip(
+                          label: 'Activos',
+                          selected: _active == true,
+                          onSelected: () => setState(() => _active = true),
+                        ),
+                        const SizedBox(width: 8),
+                        _StatusChip(
+                          label: 'Inactivos',
+                          selected: _active == false,
+                          onSelected: () => setState(() => _active = false),
+                        ),
+                      ],
                     ),
                   ),
                 ],
@@ -111,7 +141,10 @@ class _OrgAdminPeopleViewState extends ConsumerState<OrgAdminPeopleView> {
                   }
                   return ListView.separated(
                     controller: _scrollController,
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
                     itemCount: staff.length,
                     separatorBuilder: (_, __) => const SizedBox(height: 8),
                     itemBuilder: (context, index) {
@@ -126,13 +159,14 @@ class _OrgAdminPeopleViewState extends ConsumerState<OrgAdminPeopleView> {
                         child: OrgAdminPersonItem(
                           perfil: perfil,
                           onTap: () async {
-                            final updated = await Navigator.of(context).push<bool>(
-                              MaterialPageRoute(
-                                builder: (_) => OrgAdminPersonDetailView(
-                                  userId: perfil.id,
-                                ),
-                              ),
-                            );
+                            final updated = await Navigator.of(context)
+                                .push<bool>(
+                                  MaterialPageRoute(
+                                    builder: (_) => OrgAdminPersonDetailView(
+                                      userId: perfil.id,
+                                    ),
+                                  ),
+                                );
                             if (mounted && updated == true) {
                               ref.invalidate(orgAdminStaffProvider(filter));
                             }
@@ -143,8 +177,9 @@ class _OrgAdminPeopleViewState extends ConsumerState<OrgAdminPeopleView> {
                   );
                 },
                 loading: () => const Center(child: CircularProgressIndicator()),
-                error: (e, _) => Center(
-                  child: Text('Error cargando personas: $e'),
+                error: (e, _) => AsyncErrorView(
+                  error: e,
+                  onRetry: () => ref.refresh(orgAdminStaffProvider(filter)),
                 ),
               ),
             ),
@@ -185,5 +220,34 @@ class _OrgAdminPeopleViewState extends ConsumerState<OrgAdminPeopleView> {
         );
       }
     });
+  }
+}
+
+// ============================================================================
+// Widget de chip para filtro de estado
+// ============================================================================
+class _StatusChip extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final VoidCallback onSelected;
+
+  const _StatusChip({
+    required this.label,
+    required this.selected,
+    required this.onSelected,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ChoiceChip(
+      label: Text(label),
+      selected: selected,
+      onSelected: (_) => onSelected(),
+      selectedColor: AppColors.primaryRed.withValues(alpha: 0.12),
+      labelStyle: TextStyle(
+        color: selected ? AppColors.primaryRed : AppColors.neutral700,
+        fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+      ),
+    );
   }
 }

@@ -3,10 +3,9 @@ class BancoHorasCompensatorias {
   final String organizacionId;
   final String empleadoId;
   final double cantidadHoras; // NUMERIC
-  final DateTime fechaOrigen; // DATE
-  final String? motivo;
+  final String concepto; // TEXT
   final String? aprobadoPorId;
-  final bool? advertenciaLegalAceptada;
+  final bool? aceptaRenunciaPago;
   final DateTime? creadoEn;
 
   BancoHorasCompensatorias({
@@ -14,10 +13,9 @@ class BancoHorasCompensatorias {
     required this.organizacionId,
     required this.empleadoId,
     required this.cantidadHoras,
-    required this.fechaOrigen,
-    this.motivo,
+    required this.concepto,
     this.aprobadoPorId,
-    this.advertenciaLegalAceptada,
+    this.aceptaRenunciaPago,
     this.creadoEn,
   });
 
@@ -27,10 +25,9 @@ class BancoHorasCompensatorias {
       organizacionId: json['organizacion_id'],
       empleadoId: json['empleado_id'],
       cantidadHoras: (json['cantidad_horas'] as num).toDouble(),
-      fechaOrigen: DateTime.parse(json['fecha_origen']),
-      motivo: json['motivo'],
+      concepto: json['concepto'],
       aprobadoPorId: json['aprobado_por_id'],
-      advertenciaLegalAceptada: json['advertencia_legal_aceptada'],
+      aceptaRenunciaPago: json['acepta_renuncia_pago'],
       creadoEn: json['creado_en'] != null
           ? DateTime.parse(json['creado_en'])
           : null,

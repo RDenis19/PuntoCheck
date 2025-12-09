@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:puntocheck/models/enums.dart';
 import 'package:puntocheck/models/organizaciones.dart';
+import 'package:puntocheck/presentation/admin/widgets/manager_selector.dart';
 import 'package:puntocheck/presentation/common/widgets/app_snackbar.dart';
 import 'package:puntocheck/providers/app_providers.dart';
 import 'package:puntocheck/utils/theme/app_colors.dart';
@@ -10,7 +11,8 @@ class OrgAdminNewPersonView extends ConsumerStatefulWidget {
   const OrgAdminNewPersonView({super.key});
 
   @override
-  ConsumerState<OrgAdminNewPersonView> createState() => _OrgAdminNewPersonViewState();
+  ConsumerState<OrgAdminNewPersonView> createState() =>
+      _OrgAdminNewPersonViewState();
 }
 
 class _OrgAdminNewPersonViewState extends ConsumerState<OrgAdminNewPersonView> {
@@ -23,7 +25,8 @@ class _OrgAdminNewPersonViewState extends ConsumerState<OrgAdminNewPersonView> {
   final _telCtrl = TextEditingController();
   final _cargoCtrl = TextEditingController();
   RolUsuario _role = RolUsuario.employee;
-  bool _saving = false;
+  String? _jefeInmediatoId;
+  bool _isSaving = false;
   bool _obscure = true;
 
   @override
@@ -40,69 +43,46 @@ class _OrgAdminNewPersonViewState extends ConsumerState<OrgAdminNewPersonView> {
 
   Future<void> _submit(Organizaciones org) async {
     if (!_formKey.currentState!.validate()) return;
-    setState(() => _saving = true);
-    final sessionTransition =
-        ref.read(authSessionTransitionProvider.notifier);
+    setState(() => _isSaving = true);
+    final sessionTransition = ref.read(authSessionTransitionProvider.notifier);
     sessionTransition.state = true;
     try {
       final auth = ref.read(authServiceProvider);
       final staff = ref.read(staffServiceProvider);
+      final cedula = _cedulaCtrl.text.trim();
+      final telefono = _telCtrl.text.trim();
+      final cargo = _cargoCtrl.text.trim();
+      final metadata = <String, String?>{
+        'rol': _role.value,
+        'organizacion_id': org.id,
+        'nombres': _namesCtrl.text.trim(),
+        'apellidos': _lastCtrl.text.trim(),
+        'cargo': cargo,
+        'telefono': telefono,
+        'cedula': cedula,
+      }..removeWhere((key, value) => value == null || value.trim().isEmpty);
 
       await auth.createUserPreservingSession(
         email: _emailCtrl.text.trim(),
         password: _passCtrl.text,
-        metadata: {
-          'rol': _role.value,
-          'organizacion_id': org.id,
-          'nombres': _namesCtrl.text.trim(),
-          'apellidos': _lastCtrl.text.trim(),
-          'cargo': _cargoCtrl.text.trim(),
-          'telefono': _telCtrl.text.trim(),
-          'cedula': _cedulaCtrl.text.trim(),
-        },
+        metadata: metadata,
         runWithNewUserSession: (user) async {
-          try {
-            await staff.createOrgProfile(
-              userId: user.id,
-              orgId: org.id,
-              nombres: _namesCtrl.text.trim(),
-              apellidos: _lastCtrl.text.trim(),
-              rol: _role,
-              cedula:
-                  _cedulaCtrl.text.trim().isEmpty ? null : _cedulaCtrl.text.trim(),
-              telefono:
-                  _telCtrl.text.trim().isEmpty ? null : _telCtrl.text.trim(),
-              cargo:
-                  _cargoCtrl.text.trim().isEmpty ? null : _cargoCtrl.text.trim(),
-              correo: _emailCtrl.text.trim(),
-            );
-          } catch (e) {
-            final msg = e.toString().toLowerCase();
-            final permissionDenied = msg.contains('sin permisos') || msg.contains('permission denied');
-            final alreadyExists = msg.contains('ya tiene un perfil') || msg.contains('duplicate key');
-            
-            if (!permissionDenied && !alreadyExists) rethrow;
-
-            // Si el trigger de la BD ya creó el perfil, actualizamos con los datos completos.
-            try {
-              await staff.updateProfile(user.id, {
-                'nombres': _namesCtrl.text.trim(),
-                'apellidos': _lastCtrl.text.trim(),
-                'rol': _role.value,
-                'cedula': _cedulaCtrl.text.trim().isEmpty ? null : _cedulaCtrl.text.trim(),
-                'telefono': _telCtrl.text.trim().isEmpty ? null : _telCtrl.text.trim(),
-                'cargo': _cargoCtrl.text.trim().isEmpty ? null : _cargoCtrl.text.trim(),
-                'correo': _emailCtrl.text.trim(),
-              }..removeWhere((key, value) => value == null));
-            } catch (_) {
-              // Si falla la actualización, intentamos al menos verificar que exista
-              await staff.getProfile(user.id);
-            }
-          }
+          await Future.delayed(const Duration(milliseconds: 300));
+          await staff.updateProfile(
+            user.id,
+            {
+              'nombres': _namesCtrl.text.trim(),
+              'apellidos': _lastCtrl.text.trim(),
+              'rol': _role.value,
+              'cedula': cedula.isEmpty ? null : cedula,
+              'telefono': telefono.isEmpty ? null : telefono,
+              'cargo': cargo.isEmpty ? null : cargo,
+              'jefe_inmediato_id': _jefeInmediatoId,
+            }..removeWhere((key, value) => value == null),
+          );
         },
       );
 
-      ref.invalidate(orgAdminStaffProvider);
       ref.invalidate(orgAdminStaffProvider);
 
       if (!mounted) return;
@@ -110,10 +90,11 @@ class _OrgAdminNewPersonViewState extends ConsumerState<OrgAdminNewPersonView> {
       Navigator.of(context).pop(true);
     } catch (e) {
       if (!mounted) return;
-      showAppSnackBar(context, 'Error: $e', success: false);
+      final message = e.toString().replaceFirst('Exception: ', '');
+      showAppSnackBar(context, 'Error: $message', success: false);
     } finally {
       sessionTransition.state = false;
-      if (mounted) setState(() => _saving = false);
+      if (mounted) setState(() => _isSaving = false);
     }
   }
 
@@ -122,9 +103,7 @@ class _OrgAdminNewPersonViewState extends ConsumerState<OrgAdminNewPersonView> {
     final orgAsync = ref.watch(orgAdminOrganizationProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Nuevo empleado'),
-      ),
+      appBar: AppBar(title: const Text('Nuevo empleado')),
       body: orgAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(child: Text('Error: $e')),
@@ -139,16 +118,16 @@ class _OrgAdminNewPersonViewState extends ConsumerState<OrgAdminNewPersonView> {
                   Text(
                     'Crear cuenta y perfil',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w800,
-                          color: AppColors.neutral900,
-                        ),
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.neutral900,
+                    ),
                   ),
                   const SizedBox(height: 12),
                   Text(
                     'Se crea el usuario en Auth y el perfil en perfiles. Solo roles manager, auditor o empleado.',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: AppColors.neutral700,
-                        ),
+                      color: AppColors.neutral700,
+                    ),
                   ),
                   const SizedBox(height: 16),
                   TextFormField(
@@ -176,8 +155,9 @@ class _OrgAdminNewPersonViewState extends ConsumerState<OrgAdminNewPersonView> {
                         onPressed: () => setState(() => _obscure = !_obscure),
                       ),
                     ),
-                    validator: (v) =>
-                        v == null || v.length < 8 ? 'Mínimo 8 caracteres' : null,
+                    validator: (v) => v == null || v.length < 8
+                        ? 'Mínimo 8 caracteres'
+                        : null,
                   ),
                   const SizedBox(height: 12),
                   Row(
@@ -189,8 +169,9 @@ class _OrgAdminNewPersonViewState extends ConsumerState<OrgAdminNewPersonView> {
                             labelText: 'Nombres',
                             prefixIcon: Icon(Icons.person_outline),
                           ),
-                          validator: (v) =>
-                              v == null || v.trim().isEmpty ? 'Requerido' : null,
+                          validator: (v) => v == null || v.trim().isEmpty
+                              ? 'Requerido'
+                              : null,
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -200,8 +181,9 @@ class _OrgAdminNewPersonViewState extends ConsumerState<OrgAdminNewPersonView> {
                           decoration: const InputDecoration(
                             labelText: 'Apellidos',
                           ),
-                          validator: (v) =>
-                              v == null || v.trim().isEmpty ? 'Requerido' : null,
+                          validator: (v) => v == null || v.trim().isEmpty
+                              ? 'Requerido'
+                              : null,
                         ),
                       ),
                     ],
@@ -251,14 +233,21 @@ class _OrgAdminNewPersonViewState extends ConsumerState<OrgAdminNewPersonView> {
                         child: Text('Auditor'),
                       ),
                     ],
-                    onChanged: (v) => setState(() => _role = v ?? RolUsuario.employee),
+                    onChanged: (v) =>
+                        setState(() => _role = v ?? RolUsuario.employee),
+                  ),
+                  const SizedBox(height: 12),
+                  ManagerSelector(
+                    selectedManagerId: _jefeInmediatoId,
+                    onChanged: (value) =>
+                        setState(() => _jefeInmediatoId = value),
                   ),
                   const SizedBox(height: 12),
                   const SizedBox(height: 20),
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton.icon(
-                      icon: _saving
+                      icon: _isSaving
                           ? const SizedBox(
                               height: 18,
                               width: 18,
@@ -268,8 +257,8 @@ class _OrgAdminNewPersonViewState extends ConsumerState<OrgAdminNewPersonView> {
                               ),
                             )
                           : const Icon(Icons.person_add_alt_1),
-                      label: Text(_saving ? 'Creando...' : 'Crear empleado'),
-                      onPressed: _saving ? null : () => _submit(org),
+                      label: Text(_isSaving ? 'Creando...' : 'Crear empleado'),
+                      onPressed: _isSaving ? null : () => _submit(org),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.primaryRed,
                         foregroundColor: Colors.white,

@@ -3,7 +3,9 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/alertas_cumplimiento.dart';
+import '../models/auditoria_log.dart';
 import '../models/enums.dart';
+import '../models/notificacion.dart';
 import '../models/organizaciones.dart';
 import '../models/pagos_suscripciones.dart';
 import '../models/perfiles.dart';
@@ -11,6 +13,7 @@ import '../models/registros_asistencia.dart';
 import '../models/solicitudes_permisos.dart';
 import 'auth_providers.dart';
 import 'core_providers.dart';
+import '../services/supabase_client.dart';
 
 // ============================================================================
 // Helpers
@@ -239,8 +242,9 @@ class OrgAdminPermissionController extends AsyncNotifier<void> {
     );
 
     if (!state.hasError) {
+      // Invalidar TODAS las solicitudes (false) en lugar de solo pendientes
       ref
-        ..invalidate(orgAdminPermissionsProvider(true))
+        ..invalidate(orgAdminPermissionsProvider(false))
         ..invalidate(orgAdminAlertsProvider);
     }
   }
@@ -250,3 +254,102 @@ final orgAdminPermissionControllerProvider =
     AsyncNotifierProvider<OrgAdminPermissionController, void>(
       OrgAdminPermissionController.new,
     );
+
+// ============================================================================
+// Provider para obtener lista de managers de la organización
+// Usado en selector de jefe inmediato
+// ============================================================================
+final orgAdminManagersProvider = FutureProvider<List<Perfiles>>((ref) async {
+  final orgId = await _requireOrgId(ref);
+  final staff = await ref.read(staffServiceProvider).getStaff(orgId);
+  // Filtrar solo managers activos
+  return staff
+      .where(
+        (perfil) =>
+            perfil.rol == RolUsuario.manager &&
+            perfil.activo == true &&
+            perfil.eliminado != true,
+      )
+      .toList();
+});
+
+// ============================================================================
+// Provider para obtener notificaciones del usuario
+// ============================================================================
+final orgAdminNotificationsProvider =
+    FutureProvider.autoDispose<List<Notificacion>>((ref) async {
+  final userId = supabase.auth.currentUser?.id;
+  if (userId == null) throw Exception('Usuario no autenticado');
+  
+  return ref
+      .read(complianceServiceProvider)
+      .getNotifications(userId);
+});
+
+// ============================================================================
+// Provider para obtener conteo de notificaciones no leídas
+// ============================================================================
+final unreadNotificationsCountProvider =
+    FutureProvider.autoDispose<int>((ref) async {
+  final userId = supabase.auth.currentUser?.id;
+  if (userId == null) return 0;
+  
+  return ref
+      .read(complianceServiceProvider)
+      .getUnreadNotificationsCount(userId);
+});
+
+// ============================================================================
+// Provider para obtener logs de auditoría (solo auditor/super_admin)
+// ============================================================================
+final orgAdminAuditLogProvider =
+    FutureProvider.autoDispose<List<AuditoriaLog>>((ref) async {
+  final orgId = await _requireOrgId(ref);
+  
+  return ref
+      .read(complianceServiceProvider)
+      .getAuditLog(orgId: orgId, limit: 100);
+});
+
+// ============================================================================
+// Controller para resolver alertas
+// ============================================================================
+class AlertsController extends AsyncNotifier<void> {
+  @override
+  FutureOr<void> build() => null;
+
+  Future<void> resolve({
+    required String alertId,
+    required String newStatus,
+    String? justification,
+  }) async {
+    state = const AsyncValue.loading();
+    state = await AsyncValue.guard(
+      () => ref.read(complianceServiceProvider).resolveAlert(
+            alertId: alertId,
+            newStatus: newStatus,
+            justification: justification,
+          ),
+    );
+
+    if (!state.hasError) {
+      ref.invalidate(orgAdminAlertsProvider);
+    }
+  }
+
+  Future<void> markNotificationRead(String notificationId) async {
+    await ref
+        .read(complianceServiceProvider)
+        .markNotificationAsRead(notificationId);
+    
+    ref
+      ..invalidate(orgAdminNotificationsProvider)
+      ..invalidate(unreadNotificationsCountProvider);
+  }
+}
+
+final alertsControllerProvider =
+    AsyncNotifierProvider<AlertsController, void>(
+      AlertsController.new,
+    );
+

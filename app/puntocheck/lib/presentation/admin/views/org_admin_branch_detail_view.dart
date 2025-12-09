@@ -6,6 +6,7 @@ import 'package:puntocheck/models/sucursal_geo_extension.dart';
 import 'package:puntocheck/presentation/admin/widgets/org_admin_branch_form.dart';
 import 'package:puntocheck/providers/app_providers.dart';
 import 'package:puntocheck/presentation/admin/views/org_admin_branch_location_picker_view.dart';
+import 'package:puntocheck/presentation/admin/views/org_admin_branch_qr_view.dart';
 import 'package:puntocheck/utils/theme/app_colors.dart';
 
 class OrgAdminBranchDetailView extends ConsumerStatefulWidget {
@@ -35,6 +36,20 @@ class _OrgAdminBranchDetailViewState extends ConsumerState<OrgAdminBranchDetailV
         backgroundColor: Colors.white,
         foregroundColor: Colors.black,
         elevation: 0.5,
+        actions: [
+          if (_editableBranch.tieneQrHabilitado == true)
+            IconButton(
+              icon: const Icon(Icons.qr_code_2_outlined),
+              tooltip: 'Ver QR',
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => OrgAdminBranchQrView(branch: _editableBranch),
+                  ),
+                );
+              },
+            ),
+        ],
       ),
       body: SafeArea(
         child: SingleChildScrollView(

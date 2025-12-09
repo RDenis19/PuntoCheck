@@ -7,6 +7,7 @@ class Perfiles {
   final String apellidos;
   final String? cedula;
   final String? correo;
+  final String? email;
   final RolUsuario? rol;
   final String? cargo;
   final String? jefeInmediatoId;
@@ -24,6 +25,7 @@ class Perfiles {
     required this.apellidos,
     this.cedula,
     this.correo,
+    this.email,
     this.rol,
     this.cargo,
     this.jefeInmediatoId,
@@ -43,6 +45,7 @@ class Perfiles {
       apellidos: json['apellidos'],
       cedula: json['cedula'],
       correo: json['correo'] ?? json['email'],
+      email: json['email'] ?? json['correo'],
       rol: json['rol'] != null ? RolUsuario.fromString(json['rol']) : null,
       cargo: json['cargo'],
       jefeInmediatoId: json['jefe_inmediato_id'],
@@ -59,13 +62,14 @@ class Perfiles {
     );
   }
 
+  String get nombreCompleto => '$nombres $apellidos';
+
   Map<String, dynamic> toJson() => {
     'id': id,
     'organizacion_id': organizacionId,
     'nombres': nombres,
     'apellidos': apellidos,
     'cedula': cedula,
-    'correo': correo,
     'rol': rol?.value,
     'cargo': cargo,
     'jefe_inmediato_id': jefeInmediatoId,

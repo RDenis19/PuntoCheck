@@ -48,15 +48,24 @@ enum TipoPermiso {
 // CREATE TYPE estado_aprobacion
 enum EstadoAprobacion {
   pendiente('pendiente'),
-  aprobado('aprobado'),
+  aprobadoManager('aprobado_manager'),
+  aprobadoRrhh('aprobado_rrhh'),
   rechazado('rechazado'),
-  escalado('escalado');
+  canceladoUsuario('cancelado_usuario');
 
   final String value;
   const EstadoAprobacion(this.value);
 
   factory EstadoAprobacion.fromString(String value) =>
       EstadoAprobacion.values.firstWhere((e) => e.value == value);
+  
+  // Helper para saber si está aprobado (cualquier tipo)
+  bool get esAprobado => 
+      this == EstadoAprobacion.aprobadoManager || 
+      this == EstadoAprobacion.aprobadoRrhh;
+  
+  // Helper para saber si está pendiente o puede modificarse
+  bool get esPendiente => this == EstadoAprobacion.pendiente;
 }
 
 // CREATE TYPE origen_marcacion
