@@ -9,6 +9,15 @@ import 'package:puntocheck/presentation/login/views/login_view.dart';
 import 'package:puntocheck/presentation/auditor/views/auditor_shell_view.dart';
 import 'package:puntocheck/presentation/employee/views/employee_shell_view.dart';
 import 'package:puntocheck/presentation/manager/views/manager_shell_view.dart';
+import 'package:puntocheck/presentation/admin/views/org_admin_alerts_view.dart';
+import 'package:puntocheck/presentation/admin/views/org_admin_branches_view.dart';
+import 'package:puntocheck/presentation/admin/views/org_admin_edit_org_view.dart';
+import 'package:puntocheck/presentation/admin/views/org_admin_hours_bank_view.dart';
+import 'package:puntocheck/presentation/admin/views/org_admin_leaves_hours_view.dart';
+import 'package:puntocheck/presentation/admin/views/org_admin_legal_config_view.dart';
+import 'package:puntocheck/presentation/admin/views/org_admin_payments_view.dart';
+import 'package:puntocheck/presentation/admin/views/org_admin_schedule_assignments_view.dart';
+import 'package:puntocheck/presentation/admin/views/org_admin_schedules_view.dart';
 import 'package:puntocheck/presentation/admin/views/org_admin_shell_view.dart';
 import 'package:puntocheck/presentation/superadmin/views/super_admin_shell_view.dart';
 import 'package:puntocheck/presentation/splash/views/splash_view.dart';
@@ -26,6 +35,16 @@ class AppRoutes {
   static const managerHome = '/manager';
   static const auditorHome = '/auditor';
   static const employeeHome = '/employee';
+  static const orgAdminEditOrg = '$orgAdminHome/edit-org';
+  static const orgAdminBranches = '$orgAdminHome/branches';
+  static const orgAdminPayments = '$orgAdminHome/payments';
+  static const orgAdminAlerts = '$orgAdminHome/alerts';
+  static const orgAdminSchedules = '$orgAdminHome/schedules';
+  static const orgAdminScheduleAssignments =
+      '$orgAdminHome/schedule-assignments';
+  static const orgAdminHoursBank = '$orgAdminHome/hours-bank';
+  static const orgAdminLeaves = '$orgAdminHome/leaves';
+  static const orgAdminLegalConfig = '$orgAdminHome/legal-config';
 
   static String homeForRole(RolUsuario role) {
     switch (role) {
@@ -126,6 +145,44 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.orgAdminHome,
         builder: (_, __) => const OrgAdminShellView(),
+        routes: [
+          GoRoute(
+            path: 'edit-org',
+            builder: (_, __) => const OrgAdminEditOrgView(),
+          ),
+          GoRoute(
+            path: 'branches',
+            builder: (_, __) => const OrgAdminBranchesView(),
+          ),
+          GoRoute(
+            path: 'payments',
+            builder: (_, __) => const OrgAdminPaymentsView(),
+          ),
+          GoRoute(
+            path: 'alerts',
+            builder: (_, __) => const OrgAdminAlertsView(),
+          ),
+          GoRoute(
+            path: 'schedules',
+            builder: (_, __) => const OrgAdminSchedulesView(),
+          ),
+          GoRoute(
+            path: 'schedule-assignments',
+            builder: (_, __) => const OrgAdminScheduleAssignmentsView(),
+          ),
+          GoRoute(
+            path: 'hours-bank',
+            builder: (_, __) => const OrgAdminHoursBankView(),
+          ),
+          GoRoute(
+            path: 'leaves',
+            builder: (_, __) => const OrgAdminLeavesAndHoursView(),
+          ),
+          GoRoute(
+            path: 'legal-config',
+            builder: (_, __) => const OrgAdminLegalConfigView(),
+          ),
+        ],
       ),
       GoRoute(
         path: AppRoutes.managerHome,

@@ -1,4 +1,5 @@
 import 'enums.dart';
+import 'subscription_state.dart';
 
 class Organizaciones {
   final String id;
@@ -66,4 +67,13 @@ class Organizaciones {
     'logo_url': logoUrl,
     'eliminado': eliminado,
   };
+
+  SubscriptionState? getSubscriptionState({DateTime? now}) {
+    if (fechaFinSuscripcion == null) return null;
+    return SubscriptionState.compute(
+      now: now ?? DateTime.now(),
+      endDate: fechaFinSuscripcion!,
+      backendStatus: estadoSuscripcion,
+    );
+  }
 }

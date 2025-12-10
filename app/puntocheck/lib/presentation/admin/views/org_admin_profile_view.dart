@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:puntocheck/models/perfiles.dart';
 import 'package:puntocheck/providers/app_providers.dart';
 import 'package:puntocheck/utils/theme/app_colors.dart';
 
@@ -16,6 +17,28 @@ class _OrgAdminProfileViewState extends ConsumerState<OrgAdminProfileView> {
   final _formKey = GlobalKey<FormState>();
   bool _isSaving = false;
   bool _isEditing = false;
+  late final TextEditingController _nombresCtrl;
+  late final TextEditingController _apellidosCtrl;
+  late final TextEditingController _cargoCtrl;
+  late final TextEditingController _telefonoCtrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _nombresCtrl = TextEditingController();
+    _apellidosCtrl = TextEditingController();
+    _cargoCtrl = TextEditingController();
+    _telefonoCtrl = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _nombresCtrl.dispose();
+    _apellidosCtrl.dispose();
+    _cargoCtrl.dispose();
+    _telefonoCtrl.dispose();
+    super.dispose();
+  }
 
   Future<void> _updateProfile({
     required String userId,
@@ -35,7 +58,7 @@ class _OrgAdminProfileViewState extends ConsumerState<OrgAdminProfileView> {
         'telefono': telefono,
       });
       ref.invalidate(profileProvider);
-      
+
       if (!mounted) return;
       setState(() => _isEditing = false);
       ScaffoldMessenger.of(context).showSnackBar(
@@ -109,6 +132,14 @@ class _OrgAdminProfileViewState extends ConsumerState<OrgAdminProfileView> {
     }
   }
 
+  void _syncControllers(Perfiles perfil) {
+    if (_isEditing) return;
+    _nombresCtrl.text = perfil.nombres;
+    _apellidosCtrl.text = perfil.apellidos;
+    _cargoCtrl.text = perfil.cargo ?? '';
+    _telefonoCtrl.text = perfil.telefono ?? '';
+  }
+
   @override
   Widget build(BuildContext context) {
     final profileAsync = ref.watch(profileProvider);
@@ -126,10 +157,7 @@ class _OrgAdminProfileViewState extends ConsumerState<OrgAdminProfileView> {
             return const _ErrorState(message: 'No se encontró el perfil');
           }
 
-          final nombresCtrl = TextEditingController(text: perfil.nombres);
-          final apellidosCtrl = TextEditingController(text: perfil.apellidos);
-          final cargoCtrl = TextEditingController(text: perfil.cargo ?? '');
-          final telefonoCtrl = TextEditingController(text: perfil.telefono ?? '');
+          _syncControllers(perfil);
 
           return CustomScrollView(
             slivers: [
@@ -161,7 +189,10 @@ class _OrgAdminProfileViewState extends ConsumerState<OrgAdminProfileView> {
                             Container(
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
-                                border: Border.all(color: Colors.white, width: 3),
+                                border: Border.all(
+                                  color: Colors.white,
+                                  width: 3,
+                                ),
                                 boxShadow: [
                                   BoxShadow(
                                     color: Colors.black.withValues(alpha: 0.2),
@@ -188,7 +219,9 @@ class _OrgAdminProfileViewState extends ConsumerState<OrgAdminProfileView> {
                             const SizedBox(height: 10),
                             // Nombre
                             Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 16),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                              ),
                               child: Text(
                                 '${perfil.nombres} ${perfil.apellidos}',
                                 style: const TextStyle(
@@ -204,7 +237,9 @@ class _OrgAdminProfileViewState extends ConsumerState<OrgAdminProfileView> {
                             const SizedBox(height: 4),
                             // Email
                             Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 16),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                              ),
                               child: Text(
                                 user?.email ?? '',
                                 style: TextStyle(
@@ -240,10 +275,10 @@ class _OrgAdminProfileViewState extends ConsumerState<OrgAdminProfileView> {
                     // Datos Personales
                     _buildProfileInfoSection(
                       perfil,
-                      nombresCtrl,
-                      apellidosCtrl,
-                      cargoCtrl,
-                      telefonoCtrl,
+                      _nombresCtrl,
+                      _apellidosCtrl,
+                      _cargoCtrl,
+                      _telefonoCtrl,
                     ),
 
                     const SizedBox(height: 16),
@@ -268,7 +303,7 @@ class _OrgAdminProfileViewState extends ConsumerState<OrgAdminProfileView> {
   }
 
   Widget _buildProfileInfoSection(
-    perfil,
+    Perfiles perfil,
     TextEditingController nombresCtrl,
     TextEditingController apellidosCtrl,
     TextEditingController cargoCtrl,
@@ -381,12 +416,12 @@ class _OrgAdminProfileViewState extends ConsumerState<OrgAdminProfileView> {
                       onPressed: _isSaving
                           ? null
                           : () => _updateProfile(
-                                userId: perfil.id,
-                                nombres: nombresCtrl.text.trim(),
-                                apellidos: apellidosCtrl.text.trim(),
-                                cargo: cargoCtrl.text.trim(),
-                                telefono: telefonoCtrl.text.trim(),
-                              ),
+                              userId: perfil.id,
+                              nombres: nombresCtrl.text.trim(),
+                              apellidos: apellidosCtrl.text.trim(),
+                              cargo: cargoCtrl.text.trim(),
+                              telefono: telefonoCtrl.text.trim(),
+                            ),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.primaryRed,
                         foregroundColor: Colors.white,
@@ -455,11 +490,7 @@ class _OrgAdminProfileViewState extends ConsumerState<OrgAdminProfileView> {
                   icon: Icons.apartment,
                 ),
                 const SizedBox(height: 10),
-                _InfoChip(
-                  label: 'RUC',
-                  value: org.ruc,
-                  icon: Icons.numbers,
-                ),
+                _InfoChip(label: 'RUC', value: org.ruc, icon: Icons.numbers),
                 const SizedBox(height: 10),
                 _InfoChip(
                   label: 'Suscripción',
