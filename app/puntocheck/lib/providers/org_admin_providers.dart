@@ -21,7 +21,6 @@ import '../services/supabase_client.dart';
 Future<String> _requireOrgId(Ref ref) async {
   final profile = await ref.watch(profileProvider.future);
   final orgId = profile?.organizacionId;
-
   if (orgId == null || orgId.isEmpty) {
     throw Exception('No se pudo resolver la organizacion del admin.');
   }
@@ -29,7 +28,7 @@ Future<String> _requireOrgId(Ref ref) async {
 }
 
 // ============================================================================
-// PROVIDER RAÍZ: Datos base de la organización
+// Datos base del admin de organizacion
 // ============================================================================
 final orgAdminOrganizationProvider = FutureProvider<Organizaciones>((
   ref,
@@ -37,80 +36,6 @@ final orgAdminOrganizationProvider = FutureProvider<Organizaciones>((
   final orgId = await _requireOrgId(ref);
   return ref.read(organizationServiceProvider).getMyOrganization(orgId);
 });
-
-// ============================================================================
-// Providers Dependientes (Todos esperan a orgAdminOrganizationProvider)
-// ============================================================================
-final orgAdminStaffProvider =
-    FutureProvider.family<List<Perfiles>, OrgAdminPeopleFilter>((
-      ref,
-      filter,
-    ) async {
-      final organization = await ref.watch(orgAdminOrganizationProvider.future);
-
-      final staff = await ref
-          .read(staffServiceProvider)
-          .getStaff(organization.id, searchQuery: filter.search);
-
-      return staff.where((perfil) {
-        final matchesRole = filter.role == null || perfil.rol == filter.role;
-        final matchesActive =
-            filter.active == null || perfil.activo == filter.active;
-        return matchesRole && matchesActive;
-      }).toList();
-    });
-
-final orgAdminAlertsProvider =
-    FutureProvider.autoDispose<List<AlertasCumplimiento>>((ref) async {
-      // CORREGIDO: Dependencia encadenada
-      final organization = await ref.watch(orgAdminOrganizationProvider.future);
-
-      return ref
-          .read(complianceServiceProvider)
-          .getAlerts(organization.id, onlyPending: true);
-    });
-
-final orgAdminPaymentsProvider =
-    FutureProvider.autoDispose<List<PagosSuscripciones>>((ref) async {
-      // CORREGIDO: Dependencia encadenada
-      final organization = await ref.watch(orgAdminOrganizationProvider.future);
-
-      return ref
-          .read(paymentsServiceProvider)
-          .listPayments(orgId: organization.id);
-    });
-
-// Este provider busca managers para el dropdown
-final orgAdminManagersProvider = FutureProvider<List<Perfiles>>((ref) async {
-  // CORREGIDO: Dependencia encadenada
-  final organization = await ref.watch(orgAdminOrganizationProvider.future);
-
-  final staff = await ref.read(staffServiceProvider).getStaff(organization.id);
-
-  return staff
-      .where(
-        (perfil) =>
-            perfil.rol == RolUsuario.manager &&
-            perfil.activo == true &&
-            perfil.eliminado != true,
-      )
-      .toList();
-});
-
-final orgAdminAuditLogProvider = FutureProvider.autoDispose<List<AuditoriaLog>>(
-  (ref) async {
-    // CORREGIDO: Dependencia encadenada
-    final organization = await ref.watch(orgAdminOrganizationProvider.future);
-
-    return ref
-        .read(complianceServiceProvider)
-        .getAuditLog(orgId: organization.id, limit: 100);
-  },
-);
-
-// ============================================================================
-// Providers Independientes (No dependen de la Org ID directamente o reciben params)
-// ============================================================================
 
 final orgAdminPersonProvider = FutureProvider.family<Perfiles, String>((
   ref,
@@ -129,14 +54,42 @@ final orgAdminPersonAttendanceProvider =
           .getAttendanceLogs(targetUserId: userId, limit: 50);
     });
 
+final orgAdminStaffProvider =
+    FutureProvider.family<List<Perfiles>, OrgAdminPeopleFilter>((
+      ref,
+      filter,
+    ) async {
+      final orgId = await _requireOrgId(ref);
+      final staff = await ref
+          .read(staffServiceProvider)
+          .getStaff(orgId, searchQuery: filter.search);
+      return staff.where((perfil) {
+        final matchesRole = filter.role == null || perfil.rol == filter.role;
+        final matchesActive =
+            filter.active == null || perfil.activo == filter.active;
+        return matchesRole && matchesActive;
+      }).toList();
+    });
+
+final orgAdminAlertsProvider =
+    FutureProvider.autoDispose<List<AlertasCumplimiento>>((ref) async {
+      final orgId = await _requireOrgId(ref);
+      return ref
+          .read(complianceServiceProvider)
+          .getAlerts(orgId, onlyPending: true);
+    });
+
 final orgAdminPermissionsProvider = FutureProvider.autoDispose
     .family<List<SolicitudesPermisos>, bool>((ref, pendingOnly) async {
-      // Este servicio internamente ya filtra por la org del usuario logueado
-      // o recibe parámetros, pero si necesitas el ID, usa el patrón anterior.
-      // Asumiremos que getRequests maneja la seguridad RLS por su cuenta.
       return ref
           .read(complianceServiceProvider)
           .getRequests(pendingOnly: pendingOnly);
+    });
+
+final orgAdminPaymentsProvider =
+    FutureProvider.autoDispose<List<PagosSuscripciones>>((ref) async {
+      final orgId = await _requireOrgId(ref);
+      return ref.read(paymentsServiceProvider).listPayments(orgId: orgId);
     });
 
 final orgAdminAttendanceProvider = FutureProvider.family
@@ -157,7 +110,7 @@ final orgAdminAttendanceProvider = FutureProvider.family
     });
 
 // ============================================================================
-// Dashboard compacto (Inicio) - OPTIMIZADO
+// Dashboard compacto (Inicio)
 // ============================================================================
 class OrgAdminHomeSummary {
   final Organizaciones organization;
@@ -184,28 +137,30 @@ class OrgAdminHomeSummary {
 final orgAdminHomeSummaryProvider = FutureProvider<OrgAdminHomeSummary>((
   ref,
 ) async {
-  // 1. Obtenemos la Organización primero (Bloqueante pero seguro)
-  final organization = await ref.watch(orgAdminOrganizationProvider.future);
-  final orgId = organization.id;
+  final orgId = await _requireOrgId(ref);
 
-  // 2. Ejecutamos todas las demás peticiones en PARALELO para que cargue rápido
-  //    (Future.wait es mucho más eficiente que hacer await uno por uno)
-  final results = await Future.wait([
-    ref.read(staffServiceProvider).getStaff(orgId, orderBy: 'creado_en'),
-    ref.read(complianceServiceProvider).getRequests(pendingOnly: true),
-    ref.read(complianceServiceProvider).getAlerts(orgId, onlyPending: true),
-    ref
-        .read(paymentsServiceProvider)
-        .listPayments(orgId: orgId, estado: EstadoPago.pendiente),
-    _getTodayAttendance(ref), // Helper extraído abajo
-  ]);
+  final organization = await ref
+      .read(organizationServiceProvider)
+      .getMyOrganization(orgId);
 
-  // 3. Desempaquetamos resultados
-  final staff = results[0] as List<Perfiles>;
-  final pendingPerms = results[1] as List<SolicitudesPermisos>;
-  final pendingAlerts = results[2] as List<AlertasCumplimiento>;
-  final pendingPayments = results[3] as List<PagosSuscripciones>;
-  final attendanceToday = results[4] as List<RegistrosAsistencia>;
+  final staff = await ref
+      .read(staffServiceProvider)
+      .getStaff(orgId, orderBy: 'creado_en');
+  final pendingPerms = await ref
+      .read(complianceServiceProvider)
+      .getRequests(pendingOnly: true);
+  final pendingAlerts = await ref
+      .read(complianceServiceProvider)
+      .getAlerts(orgId, onlyPending: true);
+  final pendingPayments = await ref
+      .read(paymentsServiceProvider)
+      .listPayments(orgId: orgId, estado: EstadoPago.pendiente);
+
+  final now = DateTime.now();
+  final startOfDay = DateTime(now.year, now.month, now.day);
+  final attendanceToday = await ref
+      .read(operationsServiceProvider)
+      .getAttendanceLogs(startDate: startOfDay, endDate: now, limit: 200);
 
   final geofenceIssues = attendanceToday
       .where((r) => r.estaDentroGeocerca == false)
@@ -224,15 +179,6 @@ final orgAdminHomeSummaryProvider = FutureProvider<OrgAdminHomeSummary>((
     geofenceIssuesToday: geofenceIssues,
   );
 });
-
-// Helper privado para limpiar el provider de summary
-Future<List<RegistrosAsistencia>> _getTodayAttendance(Ref ref) async {
-  final now = DateTime.now();
-  final startOfDay = DateTime(now.year, now.month, now.day);
-  return ref
-      .read(operationsServiceProvider)
-      .getAttendanceLogs(startDate: startOfDay, endDate: now, limit: 200);
-}
 
 // ============================================================================
 // DTOs para filtros
@@ -306,6 +252,7 @@ class OrgAdminPermissionController extends AsyncNotifier<void> {
     );
 
     if (!state.hasError) {
+      // Invalidar TODAS las solicitudes (false) en lugar de solo pendientes
       ref
         ..invalidate(orgAdminPermissionsProvider(false))
         ..invalidate(orgAdminAlertsProvider);
@@ -317,6 +264,24 @@ final orgAdminPermissionControllerProvider =
     AsyncNotifierProvider<OrgAdminPermissionController, void>(
       OrgAdminPermissionController.new,
     );
+
+// ============================================================================
+// Provider para obtener lista de managers de la organización
+// Usado en selector de jefe inmediato
+// ============================================================================
+final orgAdminManagersProvider = FutureProvider<List<Perfiles>>((ref) async {
+  final orgId = await _requireOrgId(ref);
+  final staff = await ref.read(staffServiceProvider).getStaff(orgId);
+  // Filtrar solo managers activos
+  return staff
+      .where(
+        (perfil) =>
+            perfil.rol == RolUsuario.manager &&
+            perfil.activo == true &&
+            perfil.eliminado != true,
+      )
+      .toList();
+});
 
 // ============================================================================
 // Provider para obtener notificaciones del usuario
@@ -342,6 +307,19 @@ final unreadNotificationsCountProvider = FutureProvider.autoDispose<int>((
       .read(complianceServiceProvider)
       .getUnreadNotificationsCount(userId);
 });
+
+// ============================================================================
+// Provider para obtener logs de auditoría (solo auditor/super_admin)
+// ============================================================================
+final orgAdminAuditLogProvider = FutureProvider.autoDispose<List<AuditoriaLog>>(
+  (ref) async {
+    final orgId = await _requireOrgId(ref);
+
+    return ref
+        .read(complianceServiceProvider)
+        .getAuditLog(orgId: orgId, limit: 100);
+  },
+);
 
 // ============================================================================
 // Controller para resolver alertas
