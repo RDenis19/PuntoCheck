@@ -53,11 +53,7 @@ class _OrgAdminBranchQrViewState extends ConsumerState<OrgAdminBranchQrView> {
                   const SizedBox(height: 16),
 
                   // QR Code
-                  _QrCodeCard(
-                    qrKey: _qrKey,
-                    token: token,
-                    qrData: qr,
-                  ),
+                  _QrCodeCard(qrKey: _qrKey, token: token, qrData: qr),
                   const SizedBox(height: 16),
 
                   // Botones de acción
@@ -130,10 +126,10 @@ class _OrgAdminBranchQrViewState extends ConsumerState<OrgAdminBranchQrView> {
   Future<void> _downloadQr(BuildContext context) async {
     try {
       showAppSnackBar(context, 'Descargando QR...');
-      
+
       // Capturar QR como imagen
-      final boundary = _qrKey.currentContext?.findRenderObject()
-          as RenderRepaintBoundary?;
+      final boundary =
+          _qrKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
       if (boundary == null) {
         throw Exception('No se pudo capturar el QR');
       }
@@ -144,7 +140,8 @@ class _OrgAdminBranchQrViewState extends ConsumerState<OrgAdminBranchQrView> {
 
       // Guardar en directorio de descargas
       final directory = await getApplicationDocumentsDirectory();
-      final filePath = '${directory.path}/QR_${widget.branch.nombre}_${DateTime.now().millisecondsSinceEpoch}.png';
+      final filePath =
+          '${directory.path}/QR_${widget.branch.nombre}_${DateTime.now().millisecondsSinceEpoch}.png';
       final file = File(filePath);
       await file.writeAsBytes(pngBytes);
 
@@ -160,11 +157,12 @@ class _OrgAdminBranchQrViewState extends ConsumerState<OrgAdminBranchQrView> {
 // ============================================================================
 // Provider
 // ============================================================================
-final _qrProvider = FutureProvider.family<QrCodigosTemporales?, String>(
-  (ref, sucursalId) async {
-    return QrService.instance.getActiveQrForBranch(sucursalId);
-  },
-);
+final _qrProvider = FutureProvider.family<QrCodigosTemporales?, String>((
+  ref,
+  sucursalId,
+) async {
+  return QrService.instance.getActiveQrMetadata(sucursalId);
+});
 
 // ============================================================================
 // Widgets
@@ -187,8 +185,10 @@ class _BranchInfoCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Icon(Icons.store_mall_directory_outlined,
-                  color: Colors.white),
+              const Icon(
+                Icons.store_mall_directory_outlined,
+                color: Colors.white,
+              ),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
@@ -220,11 +220,7 @@ class _QrCodeCard extends StatelessWidget {
   final String token;
   final QrCodigosTemporales? qrData;
 
-  const _QrCodeCard({
-    required this.qrKey,
-    required this.token,
-    this.qrData,
-  });
+  const _QrCodeCard({required this.qrKey, required this.token, this.qrData});
 
   @override
   Widget build(BuildContext context) {
@@ -303,23 +299,24 @@ class _QrInfoCard extends StatelessWidget {
             children: [
               Icon(
                 estaVencido ? Icons.error_outline : Icons.check_circle_outline,
-                color: estaVencido ? Colors.red.shade700 : Colors.green.shade700,
+                color: estaVencido
+                    ? Colors.red.shade700
+                    : Colors.green.shade700,
               ),
               const SizedBox(width: 8),
               Text(
                 estaVencido ? 'QR Vencido' : 'QR Activo',
                 style: TextStyle(
                   fontWeight: FontWeight.w700,
-                  color: estaVencido ? Colors.red.shade900 : Colors.green.shade900,
+                  color: estaVencido
+                      ? Colors.red.shade900
+                      : Colors.green.shade900,
                 ),
               ),
             ],
           ),
           const SizedBox(height: 8),
-          _InfoRow(
-            label: 'Expira',
-            value: _formatDate(qr.fechaExpiracion),
-          ),
+          _InfoRow(label: 'Expira', value: _formatDate(qr.fechaExpiracion)),
           _InfoRow(
             label: 'Días restantes',
             value: estaVencido
@@ -327,10 +324,7 @@ class _QrInfoCard extends StatelessWidget {
                 : '$diasRestantes días',
           ),
           if (qr.creadoEn != null)
-            _InfoRow(
-              label: 'Creado',
-              value: _formatDate(qr.creadoEn!),
-            ),
+            _InfoRow(label: 'Creado', value: _formatDate(qr.creadoEn!)),
         ],
       ),
     );
@@ -356,10 +350,7 @@ class _InfoRow extends StatelessWidget {
         children: [
           Text(
             label,
-            style: const TextStyle(
-              color: AppColors.neutral700,
-              fontSize: 13,
-            ),
+            style: const TextStyle(color: AppColors.neutral700, fontSize: 13),
           ),
           Text(
             value,
@@ -389,14 +380,17 @@ class _ErrorView extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.error_outline,
-                color: AppColors.errorRed, size: 48),
+            const Icon(
+              Icons.error_outline,
+              color: AppColors.errorRed,
+              size: 48,
+            ),
             const SizedBox(height: 16),
             Text(
               'Error cargando QR',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
             Text(
