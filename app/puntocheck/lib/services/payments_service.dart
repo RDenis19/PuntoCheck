@@ -57,8 +57,7 @@ class PaymentsService {
         query = query.eq('estado', estado.value);
       }
 
-      final response =
-          await query.order('fecha_pago', ascending: false);
+      final response = await query.order('fecha_pago', ascending: false);
 
       return response
           .map((e) => PagosSuscripciones.fromJson(e as Map<String, dynamic>))

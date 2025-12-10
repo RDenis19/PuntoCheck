@@ -1,5 +1,3 @@
-import 'package:supabase_flutter/supabase_flutter.dart';
-
 import '../models/perfiles.dart';
 import '../models/registros_asistencia.dart';
 import '../models/solicitudes_permisos.dart';

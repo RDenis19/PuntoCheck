@@ -7,9 +7,7 @@ import '../models/perfiles.dart';
 import '../models/registros_asistencia.dart';
 import '../models/solicitudes_permisos.dart';
 import '../models/banco_horas_compensatorias.dart';
-import '../models/enums.dart';
 import '../services/manager_service.dart';
-import '../services/organization_service.dart';
 import 'auth_providers.dart';
 import 'core_providers.dart';
 
@@ -52,19 +50,22 @@ final managerOrganizationProvider = FutureProvider<Organizaciones>((ref) async {
 // ============================================================================
 
 /// Provider para obtener el equipo del manager con búsqueda opcional.
-/// 
+///
 /// Uso: ref.watch(managerTeamProvider(searchQuery))
-final managerTeamProvider = FutureProvider.family<List<Perfiles>, String?>(
-  (ref, searchQuery) async {
-    return ref.read(managerServiceProvider).getMyTeam(searchQuery: searchQuery);
-  },
-);
+final managerTeamProvider = FutureProvider.family<List<Perfiles>, String?>((
+  ref,
+  searchQuery,
+) async {
+  return ref.read(managerServiceProvider).getMyTeam(searchQuery: searchQuery);
+});
 
 /// Provider para obtener un empleado específico del equipo.
-/// 
+///
 /// Útil para mostrar información detallada de un miembro del equipo.
-final managerPersonProvider =
-    FutureProvider.family<Perfiles, String>((ref, employeeId) async {
+final managerPersonProvider = FutureProvider.family<Perfiles, String>((
+  ref,
+  employeeId,
+) async {
   // Obtener todo el equipo y buscar por ID
   final team = await ref.read(managerServiceProvider).getMyTeam();
   try {
@@ -75,29 +76,28 @@ final managerPersonProvider =
 });
 
 /// Provider para obtener historial de asistencia de un empleado específico.
-/// 
+///
 /// Muestra los últimos 20 registros de asistencia del empleado.
 final managerPersonAttendanceProvider = FutureProvider.autoDispose
     .family<List<RegistrosAsistencia>, String>((ref, employeeId) async {
-  return ref.read(managerServiceProvider).getTeamAttendance(
-        employeeId: employeeId,
-        limit: 20,
-      );
-});
+      return ref
+          .read(managerServiceProvider)
+          .getTeamAttendance(employeeId: employeeId, limit: 20);
+    });
 
 // ============================================================================
 // BANCO DE HORAS - Gestión de horas compensatorias del equipo
 // ============================================================================
 
 /// Provider para obtener movimientos de banco de horas del equipo.
-/// 
+///
 /// Puede filtrarse por empleado específico.
 final managerTeamHoursBankProvider = FutureProvider.autoDispose
     .family<List<BancoHorasCompensatorias>, String?>((ref, employeeId) async {
-  return ref.read(managerServiceProvider).getTeamHoursBank(
-        employeeId: employeeId,
-      );
-});
+      return ref
+          .read(managerServiceProvider)
+          .getTeamHoursBank(employeeId: employeeId);
+    });
 
 // ============================================================================
 // DASHBOARD - Resumen del equipo
@@ -121,7 +121,9 @@ class ManagerHomeSummary {
 }
 
 /// Provider que calcula estadísticas del equipo para el dashboard.
-final managerHomeSummaryProvider = FutureProvider<ManagerHomeSummary>((ref) async {
+final managerHomeSummaryProvider = FutureProvider<ManagerHomeSummary>((
+  ref,
+) async {
   try {
     // Obtener equipo
     final team = await ref.read(managerServiceProvider).getMyTeam();
@@ -205,16 +207,19 @@ class ManagerAttendanceFilter {
 
 /// Provider para obtener asistencia del equipo con filtros.
 final managerTeamAttendanceProvider = FutureProvider.family
-    .autoDispose<List<RegistrosAsistencia>, ManagerAttendanceFilter>(
-  (ref, filter) async {
-    return ref.read(managerServiceProvider).getTeamAttendance(
-          startDate: filter.startDate,
-          endDate: filter.endDate,
-          employeeId: filter.employeeId,
-          limit: filter.limit,
-        );
-  },
-);
+    .autoDispose<List<RegistrosAsistencia>, ManagerAttendanceFilter>((
+      ref,
+      filter,
+    ) async {
+      return ref
+          .read(managerServiceProvider)
+          .getTeamAttendance(
+            startDate: filter.startDate,
+            endDate: filter.endDate,
+            employeeId: filter.employeeId,
+            limit: filter.limit,
+          );
+    });
 
 // ============================================================================
 // PERMISOS DEL EQUIPO
@@ -223,10 +228,10 @@ final managerTeamAttendanceProvider = FutureProvider.family
 /// Provider para obtener permisos del equipo.
 final managerTeamPermissionsProvider = FutureProvider.autoDispose
     .family<List<SolicitudesPermisos>, bool>((ref, pendingOnly) async {
-  return ref.read(managerServiceProvider).getTeamPermissions(
-        pendingOnly: pendingOnly,
-      );
-});
+      return ref
+          .read(managerServiceProvider)
+          .getTeamPermissions(pendingOnly: pendingOnly);
+    });
 
 /// Controller para aprobar/rechazar permisos.
 class ManagerPermissionController extends AsyncNotifier<void> {
@@ -234,16 +239,12 @@ class ManagerPermissionController extends AsyncNotifier<void> {
   FutureOr<void> build() => null;
 
   /// Aprobar permiso.
-  Future<void> approve({
-    required String requestId,
-    String? comment,
-  }) async {
+  Future<void> approve({required String requestId, String? comment}) async {
     state = const AsyncValue.loading();
     state = await AsyncValue.guard(
-      () => ref.read(managerServiceProvider).approvePermission(
-            requestId: requestId,
-            comment: comment,
-          ),
+      () => ref
+          .read(managerServiceProvider)
+          .approvePermission(requestId: requestId, comment: comment),
     );
 
     if (!state.hasError) {
@@ -262,10 +263,9 @@ class ManagerPermissionController extends AsyncNotifier<void> {
   }) async {
     state = const AsyncValue.loading();
     state = await AsyncValue.guard(
-      () => ref.read(managerServiceProvider).rejectPermission(
-            requestId: requestId,
-            comment: comment,
-          ),
+      () => ref
+          .read(managerServiceProvider)
+          .rejectPermission(requestId: requestId, comment: comment),
     );
 
     if (!state.hasError) {
@@ -280,9 +280,8 @@ class ManagerPermissionController extends AsyncNotifier<void> {
 
 final managerPermissionControllerProvider =
     AsyncNotifierProvider<ManagerPermissionController, void>(
-  ManagerPermissionController.new,
-);
-
+      ManagerPermissionController.new,
+    );
 
 /// Controller para registrar horas en el banco.
 class ManagerHoursBankController extends AsyncNotifier<void> {
@@ -298,7 +297,9 @@ class ManagerHoursBankController extends AsyncNotifier<void> {
   }) async {
     state = const AsyncValue.loading();
     state = await AsyncValue.guard(
-      () => ref.read(managerServiceProvider).registerHours(
+      () => ref
+          .read(managerServiceProvider)
+          .registerHours(
             employeeId: employeeId,
             hours: hours,
             concept: concept,
@@ -315,5 +316,5 @@ class ManagerHoursBankController extends AsyncNotifier<void> {
 
 final managerHoursBankControllerProvider =
     AsyncNotifierProvider<ManagerHoursBankController, void>(
-  ManagerHoursBankController.new,
-);
+      ManagerHoursBankController.new,
+    );
