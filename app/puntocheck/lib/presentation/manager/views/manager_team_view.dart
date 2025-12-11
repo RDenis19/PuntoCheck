@@ -235,8 +235,27 @@ class _ManagerTeamViewState extends ConsumerState<ManagerTeamView> {
                         }
 
                         final employee = team[index - 1];
+                        
+                        // Obtener horario del empleado desde la lista de horarios (si ya fue cargada por el provider en otro lado o aquí)
+                        // Para evitar sobrecarga, podemos usar ref.watch(managerTeamSchedulesProvider(null)) si queremos eager loading
+                        // O simplemente dejarlo vacío si no es crítico.
+                        // Pero el usuario lo pidió. Vamos a intentar obtenerlo del provider de horarios.
+                        final schedulesAsync = ref.watch(managerTeamSchedulesProvider(null)); // Cacheado
+                        final scheduleName = schedulesAsync.maybeWhen(
+                          data: (schedules) {
+                            final empSchedule = schedules.firstWhere(
+                              (s) => s['perfil_id'] == employee.id,
+                              orElse: () => <String, dynamic>{}, // Retornar mapa vacío en lugar de null
+                            );
+                            if (empSchedule.isEmpty) return null;
+                            return empSchedule['plantillas_horarios']['nombre'] as String?;
+                          },
+                          orElse: () => null,
+                        );
+
                         return ManagerTeamMemberCard(
                           employee: employee,
+                          scheduleName: scheduleName,
                           // onTap removido - usar navegación default del card
                         );
                       },

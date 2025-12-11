@@ -34,6 +34,10 @@ class ManagerTabNavigation extends StatelessWidget {
           label: 'Asistencia',
         ),
         BottomNavigationBarItem(
+          icon: Icon(Icons.calendar_today_outlined),
+          label: 'Horarios',
+        ),
+        BottomNavigationBarItem(
           icon: Icon(Icons.person_outline),
           label: 'Perfil',
         ),

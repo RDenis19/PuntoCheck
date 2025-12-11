@@ -5,11 +5,16 @@ import 'supabase_client.dart';
 class StorageService {
   StorageService._();
   static final instance = StorageService._();
+  static const _maxFileBytes = 5 * 1024 * 1024; // 5MB
 
   /// Sube la foto de evidencia (selfie)
   /// Retorna el `path` relativo para guardarlo en la DB.
   Future<String> uploadEvidence(File file, String userId) async {
     try {
+      final size = await file.length();
+      if (size > _maxFileBytes) {
+        throw Exception('La foto supera 5MB. Reduce calidad antes de subir.');
+      }
       final fileExt = file.path.split('.').last;
       final fileName =
           '${DateTime.now().millisecondsSinceEpoch}_$userId.$fileExt';
@@ -32,6 +37,10 @@ class StorageService {
   /// Sube certificado médico u otros documentos legales
   Future<String> uploadLegalDoc(File file, String userId) async {
     try {
+      final size = await file.length();
+      if (size > _maxFileBytes) {
+        throw Exception('El archivo supera 5MB. Adjunta uno más liviano.');
+      }
       final fileExt = file.path.split('.').last;
       final fileName = 'doc_${DateTime.now().millisecondsSinceEpoch}.$fileExt';
       final path = '$userId/$fileName';

@@ -7,6 +7,7 @@ import '../models/perfiles.dart';
 import '../models/registros_asistencia.dart';
 import '../models/solicitudes_permisos.dart';
 import '../models/banco_horas_compensatorias.dart';
+import '../models/plantillas_horarios.dart';
 import '../services/manager_service.dart';
 import 'auth_providers.dart';
 import 'core_providers.dart';
@@ -110,6 +111,7 @@ class ManagerHomeSummary {
   final int teamLate;
   final int pendingPermissions;
   final int overtimeHoursWeek;
+  final List<SolicitudesPermisos> recentPermissions;
 
   ManagerHomeSummary({
     required this.teamTotal,
@@ -117,6 +119,7 @@ class ManagerHomeSummary {
     required this.teamLate,
     required this.pendingPermissions,
     required this.overtimeHoursWeek,
+    required this.recentPermissions,
   });
 }
 
@@ -146,11 +149,11 @@ final managerHomeSummaryProvider = FutureProvider<ManagerHomeSummary>((
     // TODO: Calcular tardanzas (requiere lógica de horarios)
     final teamLate = 0;
 
-    // Obtener permisos pendientes
-    final permissions = await ref
+    // Obtener permisos pendientes (para mostrar resumen y lista breve)
+    final pendingPermissionsList = await ref
         .read(managerServiceProvider)
         .getTeamPermissions(pendingOnly: true);
-    final pendingPermissions = permissions.length;
+    final pendingPermissions = pendingPermissionsList.length;
 
     // TODO: Calcular horas extra semanales
     final overtimeHoursWeek = 0;
@@ -161,15 +164,16 @@ final managerHomeSummaryProvider = FutureProvider<ManagerHomeSummary>((
       teamLate: teamLate,
       pendingPermissions: pendingPermissions,
       overtimeHoursWeek: overtimeHoursWeek,
+      recentPermissions: pendingPermissionsList.take(3).toList(),
     );
   } catch (e) {
-    // En caso de error, retornar valores por defecto
     return ManagerHomeSummary(
       teamTotal: 0,
       teamPresent: 0,
       teamLate: 0,
       pendingPermissions: 0,
       overtimeHoursWeek: 0,
+      recentPermissions: const [],
     );
   }
 });
@@ -318,3 +322,100 @@ final managerHoursBankControllerProvider =
     AsyncNotifierProvider<ManagerHoursBankController, void>(
       ManagerHoursBankController.new,
     );
+
+// ============================================================================
+// NOTIFICACIONES DEL MANAGER
+// ============================================================================
+
+final managerNotificationsProvider = FutureProvider<List<Map<String, dynamic>>>((ref) async {
+  return ref.read(managerServiceProvider).getMyNotifications();
+});
+
+class ManagerNotificationController extends AsyncNotifier<void> {
+  @override
+  FutureOr<void> build() => null;
+
+  Future<void> markRead(String notificationId) async {
+    state = const AsyncValue.loading();
+    state = await AsyncValue.guard(
+      () => ref.read(managerServiceProvider).markNotificationAsRead(notificationId),
+    );
+    if (!state.hasError) {
+      ref.invalidate(managerNotificationsProvider);
+    }
+  }
+}
+
+final managerNotificationControllerProvider =
+    AsyncNotifierProvider<ManagerNotificationController, void>(
+  ManagerNotificationController.new,
+);
+
+// ============================================================================
+// PLANTILLAS / ASIGNACIONES DE HORARIOS
+// ============================================================================
+
+final managerScheduleTemplatesProvider =
+    FutureProvider<List<PlantillasHorarios>>((ref) async {
+  return ref.read(managerServiceProvider).getScheduleTemplates();
+});
+
+class ManagerScheduleController extends AsyncNotifier<void> {
+  @override
+  FutureOr<void> build() => null;
+
+  Future<void> assignSchedule({
+    required String employeeId,
+    required String templateId,
+    required DateTime startDate,
+    DateTime? endDate,
+  }) async {
+    state = const AsyncValue.loading();
+    state = await AsyncValue.guard(
+      () => ref.read(managerServiceProvider).assignSchedule(
+            employeeId: employeeId,
+            templateId: templateId,
+            startDate: startDate,
+            endDate: endDate,
+          ),
+    );
+  }
+
+  Future<void> updateSchedule({
+    required String assignmentId,
+    required String templateId,
+    required DateTime startDate,
+    DateTime? endDate,
+  }) async {
+    state = const AsyncValue.loading();
+    state = await AsyncValue.guard(
+      () => ref.read(managerServiceProvider).updateSchedule(
+            assignmentId: assignmentId,
+            templateId: templateId,
+            startDate: startDate,
+            endDate: endDate,
+          ),
+    );
+  }
+}
+
+final managerScheduleControllerProvider =
+    AsyncNotifierProvider<ManagerScheduleController, void>(
+  ManagerScheduleController.new,
+);
+
+// ============================================================================
+// ASIGNACIONES DE HORARIO (LISTADOS)
+// ============================================================================
+
+final managerTeamSchedulesProvider =
+    FutureProvider.family.autoDispose<List<Map<String, dynamic>>, String?>(
+        (ref, employeeId) async {
+  return ref.read(managerServiceProvider).getTeamSchedules(employeeId: employeeId);
+});
+
+final managerEmployeeActiveScheduleProvider =
+    FutureProvider.family.autoDispose<Map<String, dynamic>?, String>(
+        (ref, employeeId) async {
+  return ref.read(managerServiceProvider).getEmployeeActiveSchedule(employeeId);
+});

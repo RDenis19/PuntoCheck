@@ -13,11 +13,13 @@ import 'package:puntocheck/utils/theme/app_colors.dart';
 /// - Estado (activo/inactivo)
 class ManagerTeamMemberCard extends StatelessWidget {
   final Perfiles employee;
+  final String? scheduleName;
   final VoidCallback? onTap;
 
   const ManagerTeamMemberCard({
     super.key,
     required this.employee,
+    this.scheduleName,
     this.onTap,
   });
 
@@ -141,6 +143,27 @@ class ManagerTeamMemberCard extends StatelessWidget {
                             ],
                           ),
                         ),
+                        if (scheduleName != null) ...[
+                           const SizedBox(width: 8),
+                           Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 3,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AppColors.infoBlue.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                scheduleName!,
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.infoBlue,
+                                ),
+                              ),
+                           ),
+                        ],
                       ],
                     ),
                     const SizedBox(height: 4),

@@ -5,6 +5,7 @@ import 'package:puntocheck/models/perfiles.dart';
 import 'package:puntocheck/models/registros_asistencia.dart';
 import 'package:puntocheck/providers/manager_providers.dart';
 import 'package:puntocheck/utils/theme/app_colors.dart';
+import '../widgets/manager_assign_schedule_sheet.dart';
 
 /// Vista de detalle de empleado para Manager (solo lectura).
 /// 
@@ -54,6 +55,7 @@ class _ManagerPersonDetailViewState
           data: (perfil) => _DetailContent(
             perfil: perfil,
             attendanceAsync: attendanceAsync,
+            scheduleAsync: ref.watch(managerEmployeeActiveScheduleProvider(widget.userId)),
           ),
           loading: () => const Center(child: CircularProgressIndicator()),
           error: (e, _) => _ErrorView(message: 'Error cargando empleado: $e'),
@@ -70,10 +72,12 @@ class _ManagerPersonDetailViewState
 class _DetailContent extends StatelessWidget {
   final Perfiles perfil;
   final AsyncValue<List<RegistrosAsistencia>> attendanceAsync;
+  final AsyncValue<Map<String, dynamic>?> scheduleAsync;
 
   const _DetailContent({
     required this.perfil,
     required this.attendanceAsync,
+    required this.scheduleAsync,
   });
 
   @override
@@ -82,17 +86,49 @@ class _DetailContent extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       children: [
         _HeaderSection(perfil: perfil),
-        const SizedBox(height: 20),
-        _PersonalInfoSection(perfil: perfil),
-        const SizedBox(height: 24),
-        _AttendanceSection(attendanceAsync: attendanceAsync),
+        const SizedBox(height: 16),
+
+        // 1. Información Personal (Acordeón)
+        _SectionAccordion(
+          title: 'Información Personal',
+          icon: Icons.person_outline,
+          initiallyExpanded: false,
+          children: [
+            _PersonalInfoContent(perfil: perfil),
+          ],
+        ),
+        const SizedBox(height: 12),
+
+        // 2. Horario Asignado (Acordeón)
+        _SectionAccordion(
+          title: 'Horario Asignado',
+          icon: Icons.calendar_today_outlined,
+          initiallyExpanded: true, // Relevante para el manager
+          children: [
+            _ScheduleContent(
+              scheduleAsync: scheduleAsync,
+              employeeId: perfil.id,
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+
+        // 3. Historial de Asistencia (Acordeón)
+        _SectionAccordion(
+          title: 'Historial de Asistencia',
+          icon: Icons.history_rounded,
+          initiallyExpanded: false,
+          children: [
+             _AttendanceContent(attendanceAsync: attendanceAsync),
+          ],
+        ),
       ],
     );
   }
 }
 
 // ============================================================================
-// Sección de encabezado con avatar y nombre
+// Header (Mantenemos igual por ahora, visualmente impactante)
 // ============================================================================
 
 class _HeaderSection extends StatelessWidget {
@@ -216,174 +252,280 @@ class _HeaderSection extends StatelessWidget {
     );
   }
 }
-
 // ============================================================================
-// Sección de información personal
-// ============================================================================
-
-class _PersonalInfoSection extends ConsumerWidget {
-  final Perfiles perfil;
-
-  const _PersonalInfoSection({required this.perfil});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.only(left: 4, bottom: 12),
-          child: Text(
-            'Información Personal',
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.neutral900,
-                ),
-          ),
-        ),
-        _InfoCard(
-          children: [
-            _InfoItem(
-              icon: Icons.email_rounded,
-              iconColor: AppColors.neutral600,
-              label: 'Correo electrónico',
-              value: (perfil.email ?? perfil.correo) ?? 'No registrado',
-            ),
-            const Divider(height: 24),
-            _InfoItem(
-              icon: Icons.phone_rounded,
-              iconColor: AppColors.neutral600,
-              label: 'Teléfono',
-              value: perfil.telefono ?? 'No registrado',
-            ),
-            const Divider(height: 24),
-            _InfoItem(
-              icon: Icons.badge_rounded,
-              iconColor: AppColors.neutral600,
-              label: 'Cédula',
-              value: perfil.cedula ?? 'No registrado',
-            ),
-            const Divider(height: 24),
-            _InfoItem(
-              icon: Icons.work_rounded,
-              iconColor: AppColors.neutral600,
-              label: 'Cargo',
-              value: perfil.cargo?.isNotEmpty == true
-                  ? perfil.cargo!
-                  : 'No asignado',
-            ),
-            if (perfil.creadoEn != null) ...[
-              const Divider(height: 24),
-              _InfoItem(
-                icon: Icons.calendar_today_rounded,
-                iconColor: AppColors.neutral600,
-                label: 'Fecha de ingreso',
-                value: DateFormat('dd/MM/yyyy').format(perfil.creadoEn!),
-              ),
-            ],
-          ],
-        ),
-      ],
-    );
-  }
-}
-
-// ============================================================================
-// Sección de historial de asistencia
+// Widget Genérico de Acordeón
 // ============================================================================
 
-class _AttendanceSection extends StatelessWidget {
-  final AsyncValue<List<RegistrosAsistencia>> attendanceAsync;
-
-  const _AttendanceSection({required this.attendanceAsync});
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.only(left: 4, bottom: 12),
-          child: Row(
-            children: [
-              Text(
-                'Historial de Asistencia',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.neutral900,
-                    ),
-              ),
-              const Spacer(),
-              attendanceAsync.whenOrNull(
-                    data: (logs) => Container(
-                      padding:
-                          const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: AppColors.primaryRed.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        '${logs.length}',
-                        style: const TextStyle(
-                          color: AppColors.primaryRed,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 13,
-                        ),
-                      ),
-                    ),
-                  ) ??
-                  const SizedBox.shrink(),
-            ],
-          ),
-        ),
-        attendanceAsync.when(
-          data: (logs) {
-            if (logs.isEmpty) {
-              return const _EmptyAttendance();
-            }
-            return Column(
-              children: logs.map((log) => _AttendanceCard(log: log)).toList(),
-            );
-          },
-          loading: () => const Padding(
-            padding: EdgeInsets.all(32),
-            child: Center(child: CircularProgressIndicator()),
-          ),
-          error: (e, _) => _ErrorView(message: 'Error cargando asistencia'),
-        ),
-      ],
-    );
-  }
-}
-
-// ============================================================================
-// Card contenedor de información
-// ============================================================================
-
-class _InfoCard extends StatelessWidget {
+class _SectionAccordion extends StatelessWidget {
+  final String title;
+  final IconData icon;
   final List<Widget> children;
+  final bool initiallyExpanded;
 
-  const _InfoCard({required this.children});
+  const _SectionAccordion({
+    required this.title,
+    required this.icon,
+    required this.children,
+    this.initiallyExpanded = false,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
           ),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: children,
+      child: Theme(
+        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+        child: ExpansionTile(
+          initiallyExpanded: initiallyExpanded,
+          leading: Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: AppColors.primaryRed.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, color: AppColors.primaryRed, size: 20),
+          ),
+          title: Text(
+            title,
+            style: const TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 16,
+              color: AppColors.neutral900,
+            ),
+          ),
+          childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          children: children,
+        ),
       ),
+    );
+  }
+}
+
+// ============================================================================
+// Contenido: Información Personal
+// ============================================================================
+
+class _PersonalInfoContent extends StatelessWidget {
+  final Perfiles perfil;
+
+  const _PersonalInfoContent({required this.perfil});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        const Divider(),
+        _InfoItem(
+          icon: Icons.email_rounded,
+          iconColor: AppColors.neutral600,
+          label: 'Correo electrónico',
+          value: (perfil.email ?? perfil.correo) ?? 'No registrado',
+        ),
+        const SizedBox(height: 16),
+        _InfoItem(
+          icon: Icons.phone_rounded,
+          iconColor: AppColors.neutral600,
+          label: 'Teléfono',
+          value: perfil.telefono ?? 'No registrado',
+        ),
+        const SizedBox(height: 16),
+        _InfoItem(
+          icon: Icons.badge_rounded,
+          iconColor: AppColors.neutral600,
+          label: 'Cédula',
+          value: perfil.cedula ?? 'No registrado',
+        ),
+        const SizedBox(height: 16),
+        _InfoItem(
+          icon: Icons.work_rounded,
+          iconColor: AppColors.neutral600,
+          label: 'Cargo',
+          value: perfil.cargo?.isNotEmpty == true
+              ? perfil.cargo!
+              : 'No asignado',
+        ),
+        if (perfil.creadoEn != null) ...[
+          const SizedBox(height: 16),
+          _InfoItem(
+            icon: Icons.calendar_today_rounded,
+            iconColor: AppColors.neutral600,
+            label: 'Fecha de ingreso',
+            value: DateFormat('dd/MM/yyyy').format(perfil.creadoEn!),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+// ============================================================================
+// Contenido: Horario
+// ============================================================================
+
+class _ScheduleContent extends ConsumerWidget {
+  final AsyncValue<Map<String, dynamic>?> scheduleAsync;
+  final String employeeId;
+
+  const _ScheduleContent({
+    required this.scheduleAsync,
+    required this.employeeId,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Column(
+      children: [
+        scheduleAsync.when(
+          data: (schedule) {
+             if (schedule == null) {
+               return Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppColors.neutral100,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.neutral300),
+                ),
+                child: const Row(
+                  children: [
+                    Icon(Icons.event_busy, color: AppColors.neutral500),
+                    SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'Sin horario activo asignado', 
+                        style: TextStyle(color: AppColors.neutral600),
+                      ),
+                    ),
+                  ],
+                ),
+               );
+             }
+
+             final template = schedule['plantillas_horarios'];
+             return Column(
+               children: [
+                 const Divider(),
+                 Row(
+                   children: [
+                     Container(
+                       padding: const EdgeInsets.all(10),
+                       decoration: BoxDecoration(
+                         color: AppColors.primaryRed.withValues(alpha: 0.1),
+                         borderRadius: BorderRadius.circular(12),
+                       ),
+                       child: const Icon(Icons.access_time_filled, color: AppColors.primaryRed),
+                     ),
+                     const SizedBox(width: 16),
+                     Column(
+                       crossAxisAlignment: CrossAxisAlignment.start,
+                       children: [
+                         Text(
+                           template['nombre'] ?? 'Horario Personalizado',
+                           style: const TextStyle(
+                             fontWeight: FontWeight.bold,
+                             fontSize: 16,
+                             color: AppColors.neutral900,
+                           ),
+                         ),
+                         Text(
+                           '${template['hora_entrada']} - ${template['hora_salida']}',
+                           style: const TextStyle(
+                             color: AppColors.neutral600,
+                             fontWeight: FontWeight.w500,
+                           ),
+                         ),
+                       ],
+                     )
+                   ],
+                 ),
+                 const SizedBox(height: 16),
+                 _InfoItem(
+                   icon: Icons.calendar_view_week,
+                   iconColor: AppColors.neutral600,
+                   label: 'Días Laborales',
+                   value: (template['dias_laborales'] as List?)?.join(', ') ?? 'No especificado',
+                 ),
+               ],
+             );
+          },
+          loading: () => const Center(child: Padding(
+            padding: EdgeInsets.all(16.0),
+            child: CircularProgressIndicator(),
+          )),
+          error: (e, _) => Text('Error al cargar horario: $e', style: const TextStyle(color: AppColors.errorRed)),
+        ),
+        const SizedBox(height: 16),
+        SizedBox(
+          width: double.infinity,
+          child: OutlinedButton.icon(
+            onPressed: () {
+              showModalBottomSheet(
+                context: context,
+                isScrollControlled: true,
+                backgroundColor: Colors.transparent,
+                builder: (context) => ManagerAssignScheduleSheet(
+                  preselectedEmployeeId: employeeId,
+                  onAssigned: () {
+                    ref.invalidate(managerEmployeeActiveScheduleProvider(employeeId));
+                  },
+                ),
+              );
+            },
+            icon: const Icon(Icons.edit_calendar_rounded, size: 18),
+            label: const Text('Cambiar Horario'),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: AppColors.primaryRed,
+              side: const BorderSide(color: AppColors.primaryRed),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ============================================================================
+// Contenido: Asistencia
+// ============================================================================
+
+class _AttendanceContent extends StatelessWidget {
+  final AsyncValue<List<RegistrosAsistencia>> attendanceAsync;
+
+  const _AttendanceContent({required this.attendanceAsync});
+
+  @override
+  Widget build(BuildContext context) {
+    return attendanceAsync.when(
+      data: (logs) {
+        if (logs.isEmpty) {
+          return const Padding(
+            padding: EdgeInsets.symmetric(vertical: 24),
+            child: _EmptyAttendance(),
+          );
+        }
+        return Column(
+          children: [
+             const Divider(),
+             const SizedBox(height: 8),
+             ...logs.map((log) => _AttendanceCard(log: log)),
+          ],
+        );
+      },
+      loading: () => const Center(child: Padding(
+        padding: EdgeInsets.all(32),
+        child: CircularProgressIndicator(),
+      )),
+      error: (e, _) => _ErrorView(message: 'Error cargando asistencia'),
     );
   }
 }
@@ -665,3 +807,5 @@ class _ErrorView extends StatelessWidget {
     );
   }
 }
+
+

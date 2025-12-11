@@ -1,65 +1,37 @@
-import '../models/perfiles.dart';
-import '../models/registros_asistencia.dart';
-import '../models/solicitudes_permisos.dart';
 import '../models/banco_horas_compensatorias.dart';
 import '../models/enums.dart';
+import '../models/perfiles.dart';
+import '../models/plantillas_horarios.dart';
+import '../models/registros_asistencia.dart';
+import '../models/solicitudes_permisos.dart';
 import 'supabase_client.dart';
 
 /// Servicio especializado para operaciones del Manager.
-/// 
-/// El Manager tiene acceso limitado a:
-/// - Su propio perfil
-/// - Su equipo (empleados con jefe_inmediato_id = manager.id)
-/// - Asistencia, permisos y banco de horas de su equipo
-/// 
-/// Todas las operaciones validan que:
-/// - organizacion_id = get_my_org_id()
-/// - jefe_inmediato_id = auth.uid()
+/// Mantiene todas las llamadas a Supabase separadas de la UI.
 class ManagerService {
   ManagerService._();
   static final instance = ManagerService._();
 
-  // ============================================================================
-  // 3.1 - PERFIL DEL MANAGER
-  // ============================================================================
-
-  /// Obtener el perfil del manager actual.
-  /// 
-  /// Query: SELECT * FROM perfiles WHERE id = auth.uid()
+  // Perfil del manager --------------------------------------------------------
   Future<Perfiles> getMyProfile() async {
     try {
       final userId = supabase.auth.currentUser?.id;
-      if (userId == null) {
-        throw Exception('Usuario no autenticado');
-      }
+      if (userId == null) throw Exception('Usuario no autenticado');
 
       final response = await supabase
           .rpc('get_perfil_with_email', params: {'p_user_id': userId})
           .single();
-
       return Perfiles.fromJson(response);
     } catch (e) {
       throw Exception('Error cargando perfil del manager: $e');
     }
   }
 
-  // ============================================================================
-  // 3.2 - EQUIPO DE TRABAJO
-  // ============================================================================
-
-  /// Obtener lista de empleados del equipo del manager.
-  /// 
-  /// Query: 
-  /// SELECT * FROM perfiles 
-  /// WHERE organizacion_id = get_my_org_id()
-  ///   AND jefe_inmediato_id = auth.uid()
-  ///   AND eliminado = false
+  // Equipo directo -----------------------------------------------------------
   Future<List<Perfiles>> getMyTeam({String? searchQuery}) async {
     try {
       final userId = supabase.auth.currentUser?.id;
-      if (userId == null) {
-        throw Exception('Usuario no autenticado');
-      }
+      if (userId == null) throw Exception('Usuario no autenticado');
 
       var query = supabase
           .from('perfiles')
@@ -80,9 +52,6 @@ class ManagerService {
     }
   }
 
-  /// Verificar si un empleado pertenece al equipo del manager.
-  /// 
-  /// Usado para validar antes de hacer operaciones sobre un empleado.
   Future<bool> isEmployeeInMyTeam(String employeeId) async {
     try {
       final userId = supabase.auth.currentUser?.id;
@@ -97,21 +66,12 @@ class ManagerService {
           .maybeSingle();
 
       return response != null;
-    } catch (e) {
+    } catch (_) {
       return false;
     }
   }
 
-  // ============================================================================
-  // 4 - ASISTENCIA DEL EQUIPO
-  // ============================================================================
-
-  /// Obtener registros de asistencia del equipo.
-  /// 
-  /// Filtra por:
-  /// - Solo empleados del equipo (jefe_inmediato_id = auth.uid())
-  /// - Rango de fechas (opcional)
-  /// - Empleado específico (opcional)
+  // Asistencia del equipo ----------------------------------------------------
   Future<List<RegistrosAsistencia>> getTeamAttendance({
     DateTime? startDate,
     DateTime? endDate,
@@ -120,17 +80,11 @@ class ManagerService {
   }) async {
     try {
       final userId = supabase.auth.currentUser?.id;
-      if (userId == null) {
-        throw Exception('Usuario no autenticado');
-      }
+      if (userId == null) throw Exception('Usuario no autenticado');
 
-      // Primero obtener IDs de empleados del equipo
       final team = await getMyTeam();
       final teamIds = team.map((e) => e.id).toList();
-
-      if (teamIds.isEmpty) {
-        return [];
-      }
+      if (teamIds.isEmpty) return [];
 
       var query = supabase
           .from('registros_asistencia')
@@ -138,14 +92,10 @@ class ManagerService {
           .inFilter('perfil_id', teamIds)
           .eq('eliminado', false);
 
-      if (employeeId != null) {
-        query = query.eq('perfil_id', employeeId);
-      }
-
+      if (employeeId != null) query = query.eq('perfil_id', employeeId);
       if (startDate != null) {
         query = query.gte('fecha_hora_marcacion', startDate.toIso8601String());
       }
-
       if (endDate != null) {
         query = query.lte('fecha_hora_marcacion', endDate.toIso8601String());
       }
@@ -161,41 +111,28 @@ class ManagerService {
     }
   }
 
-  // ============================================================================
-  // 5 - PERMISOS DEL EQUIPO
-  // ============================================================================
-
-  /// Obtener solicitudes de permisos del equipo.
-  /// 
-  /// Solo muestra permisos de empleados con jefe_inmediato_id = auth.uid()
+  // Permisos del equipo ------------------------------------------------------
   Future<List<SolicitudesPermisos>> getTeamPermissions({
     bool pendingOnly = false,
   }) async {
     try {
       final userId = supabase.auth.currentUser?.id;
-      if (userId == null) {
-        throw Exception('Usuario no autenticado');
-      }
+      if (userId == null) throw Exception('Usuario no autenticado');
 
-      // Obtener IDs del equipo
       final team = await getMyTeam();
       final teamIds = team.map((e) => e.id).toList();
-
-      if (teamIds.isEmpty) {
-        return [];
-      }
+      if (teamIds.isEmpty) return [];
 
       var query = supabase
           .from('solicitudes_permisos')
-          .select() // Sin JOIN, solo los datos de solicitudes_permisos
+          .select()
           .inFilter('solicitante_id', teamIds);
 
       if (pendingOnly) {
-        query = query.eq('estado', 'pendiente');
+        query = query.eq('estado', EstadoAprobacion.pendiente.value);
       }
 
       final response = await query.order('creado_en', ascending: false);
-
       return (response as List)
           .map((e) => SolicitudesPermisos.fromJson(e))
           .toList();
@@ -204,18 +141,13 @@ class ManagerService {
     }
   }
 
-  /// Aprobar una solicitud de permiso.
-  /// 
-  /// Valida que el empleado pertenezca al equipo antes de aprobar.
   Future<void> approvePermission({
     required String requestId,
     String? comment,
   }) async {
     try {
       final userId = supabase.auth.currentUser?.id;
-      if (userId == null) {
-        throw Exception('Usuario no autenticado');
-      }
+      if (userId == null) throw Exception('Usuario no autenticado');
 
       await supabase.from('solicitudes_permisos').update({
         'estado': EstadoAprobacion.aprobadoManager.value,
@@ -228,16 +160,13 @@ class ManagerService {
     }
   }
 
-  /// Rechazar una solicitud de permiso.
   Future<void> rejectPermission({
     required String requestId,
     required String comment,
   }) async {
     try {
       final userId = supabase.auth.currentUser?.id;
-      if (userId == null) {
-        throw Exception('Usuario no autenticado');
-      }
+      if (userId == null) throw Exception('Usuario no autenticado');
 
       await supabase.from('solicitudes_permisos').update({
         'estado': EstadoAprobacion.rechazado.value,
@@ -250,29 +179,21 @@ class ManagerService {
     }
   }
 
-  // ============================================================================
-  // 6 - BANCO DE HORAS DEL EQUIPO
-  // ============================================================================
-
-  /// Obtener movimientos de banco de horas del equipo.
-  Future<List<BancoHorasCompensatorias>> getTeamHoursBank({String? employeeId}) async {
+  // Banco de horas -----------------------------------------------------------
+  Future<List<BancoHorasCompensatorias>> getTeamHoursBank({
+    String? employeeId,
+  }) async {
     try {
       final userId = supabase.auth.currentUser?.id;
-      if (userId == null) {
-        throw Exception('Usuario no autenticado');
-      }
+      if (userId == null) throw Exception('Usuario no autenticado');
 
-      // Obtener IDs del equipo
       final team = await getMyTeam();
       final teamIds = team.map((e) => e.id).toList();
-
-      if (teamIds.isEmpty) {
-        return [];
-      }
+      if (teamIds.isEmpty) return [];
 
       var query = supabase
           .from('banco_horas')
-          .select() // Solo datos de banco_horas, sin JOIN
+          .select()
           .inFilter('empleado_id', teamIds);
 
       if (employeeId != null) {
@@ -280,16 +201,14 @@ class ManagerService {
       }
 
       final response = await query.order('creado_en', ascending: false);
-
-      return (response as List).map((e) => BancoHorasCompensatorias.fromJson(e)).toList();
+      return (response as List)
+          .map((e) => BancoHorasCompensatorias.fromJson(e))
+          .toList();
     } catch (e) {
       throw Exception('Error cargando banco de horas: $e');
     }
   }
 
-  /// Registrar movimiento en banco de horas.
-  /// 
-  /// Solo puede hacerlo para empleados de su equipo.
   Future<void> registerHours({
     required String employeeId,
     required double hours,
@@ -298,17 +217,11 @@ class ManagerService {
   }) async {
     try {
       final userId = supabase.auth.currentUser?.id;
-      if (userId == null) {
-        throw Exception('Usuario no autenticado');
-      }
+      if (userId == null) throw Exception('Usuario no autenticado');
 
-      // Validar que el empleado pertenece al equipo
       final isInTeam = await isEmployeeInMyTeam(employeeId);
-      if (!isInTeam) {
-        throw Exception('El empleado no pertenece a tu equipo');
-      }
+      if (!isInTeam) throw Exception('El empleado no pertenece a tu equipo');
 
-      // Obtener organizacion_id del empleado
       final employee = await supabase
           .from('perfiles')
           .select('organizacion_id')
@@ -325,6 +238,169 @@ class ManagerService {
       });
     } catch (e) {
       throw Exception('Error registrando horas: $e');
+    }
+  }
+
+  // Notificaciones -----------------------------------------------------------
+  Future<List<Map<String, dynamic>>> getMyNotifications() async {
+    try {
+      final userId = supabase.auth.currentUser?.id;
+      if (userId == null) throw Exception('Usuario no autenticado');
+
+      final response = await supabase
+          .from('notificaciones')
+          .select()
+          .eq('usuario_destino_id', userId)
+          .order('creado_en', ascending: false);
+
+      return List<Map<String, dynamic>>.from(response as List);
+    } catch (e) {
+      throw Exception('Error cargando notificaciones: $e');
+    }
+  }
+
+  Future<void> markNotificationAsRead(String notificationId) async {
+    try {
+      final userId = supabase.auth.currentUser?.id;
+      if (userId == null) throw Exception('Usuario no autenticado');
+
+      await supabase
+          .from('notificaciones')
+          .update({'leido': true})
+          .eq('id', notificationId)
+          .eq('usuario_destino_id', userId);
+    } catch (e) {
+      throw Exception('Error marcando notificación: $e');
+    }
+  }
+
+  // Plantillas / asignaciones de horarios ------------------------------------
+  Future<List<PlantillasHorarios>> getScheduleTemplates() async {
+    try {
+      final profile = await getMyProfile();
+      final orgId = profile.organizacionId;
+      if (orgId == null) throw Exception('El manager no tiene organización');
+
+      final response = await supabase
+          .from('plantillas_horarios')
+          .select()
+          .eq('organizacion_id', orgId)
+          .eq('eliminado', false)
+          .order('nombre', ascending: true);
+
+      return (response as List)
+          .map((json) => PlantillasHorarios.fromJson(json))
+          .toList();
+    } catch (e) {
+      throw Exception('Error cargando plantillas: $e');
+    }
+  }
+
+  Future<void> assignSchedule({
+    required String employeeId,
+    required String templateId,
+    required DateTime startDate,
+    DateTime? endDate,
+  }) async {
+    final profile = await getMyProfile();
+    final orgId = profile.organizacionId;
+    if (orgId == null) throw Exception('El manager no tiene organización');
+
+    final belongs = await isEmployeeInMyTeam(employeeId);
+    if (!belongs) throw Exception('El empleado no pertenece a tu equipo');
+
+    try {
+      await supabase.from('asignaciones_horarios').insert({
+        'perfil_id': employeeId,
+        'organizacion_id': orgId,
+        'plantilla_id': templateId,
+        'fecha_inicio':
+            DateTime(startDate.year, startDate.month, startDate.day).toIso8601String(),
+        'fecha_fin': endDate != null
+            ? DateTime(endDate.year, endDate.month, endDate.day).toIso8601String()
+            : null,
+      });
+    } catch (e) {
+      throw Exception('Error asignando horario: $e');
+    }
+  }
+
+  Future<void> updateSchedule({
+    required String assignmentId,
+    required String templateId,
+    required DateTime startDate,
+    DateTime? endDate,
+  }) async {
+    try {
+      final assignment = await supabase
+          .from('asignaciones_horarios')
+          .select('perfil_id')
+          .eq('id', assignmentId)
+          .maybeSingle();
+
+      if (assignment == null) throw Exception('Asignación no encontrada');
+      final belongs = await isEmployeeInMyTeam(assignment['perfil_id'] as String);
+      if (!belongs) throw Exception('No puedes editar asignaciones fuera de tu equipo');
+
+      await supabase.from('asignaciones_horarios').update({
+        'plantilla_id': templateId,
+        'fecha_inicio':
+            DateTime(startDate.year, startDate.month, startDate.day).toIso8601String(),
+        'fecha_fin': endDate != null
+            ? DateTime(endDate.year, endDate.month, endDate.day).toIso8601String()
+            : null,
+      }).eq('id', assignmentId);
+    } catch (e) {
+      throw Exception('Error actualizando horario: $e');
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getTeamSchedules({String? employeeId}) async {
+    try {
+      final team = await getMyTeam();
+      final teamIds = team.map((e) => e.id).toList();
+      if (teamIds.isEmpty) return [];
+
+      var query = supabase
+          .from('asignaciones_horarios')
+          .select('''
+            *,
+            plantillas_horarios(*),
+            perfiles(nombres, apellidos)
+          ''')
+          .inFilter('perfil_id', teamIds);
+
+      if (employeeId != null) {
+        query = query.eq('perfil_id', employeeId);
+      }
+
+      final response = await query.order('fecha_inicio', ascending: false);
+      return List<Map<String, dynamic>>.from(response as List);
+    } catch (e) {
+      throw Exception('Error obteniendo horarios del equipo: $e');
+    }
+  }
+
+  Future<Map<String, dynamic>?> getEmployeeActiveSchedule(String employeeId) async {
+    try {
+      final belongs = await isEmployeeInMyTeam(employeeId);
+      if (!belongs) throw Exception('El empleado no pertenece a tu equipo');
+
+      final todayStr = DateTime.now().toIso8601String().split('T').first;
+      final response = await supabase
+          .from('asignaciones_horarios')
+          .select('*, plantillas_horarios(*)')
+          .eq('perfil_id', employeeId)
+          .lte('fecha_inicio', todayStr)
+          .or('fecha_fin.is.null,fecha_fin.gte.$todayStr')
+          .order('fecha_inicio', ascending: false)
+          .limit(1)
+          .maybeSingle();
+
+      if (response == null) return null;
+      return Map<String, dynamic>.from(response);
+    } catch (e) {
+      throw Exception('Error obteniendo horario activo: $e');
     }
   }
 }

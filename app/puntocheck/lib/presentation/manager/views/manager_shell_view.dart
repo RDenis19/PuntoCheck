@@ -4,6 +4,7 @@ import 'package:puntocheck/providers/manager_providers.dart';
 import 'package:puntocheck/presentation/manager/views/manager_dashboard_view.dart';
 import 'package:puntocheck/presentation/manager/views/manager_team_view.dart';
 import 'package:puntocheck/presentation/manager/views/manager_attendance_view.dart';
+import 'package:puntocheck/presentation/manager/views/manager_shifts_view.dart';
 import 'package:puntocheck/presentation/manager/views/manager_profile_view.dart';
 import 'package:puntocheck/presentation/manager/widgets/manager_header.dart';
 import 'package:puntocheck/presentation/manager/widgets/manager_tab_navigation.dart';
@@ -32,7 +33,8 @@ class _ManagerShellViewState extends ConsumerState<ManagerShellView> {
       ManagerDashboardView(), // Tab 0: Inicio (con FAB)
       ManagerTeamView(), // Tab 1: Mi Equipo
       ManagerAttendanceView(), // Tab 2: Asistencia
-      ManagerProfileView(), // Tab 3: Perfil
+      ManagerShiftsView(), // Tab 3: Horarios
+      ManagerProfileView(), // Tab 4: Perfil
     ];
 
     return Scaffold(
@@ -48,9 +50,12 @@ class _ManagerShellViewState extends ConsumerState<ManagerShellView> {
                   orElse: () => 'Cargando...',
                 );
 
-                return ManagerHeader(
-                  userName: userName,
-                  organizationName: orgName,
+                return SafeArea(
+                  bottom: false,
+                  child: ManagerHeader(
+                    userName: userName,
+                    organizationName: orgName,
+                  ),
                 );
               },
               loading: () => const ManagerHeader(
