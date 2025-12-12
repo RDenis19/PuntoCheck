@@ -29,7 +29,7 @@ class SuperAdminService {
           .from('pagos_suscripciones')
           .select()
           .eq('estado', EstadoPago.aprobado.value)
-          .gte('fecha_pago', startOfMonth);
+          .gte('creado_en', startOfMonth);
 
       final organizations = organizationsResponse
           .map((e) => Organizaciones.fromJson(e as Map<String, dynamic>))

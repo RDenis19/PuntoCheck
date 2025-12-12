@@ -11,6 +11,7 @@ import '../models/pagos_suscripciones.dart';
 import '../models/perfiles.dart';
 import '../models/registros_asistencia.dart';
 import '../models/solicitudes_permisos.dart';
+import '../models/sucursales.dart';
 import 'auth_providers.dart';
 import 'core_providers.dart';
 import '../services/supabase_client.dart';
@@ -90,6 +91,12 @@ final orgAdminPaymentsProvider =
     FutureProvider.autoDispose<List<PagosSuscripciones>>((ref) async {
       final orgId = await _requireOrgId(ref);
       return ref.read(paymentsServiceProvider).listPayments(orgId: orgId);
+    });
+
+final orgAdminBranchesProvider =
+    FutureProvider.autoDispose<List<Sucursales>>((ref) async {
+      final orgId = await _requireOrgId(ref);
+      return ref.read(organizationServiceProvider).getBranches(orgId);
     });
 
 final orgAdminAttendanceProvider = FutureProvider.family

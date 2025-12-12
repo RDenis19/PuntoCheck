@@ -10,7 +10,7 @@ class PagosSuscripciones {
   final EstadoPago? estado; // Mapeado al Enum Dart
   final String? validadoPorId;
   final String? observaciones;
-  final DateTime? fechaPago;
+  final DateTime? creadoEn;
   final DateTime? fechaValidacion;
 
   PagosSuscripciones({
@@ -23,7 +23,7 @@ class PagosSuscripciones {
     this.estado,
     this.validadoPorId,
     this.observaciones,
-    this.fechaPago,
+    this.creadoEn,
     this.fechaValidacion,
   });
 
@@ -47,9 +47,13 @@ class PagosSuscripciones {
       validadoPorId: json['validado_por_id'],
       observaciones: json['observaciones'],
 
-      fechaPago: json['fecha_pago'] != null
-          ? DateTime.parse(json['fecha_pago'])
-          : null,
+      // El esquema nuevo usa `creado_en`; aceptamos `fecha_pago` por compatibilidad
+      // para despliegue sin romper datos previos.
+      creadoEn: json['creado_en'] != null
+          ? DateTime.parse(json['creado_en'])
+          : (json['fecha_pago'] != null
+              ? DateTime.parse(json['fecha_pago'])
+              : null),
 
       fechaValidacion: json['fecha_validacion'] != null
           ? DateTime.parse(json['fecha_validacion'])
@@ -67,7 +71,7 @@ class PagosSuscripciones {
     'estado': estado?.value, // Enviamos el string ('pendiente', etc.)
     'validado_por_id': validadoPorId,
     'observaciones': observaciones,
-    'fecha_pago': fechaPago?.toIso8601String(),
+    'creado_en': creadoEn?.toIso8601String(),
     'fecha_validacion': fechaValidacion?.toIso8601String(),
   };
 }

@@ -227,8 +227,10 @@ class _EmployeeHomeViewState extends ConsumerState<EmployeeHomeView> {
     }
 
     final plantilla = schedule.plantilla;
+    final entrada = (plantilla.horaEntrada ?? '--');
+    final salida = (plantilla.horaSalida ?? '--');
     final horarioStr =
-        '${plantilla.horaEntrada.substring(0, 5)} - ${plantilla.horaSalida.substring(0, 5)}';
+        '${entrada.length >= 5 ? entrada.substring(0, 5) : entrada} - ${salida.length >= 5 ? salida.substring(0, 5) : salida}';
 
     return Container(
       padding: const EdgeInsets.all(20),

@@ -339,7 +339,7 @@ class _OrgAdminNewScheduleViewState
         nombre: _nombreController.text.trim(),
         horaEntrada: '${_horaEntrada.hour.toString().padLeft(2, '0')}:${_horaEntrada.minute.toString().padLeft(2, '0')}:00',
         horaSalida: '${_horaSalida.hour.toString().padLeft(2, '0')}:${_horaSalida.minute.toString().padLeft(2, '0')}:00',
-        tiempoDescansoMinutos: int.parse(_descansoController.text),
+        toleranciaEntradaMinutos: int.parse(_descansoController.text),
         diasLaborales: _diasSeleccionados.toList()..sort(),
         esRotativo: _esRotativo,
       );

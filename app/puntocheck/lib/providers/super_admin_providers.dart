@@ -10,6 +10,7 @@ import '../models/perfiles.dart';
 import '../models/planes_suscripcion.dart';
 import '../models/registros_asistencia.dart';
 import '../models/super_admin_dashboard.dart';
+import '../models/notificacion.dart';
 import 'core_providers.dart';
 
 // ============================================================================
@@ -73,6 +74,13 @@ final supportRecentAttendanceProvider =
       return service.getAttendanceLogs(limit: 10);
     });
 
+/// Notificaciones globales del sistema (Super Admin).
+final superAdminNotificationsProvider =
+    FutureProvider.autoDispose<List<Notificacion>>((ref) {
+      final service = ref.watch(complianceServiceProvider);
+      return service.getSystemNotifications(limit: 50);
+    });
+
 // ============================================================================
 // Super Admin: controladores de accion
 // ============================================================================
@@ -96,6 +104,18 @@ class PlanEditorController extends AsyncNotifier<void> {
     state = const AsyncValue.loading();
     state = await AsyncValue.guard(
       () => ref.read(subscriptionServiceProvider).updatePlan(id, updates),
+    );
+    if (!state.hasError) {
+      ref
+        ..invalidate(subscriptionPlansProvider)
+        ..invalidate(superAdminDashboardProvider);
+    }
+  }
+
+  Future<void> deletePlan(String id) async {
+    state = const AsyncValue.loading();
+    state = await AsyncValue.guard(
+      () => ref.read(subscriptionServiceProvider).deletePlan(id),
     );
     if (!state.hasError) {
       ref
@@ -157,7 +177,6 @@ class OrganizationLifecycleController extends AsyncNotifier<void> {
   Future<void> assignPlan({
     required String orgId,
     required String planId,
-    DateTime? startDate,
     DateTime? endDate,
   }) async {
     state = const AsyncValue.loading();
@@ -167,7 +186,6 @@ class OrganizationLifecycleController extends AsyncNotifier<void> {
           .assignPlan(
             orgId: orgId,
             planId: planId,
-            startDate: startDate,
             endDate: endDate,
           ),
     );

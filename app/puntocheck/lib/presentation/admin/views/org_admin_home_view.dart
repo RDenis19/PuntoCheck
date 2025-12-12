@@ -101,7 +101,7 @@ class _OrgAdminHomeViewState extends ConsumerState<OrgAdminHomeView> {
                   ),
                   const SizedBox(height: 12),
                   _SubscriptionBanner(org: summary.organization),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 10),
                   GridView.count(
                     crossAxisCount: 2,
                     mainAxisSpacing: 12,
@@ -240,59 +240,65 @@ class _OrgAdminHomeViewState extends ConsumerState<OrgAdminHomeView> {
   }
 }
 
-class _SectionCard extends StatelessWidget {
-  final String title;
-  final Widget child;
+class _QuickActionData {
+  final IconData icon;
+  final String label;
+  final String route;
 
-  const _SectionCard({required this.title, required this.child});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.secondaryWhite,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.neutral200),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: const TextStyle(
-              fontWeight: FontWeight.w800,
-              color: AppColors.neutral900,
-            ),
-          ),
-          const SizedBox(height: 10),
-          child,
-        ],
-      ),
-    );
-  }
+  const _QuickActionData({
+    required this.icon,
+    required this.label,
+    required this.route,
+  });
 }
 
-class _EmptyWithIcon extends StatelessWidget {
+class _QuickAction extends StatelessWidget {
   final IconData icon;
-  final String text;
-  const _EmptyWithIcon({required this.icon, required this.text});
+  final String label;
+  final VoidCallback onTap;
+
+  const _QuickAction({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 12),
-      child: Row(
-        children: [
-          Icon(icon, color: AppColors.neutral500),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              text,
-              style: const TextStyle(color: AppColors.neutral700),
-            ),
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppColors.neutral200),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x11000000),
+                blurRadius: 6,
+                offset: Offset(0, 2),
+              ),
+            ],
           ),
-        ],
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, color: AppColors.primaryRed),
+              const SizedBox(width: 8),
+              Text(
+                label,
+                style: const TextStyle(
+                  color: AppColors.neutral900,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -322,69 +328,6 @@ class _ErrorText extends StatelessWidget {
   }
 }
 
-class _QuickActionData {
-  final IconData icon;
-  final String label;
-  final String route;
-
-  const _QuickActionData({
-    required this.icon,
-    required this.label,
-    required this.route,
-  });
-}
-
-class _QuickAction extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-
-  const _QuickAction({
-    required this.icon,
-    required this.label,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(14),
-          boxShadow: const [
-            BoxShadow(
-              color: Color(0x0F000000),
-              blurRadius: 12,
-              offset: Offset(0, 6),
-            ),
-          ],
-          border: Border.all(color: AppColors.neutral200),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, color: AppColors.primaryRed, size: 20),
-            const SizedBox(width: 8),
-            Text(
-              label,
-              style: const TextStyle(
-                color: AppColors.neutral900,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ============================================================================
-// Banner de estado de suscripcion
-// ============================================================================
 class _SubscriptionBanner extends StatelessWidget {
   final Organizaciones org;
 

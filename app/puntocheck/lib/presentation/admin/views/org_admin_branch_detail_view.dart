@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:puntocheck/models/enums.dart';
+import 'package:puntocheck/models/perfiles.dart';
+import 'package:puntocheck/models/encargados_sucursales.dart';
 import 'package:puntocheck/models/sucursales.dart';
 import 'package:puntocheck/models/sucursal_geo_extension.dart';
 import 'package:puntocheck/presentation/admin/widgets/org_admin_branch_form.dart';
@@ -8,6 +11,15 @@ import 'package:puntocheck/providers/app_providers.dart';
 import 'package:puntocheck/presentation/admin/views/org_admin_branch_location_picker_view.dart';
 import 'package:puntocheck/presentation/admin/views/org_admin_branch_qr_view.dart';
 import 'package:puntocheck/utils/theme/app_colors.dart';
+
+final _branchManagersProvider =
+    FutureProvider.family<List<EncargadosSucursales>, String>((ref, branchId) {
+      return ref.watch(staffServiceProvider).getBranchManagers(branchId);
+    });
+final _branchStaffProvider =
+    FutureProvider.family<List<Perfiles>, String>((ref, orgId) {
+      return ref.watch(staffServiceProvider).getStaff(orgId);
+    });
 
 class OrgAdminBranchDetailView extends ConsumerStatefulWidget {
   final Sucursales branch;
@@ -85,6 +97,8 @@ class _OrgAdminBranchDetailViewState extends ConsumerState<OrgAdminBranchDetailV
               ),
               const SizedBox(height: 8),
               _CoordsRow(branch: _editableBranch),
+              const SizedBox(height: 12),
+              _BranchManagersSection(branch: _editableBranch),
               const SizedBox(height: 12),
               OrgAdminBranchForm(
                 key: ValueKey(_editableBranch.ubicacionCentral.toString()),
@@ -258,9 +272,10 @@ class _CoordsRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final coords = branch.ubicacionCentral?['coordinates'] as List?;
-    final lat = coords != null && coords.length == 2 ? (coords[1] as num?)?.toDouble() : null;
-    final lon = coords != null && coords.length == 2 ? (coords[0] as num?)?.toDouble() : null;
+    final center =
+        branch.centerLatLng ?? const LatLng(-4.0033, -79.2030); // fallback mostrado en mapa
+    final lat = center.latitude;
+    final lon = center.longitude;
     return Row(
       children: [
         Expanded(
@@ -302,6 +317,214 @@ class _CoordsRow extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Encargados de sucursal
+// ---------------------------------------------------------------------------
+class _BranchManagersSection extends ConsumerStatefulWidget {
+  final Sucursales branch;
+
+  const _BranchManagersSection({required this.branch});
+
+  @override
+  ConsumerState<_BranchManagersSection> createState() =>
+      _BranchManagersSectionState();
+}
+
+class _BranchManagersSectionState
+    extends ConsumerState<_BranchManagersSection> {
+  bool _processing = false;
+
+  Future<void> _addManager(BuildContext context) async {
+    setState(() => _processing = true);
+    try {
+      final staff = await ref
+          .read(staffServiceProvider)
+          .getStaff(widget.branch.organizacionId);
+      final managers =
+          staff.where((p) => p.rol == RolUsuario.manager).toList();
+
+      final assigned = await ref
+          .read(staffServiceProvider)
+          .getBranchManagers(widget.branch.id);
+      final assignedIds = assigned.map((e) => e.managerId).toSet();
+
+      final available =
+          managers.where((m) => !assignedIds.contains(m.id)).toList();
+
+      final selected = await showDialog<Perfiles>(
+        context: context,
+        builder: (_) => _ManagerPickerDialog(managers: available),
+      );
+      if (selected == null) return;
+
+      await ref.read(staffServiceProvider).assignBranchManager(
+            branchId: widget.branch.id,
+            managerId: selected.id,
+          );
+      ref.invalidate(_branchManagersProvider(widget.branch.id));
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error asignando encargado: $e')),
+      );
+    } finally {
+      if (mounted) setState(() => _processing = false);
+    }
+  }
+
+  Future<void> _removeManager(
+    BuildContext context,
+    String assignmentId,
+  ) async {
+    setState(() => _processing = true);
+    try {
+      await ref
+          .read(staffServiceProvider)
+          .deactivateBranchManager(assignmentId);
+      ref.invalidate(_branchManagersProvider(widget.branch.id));
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error quitando encargado: $e')),
+      );
+    } finally {
+      if (mounted) setState(() => _processing = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final managersAsync = ref.watch(_branchManagersProvider(widget.branch.id));
+    final staffAsync = ref.watch(_branchStaffProvider(widget.branch.organizacionId));
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const Text(
+              'Encargados de la sucursal',
+              style: TextStyle(
+                fontWeight: FontWeight.w700,
+                color: AppColors.neutral900,
+              ),
+            ),
+            const Spacer(),
+            TextButton.icon(
+              onPressed: _processing ? null : () => _addManager(context),
+              icon: const Icon(Icons.add, color: AppColors.primaryRed),
+              label: const Text(
+                'Agregar',
+                style: TextStyle(color: AppColors.primaryRed),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 6),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: AppColors.neutral100,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppColors.neutral200),
+          ),
+          child: managersAsync.when(
+            data: (list) {
+              return staffAsync.when(
+                data: (staff) {
+                  final staffMap = {
+                    for (final p in staff) p.id: p,
+                  };
+                  if (list.isEmpty) {
+                    return const Text(
+                      'Sin encargados asignados.',
+                      style: TextStyle(color: AppColors.neutral700),
+                    );
+                  }
+                  return Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: list.map((item) {
+                      final perfil =
+                          item.managerProfile ?? staffMap[item.managerId];
+                      final label = perfil != null
+                          ? '${perfil.nombres} ${perfil.apellidos}'
+                          : item.managerId;
+                      return InputChip(
+                        label: Text(label),
+                        deleteIcon: const Icon(Icons.close, size: 18),
+                        onDeleted: _processing
+                            ? null
+                            : () => _removeManager(context, item.id),
+                      );
+                    }).toList(),
+                  );
+                },
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (e, _) => Text(
+                  'No se pudieron cargar encargados: $e',
+                  style: const TextStyle(color: AppColors.errorRed),
+                ),
+              );
+            },
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (e, _) => Text(
+              'No se pudieron cargar encargados: $e',
+              style: const TextStyle(color: AppColors.errorRed),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ManagerPickerDialog extends StatefulWidget {
+  const _ManagerPickerDialog({required this.managers});
+
+  final List<Perfiles> managers;
+
+  @override
+  State<_ManagerPickerDialog> createState() => _ManagerPickerDialogState();
+}
+
+class _ManagerPickerDialogState extends State<_ManagerPickerDialog> {
+  Perfiles? selected;
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Seleccionar manager'),
+      content: DropdownButtonFormField<Perfiles>(
+        value: selected,
+        items: widget.managers
+            .map(
+              (m) => DropdownMenuItem(
+                value: m,
+                child: Text('${m.nombres} ${m.apellidos}'),
+              ),
+            )
+            .toList(),
+        onChanged: (value) => setState(() => selected = value),
+        decoration: const InputDecoration(
+          labelText: 'Manager',
+          border: OutlineInputBorder(),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Cancelar'),
+        ),
+        ElevatedButton(
+          onPressed: selected == null
+              ? null
+              : () => Navigator.of(context).pop(selected),
+          child: const Text('Asignar'),
+        ),
+      ],
     );
   }
 }

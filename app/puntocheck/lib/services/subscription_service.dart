@@ -51,6 +51,7 @@ class SubscriptionService {
       final data = plan.toJson();
       data.remove('id');
       data.remove('creado_en');
+      data.remove('tiene_api_access');
 
       await supabase.from('planes_suscripcion').insert(data);
     } catch (e) {
@@ -61,6 +62,7 @@ class SubscriptionService {
   /// Modificar plan existente (Solo Super Admin)
   Future<void> updatePlan(String id, Map<String, dynamic> updates) async {
     try {
+      updates.remove('tiene_api_access');
       await supabase.from('planes_suscripcion').update(updates).eq('id', id);
     } catch (e) {
       throw Exception('Error actualizando plan: $e');
@@ -100,7 +102,7 @@ class SubscriptionService {
           .from('pagos_suscripciones')
           .select()
           .eq('estado', EstadoPago.pendiente.value)
-          .order('fecha_pago', ascending: false);
+          .order('creado_en', ascending: false);
       return (response as List)
           .map((e) => PagosSuscripciones.fromJson(e))
           .toList();
@@ -118,7 +120,7 @@ class SubscriptionService {
           .from('pagos_suscripciones')
           .select()
           .eq('organizacion_id', orgId)
-          .order('fecha_pago', ascending: false);
+          .order('creado_en', ascending: false);
 
       return (response as List)
           .map((e) => PagosSuscripciones.fromJson(e))
@@ -155,6 +157,30 @@ class SubscriptionService {
       // el estado de la organización a 'activo'.
     } catch (e) {
       throw Exception('Error validando pago: $e');
+    }
+  }
+
+  /// Eliminar plan (Solo Super Admin)
+  Future<void> deletePlan(String id) async {
+    try {
+      await supabase.from('planes_suscripcion').delete().eq('id', id);
+    } catch (e) {
+      throw Exception('Error eliminando plan: $e');
+    }
+  }
+
+  /// Obtener plan por id (lectura para Org Admin/Super Admin)
+  Future<PlanesSuscripcion?> getPlanById(String id) async {
+    try {
+      final response = await supabase
+          .from('planes_suscripcion')
+          .select()
+          .eq('id', id)
+          .maybeSingle();
+      if (response == null) return null;
+      return PlanesSuscripcion.fromJson(response as Map<String, dynamic>);
+    } catch (e) {
+      throw Exception('Error obteniendo plan: $e');
     }
   }
 }

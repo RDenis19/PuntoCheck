@@ -103,7 +103,6 @@ class OrganizationService {
   Future<void> assignPlan({
     required String orgId,
     required String planId,
-    DateTime? startDate,
     DateTime? endDate,
   }) async {
     try {
@@ -111,8 +110,6 @@ class OrganizationService {
           .from('organizaciones')
           .update({
             'plan_id': planId,
-            if (startDate != null)
-              'fecha_inicio_suscripcion': startDate.toIso8601String(),
             if (endDate != null)
               'fecha_fin_suscripcion': endDate.toIso8601String(),
           })
@@ -170,7 +167,7 @@ class OrganizationService {
   Future<List<Sucursales>> getBranches(String orgId) async {
     try {
       final response = await supabase
-          .from('sucursales_app')
+          .from('sucursales')
           .select(
             'id, organizacion_id, nombre, direccion, ubicacion_central, radio_metros, tiene_qr_habilitado, device_id_qr_asignado, eliminado, creado_en',
           )
@@ -229,7 +226,7 @@ class OrganizationService {
   Future<List<Sucursales>> getBranchesRls() async {
     try {
       final response = await supabase
-          .from('sucursales_app')
+          .from('sucursales')
           .select(
             'id, nombre, direccion, organizacion_id, ubicacion_central, radio_metros, tiene_qr_habilitado, device_id_qr_asignado, eliminado, creado_en',
           )

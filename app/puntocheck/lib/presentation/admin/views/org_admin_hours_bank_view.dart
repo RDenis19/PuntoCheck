@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:puntocheck/models/banco_horas_compensatorias.dart';
 import 'package:puntocheck/presentation/admin/views/org_admin_new_hours_entry_view.dart';
 import 'package:puntocheck/presentation/admin/widgets/empty_state.dart';
 import 'package:puntocheck/presentation/admin/widgets/hours_bank_card.dart';

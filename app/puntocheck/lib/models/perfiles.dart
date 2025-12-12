@@ -10,7 +10,7 @@ class Perfiles {
   final String? email;
   final RolUsuario? rol;
   final String? cargo;
-  final String? jefeInmediatoId;
+  final String? sucursalId;
   final String? telefono;
   final String? fotoPerfilUrl;
   final bool? activo;
@@ -28,7 +28,7 @@ class Perfiles {
     this.email,
     this.rol,
     this.cargo,
-    this.jefeInmediatoId,
+    this.sucursalId,
     this.telefono,
     this.fotoPerfilUrl,
     this.activo,
@@ -48,7 +48,7 @@ class Perfiles {
       email: json['email'] ?? json['correo'],
       rol: json['rol'] != null ? RolUsuario.fromString(json['rol']) : null,
       cargo: json['cargo'],
-      jefeInmediatoId: json['jefe_inmediato_id'],
+      sucursalId: json['sucursal_id'],
       telefono: json['telefono'],
       fotoPerfilUrl: json['foto_perfil_url'],
       activo: json['activo'],
@@ -72,7 +72,7 @@ class Perfiles {
     'cedula': cedula,
     'rol': rol?.value,
     'cargo': cargo,
-    'jefe_inmediato_id': jefeInmediatoId,
+    'sucursal_id': sucursalId,
     'telefono': telefono,
     'foto_perfil_url': fotoPerfilUrl,
     'activo': activo,

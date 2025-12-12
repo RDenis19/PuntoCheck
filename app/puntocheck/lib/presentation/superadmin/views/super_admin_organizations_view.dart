@@ -476,10 +476,10 @@ class _PaymentCard extends StatelessWidget {
                   'Org: ${pago.organizacionId} | Ref: ${pago.referenciaBancaria ?? 'Sin referencia'}',
                   style: const TextStyle(color: Colors.white70),
                 ),
-                if (pago.fechaPago != null) ...[
+                if (pago.creadoEn != null) ...[
                   const SizedBox(height: 4),
                   Text(
-                    'Fecha: ${pago.fechaPago!.toLocal().toString().split(' ').first}',
+                    'Fecha: ${pago.creadoEn!.toLocal().toString().split(' ').first}',
                     style: const TextStyle(color: Colors.white70),
                   ),
                 ],

@@ -58,6 +58,11 @@ class SuperAdminTabNavigation extends StatelessWidget {
               label: 'Organizaciones',
             ),
             BottomNavigationBarItem(
+              icon: Icon(Icons.notifications_outlined),
+              activeIcon: Icon(Icons.notifications),
+              label: 'Avisos',
+            ),
+            BottomNavigationBarItem(
               icon: Icon(Icons.credit_card_outlined),
               activeIcon: Icon(Icons.credit_card),
               label: 'Planes',

@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:puntocheck/models/super_admin_dashboard.dart';
@@ -30,6 +30,15 @@ class SuperAdminHomeView extends ConsumerWidget {
                 const SizedBox(height: 12),
                 _BillingCard(monthlyRevenue: data.monthlyRevenue),
                 const SizedBox(height: 12),
+                const Text(
+                  'Informaciónn de organizaciones',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w800,
+                    fontSize: 16,
+                    color: AppColors.neutral900,
+                  ),
+                ),
+                const SizedBox(height: 10),
                 _StatusGrid(
                   total: data.totalOrganizations,
                   active: data.activeOrganizations,
@@ -106,7 +115,7 @@ class _BillingCard extends StatelessWidget {
         border: Border.all(color: const Color(0xFFEFF3FB)),
         boxShadow: const [
           BoxShadow(
-            color: Color(0x0F000000),
+            color: Color(0x1A000000),
             blurRadius: 18,
             offset: Offset(0, 10),
           ),
@@ -117,7 +126,7 @@ class _BillingCard extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: const Color(0xFFFDECEC),
+              color: AppColors.primaryRed.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(16),
             ),
             child: const Icon(Icons.attach_money, color: AppColors.primaryRed),
@@ -183,22 +192,16 @@ class _StatusGrid extends StatelessWidget {
         _MiniCard(
           label: 'Total',
           value: total,
-          color: const Color(0xFFEFF4FF),
-          textColor: const Color(0xFF6366F1),
           icon: Icons.apartment_rounded,
         ),
         _MiniCard(
           label: 'Activas',
           value: active,
-          color: const Color(0xFFE8F9F1),
-          textColor: const Color(0xFF10B981),
           icon: Icons.verified_outlined,
         ),
         _MiniCard(
           label: 'Prueba',
           value: trial,
-          color: const Color(0xFFFFF3E0),
-          textColor: const Color(0xFFFB923C),
           icon: Icons.timer_outlined,
         ),
       ],
@@ -210,15 +213,11 @@ class _MiniCard extends StatelessWidget {
   const _MiniCard({
     required this.label,
     required this.value,
-    required this.color,
-    required this.textColor,
     required this.icon,
   });
 
   final String label;
   final int value;
-  final Color color;
-  final Color textColor;
   final IconData icon;
 
   @override
@@ -226,13 +225,19 @@ class _MiniCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
       decoration: BoxDecoration(
-        color: color,
+        gradient: LinearGradient(
+          colors: [
+            AppColors.primaryRed,
+            AppColors.primaryRedDark.withValues(alpha: 0.92),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: color),
         boxShadow: const [
           BoxShadow(
-            color: Color(0x0F000000),
-            blurRadius: 10,
+            color: Color(0x1A000000),
+            blurRadius: 12,
             offset: Offset(0, 6),
           ),
         ],
@@ -245,10 +250,10 @@ class _MiniCard extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.8),
+                color: Colors.white.withValues(alpha: 0.16),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: Icon(icon, color: textColor, size: 18),
+              child: Icon(icon, color: Colors.white, size: 18),
             ),
           ),
           const SizedBox(height: 12),
@@ -256,10 +261,10 @@ class _MiniCard extends StatelessWidget {
             alignment: Alignment.centerLeft,
             child: Text(
               value.toString(),
-              style: TextStyle(
-                fontWeight: FontWeight.w800,
-                fontSize: 18,
-                color: textColor,
+              style: const TextStyle(
+                fontWeight: FontWeight.w900,
+                fontSize: 20,
+                color: Colors.white,
               ),
             ),
           ),
@@ -269,8 +274,8 @@ class _MiniCard extends StatelessWidget {
             child: Text(
               label,
               style: TextStyle(
-                color: textColor,
-                fontWeight: FontWeight.w600,
+                color: Colors.white.withValues(alpha: 0.9),
+                fontWeight: FontWeight.w700,
               ),
             ),
           ),
@@ -366,3 +371,10 @@ class _ErrorState extends StatelessWidget {
     );
   }
 }
+
+
+
+
+
+
+

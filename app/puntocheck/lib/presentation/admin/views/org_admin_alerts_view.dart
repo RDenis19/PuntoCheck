@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:puntocheck/models/alertas_cumplimiento.dart';
-import 'package:puntocheck/models/notificacion.dart';
-import 'package:puntocheck/models/auditoria_log.dart';
 import 'package:puntocheck/models/enums.dart';
 import 'package:puntocheck/providers/org_admin_providers.dart';
 import 'package:puntocheck/providers/auth_providers.dart';

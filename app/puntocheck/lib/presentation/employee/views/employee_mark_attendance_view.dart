@@ -30,6 +30,7 @@ class _EmployeeMarkAttendanceViewState extends ConsumerState<EmployeeMarkAttenda
   // GPS State
   GoogleMapController? _mapController;
   Position? _currentPosition;
+  LatLng? _fallbackCenter;
   Set<Circle> _circles = {};
   Set<Marker> _markers = {};
   bool _isLocating = true;
@@ -149,13 +150,14 @@ class _EmployeeMarkAttendanceViewState extends ConsumerState<EmployeeMarkAttenda
   Future<void> _setupMapAndGeofences() async {
     final List<Sucursales> branches =
         await ref.read(employeeBranchesProvider.future);
-    if (_currentPosition == null) return;
+    if (_currentPosition == null && branches.isEmpty) return;
 
-    final myLat = _currentPosition!.latitude;
-    final myLng = _currentPosition!.longitude;
-    
+    final myLat = _currentPosition?.latitude;
+    final myLng = _currentPosition?.longitude;
+
     double minDistance = double.infinity;
     Sucursales? nearestBranch;
+    LatLng? nearestCenter;
 
     final Set<Circle> newCircles = {};
     final Set<Marker> newMarkers = {};
@@ -169,11 +171,14 @@ class _EmployeeMarkAttendanceViewState extends ConsumerState<EmployeeMarkAttenda
       if (bLat == null || bLng == null) continue;
 
       final double radius = (branch.radioMetros ?? 50).toDouble();
-      final dist = Geolocator.distanceBetween(myLat, myLng, bLat, bLng);
+      final dist = (myLat != null && myLng != null)
+          ? Geolocator.distanceBetween(myLat, myLng, bLat, bLng)
+          : double.infinity;
 
       if (dist < minDistance) {
         minDistance = dist;
         nearestBranch = branch;
+        nearestCenter = LatLng(bLat, bLng);
       }
 
       newCircles.add(
@@ -227,9 +232,10 @@ class _EmployeeMarkAttendanceViewState extends ConsumerState<EmployeeMarkAttenda
         _isInsideGeofence = inside;
         _nearestBranchId = nBranchId;
         _nearestBranchName = nBranchName;
+        _fallbackCenter ??= nearestCenter;
       });
       _mapController?.animateCamera(
-        CameraUpdate.newLatLngZoom(LatLng(myLat, myLng), 17),
+        CameraUpdate.newLatLngZoom(LatLng(myLat ?? 0, myLng ?? 0), 17),
       );
     }
   }
@@ -374,10 +380,12 @@ class _EmployeeMarkAttendanceViewState extends ConsumerState<EmployeeMarkAttenda
   Widget _buildGpsTab(bool isSubmitting) {
     return Stack(
       children: [
-        if (_currentPosition != null)
+        if (_currentPosition != null || _fallbackCenter != null)
           GoogleMap(
             initialCameraPosition: CameraPosition(
-              target: LatLng(_currentPosition!.latitude, _currentPosition!.longitude),
+              target: _currentPosition != null
+                  ? LatLng(_currentPosition!.latitude, _currentPosition!.longitude)
+                  : _fallbackCenter!,
               zoom: 17,
               tilt: 45,
             ),

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:puntocheck/models/enums.dart';
 import 'package:puntocheck/models/perfiles.dart';
-import 'package:puntocheck/presentation/admin/widgets/manager_selector.dart';
+import 'package:puntocheck/presentation/admin/widgets/branch_selector.dart';
 import 'package:puntocheck/presentation/common/widgets/app_snackbar.dart';
 import 'package:puntocheck/providers/app_providers.dart';
 import 'package:puntocheck/utils/theme/app_colors.dart';
@@ -29,7 +29,7 @@ class _OrgAdminEditPersonViewState
   final _cargoCtrl = TextEditingController();
 
   RolUsuario _role = RolUsuario.employee;
-  String? _jefeInmediatoId;
+  String? _sucursalId;
   bool _activo = true;
   bool _isSaving = false;
   Perfiles? _perfil;
@@ -54,7 +54,7 @@ class _OrgAdminEditPersonViewState
     _telCtrl.text = perfil.telefono ?? '';
     _cargoCtrl.text = perfil.cargo ?? '';
     _role = perfil.rol ?? RolUsuario.employee;
-    _jefeInmediatoId = perfil.jefeInmediatoId;
+    _sucursalId = perfil.sucursalId;
     _activo = perfil.activo ?? true;
   }
 
@@ -78,7 +78,7 @@ class _OrgAdminEditPersonViewState
           'cedula': cedula.isEmpty ? null : cedula,
           'telefono': telefono.isEmpty ? null : telefono,
           'cargo': cargo.isEmpty ? null : cargo,
-          'jefe_inmediato_id': _jefeInmediatoId,
+          'sucursal_id': _sucursalId,
           'activo': _activo,
         }..removeWhere((key, value) => value == null),
       );
@@ -132,7 +132,7 @@ class _OrgAdminEditPersonViewState
     final isOwnProfile = currentUserId == widget.userId;
 
     // Lista de roles permitidos para edición
-    final rolesPermitidos = [
+    final rolesPermitidos = <DropdownMenuItem<RolUsuario>>[
       const DropdownMenuItem(
         value: RolUsuario.employee,
         child: Text('Empleado'),
@@ -147,15 +147,16 @@ class _OrgAdminEditPersonViewState
       ),
     ];
 
-    // Si es admin/superadmin editando su propio perfil, agregar su rol actual
-    if (isOwnProfile &&
-        (_role == RolUsuario.orgAdmin || _role == RolUsuario.superAdmin)) {
+    // Si el rol actual no está en la lista (ej. org_admin / super_admin), agregarlo para evitar crash.
+    final needsSpecialRole = _role == RolUsuario.orgAdmin || _role == RolUsuario.superAdmin;
+    final alreadyIncluded = rolesPermitidos.any((item) => item.value == _role);
+    if (needsSpecialRole && !alreadyIncluded) {
       rolesPermitidos.add(
         DropdownMenuItem(
           value: _role,
-          child: Text(_role == RolUsuario.orgAdmin
-              ? 'Administrador'
-              : 'Super Administrador'),
+          child: Text(
+            _role == RolUsuario.orgAdmin ? 'Administrador' : 'Super Administrador',
+          ),
         ),
       );
     }
@@ -312,10 +313,11 @@ class _OrgAdminEditPersonViewState
                 textCapitalization: TextCapitalization.words,
               ),
               const SizedBox(height: 16),
-              ManagerSelector(
-                selectedManagerId: _jefeInmediatoId,
-                onChanged: (value) => setState(() => _jefeInmediatoId = value),
-                currentUserId: widget.userId, // Excluir al usuario actual
+              BranchSelector(
+                label: 'Sucursal',
+                selectedBranchId: _sucursalId,
+                showAllOption: false,
+                onChanged: (value) => setState(() => _sucursalId = value),
               ),
             ],
           ),

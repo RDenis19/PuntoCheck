@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:puntocheck/models/perfiles.dart';
 import 'package:puntocheck/models/registros_asistencia.dart';
+import 'package:puntocheck/models/sucursales.dart';
 import 'package:puntocheck/presentation/admin/views/org_admin_edit_person_view.dart';
 import 'package:puntocheck/presentation/common/widgets/app_snackbar.dart';
 import 'package:puntocheck/presentation/common/widgets/confirm_dialog.dart';
@@ -417,19 +418,7 @@ class _PersonalInfoSection extends StatelessWidget {
                   : 'No asignado',
             ),
             const Divider(height: 24),
-            perfil.jefeInmediatoId != null
-                ? _InfoItemAsync(
-                    icon: Icons.supervisor_account_rounded,
-                    iconColor: AppColors.neutral600,
-                    label: 'Jefe inmediato',
-                    jefeId: perfil.jefeInmediatoId!,
-                  )
-                : _InfoItem(
-                    icon: Icons.supervisor_account_rounded,
-                    iconColor: AppColors.neutral600,
-                    label: 'Jefe inmediato',
-                    value: 'Sin jefe asignado',
-                  ),
+            _BranchInfo(perfil: perfil),
             if (perfil.creadoEn != null) ...[
               const Divider(height: 24),
               _InfoItem(
@@ -823,41 +812,44 @@ class _ErrorView extends StatelessWidget {
 // ============================================================================
 // Item de información con carga asíncrona (para jefe inmediato)
 // ============================================================================
-class _InfoItemAsync extends ConsumerWidget {
-  final IconData icon;
-  final Color iconColor;
-  final String label;
-  final String jefeId;
+class _BranchInfo extends ConsumerWidget {
+  const _BranchInfo({required this.perfil});
 
-  const _InfoItemAsync({
-    required this.icon,
-    required this.iconColor,
-    required this.label,
-    required this.jefeId,
-  });
+  final Perfiles perfil;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final jefeAsync = ref.watch(orgAdminPersonProvider(jefeId));
+    final branchesAsync = ref.watch(orgAdminBranchesProvider);
+    final branchId = perfil.sucursalId;
 
-    return jefeAsync.when(
-      data: (jefe) => _InfoItem(
-        icon: icon,
-        iconColor: iconColor,
-        label: label,
-        value: jefe.nombreCompleto,
-      ),
-      loading: () => _InfoItem(
-        icon: icon,
-        iconColor: iconColor,
-        label: label,
+    return branchesAsync.when(
+      data: (branches) {
+        final branch = branches.firstWhere(
+          (b) => b.id == branchId,
+          orElse: () => Sucursales(
+            id: '',
+            organizacionId: perfil.organizacionId ?? '',
+            nombre: 'Sin sucursal',
+          ),
+        );
+        return _InfoItem(
+          icon: Icons.store_mall_directory_outlined,
+          iconColor: AppColors.neutral600,
+          label: 'Sucursal',
+          value: branchId == null ? 'Sin sucursal' : branch.nombre,
+        );
+      },
+      loading: () => const _InfoItem(
+        icon: Icons.store_mall_directory_outlined,
+        iconColor: AppColors.neutral600,
+        label: 'Sucursal',
         value: 'Cargando...',
       ),
-      error: (_, __) => _InfoItem(
-        icon: icon,
-        iconColor: iconColor,
-        label: label,
-        value: 'Error al cargar',
+      error: (e, _) => _InfoItem(
+        icon: Icons.store_mall_directory_outlined,
+        iconColor: AppColors.errorRed,
+        label: 'Sucursal',
+        value: 'Error: $e',
       ),
     );
   }

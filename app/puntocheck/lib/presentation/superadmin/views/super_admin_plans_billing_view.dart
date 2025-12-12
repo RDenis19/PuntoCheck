@@ -4,6 +4,7 @@ import 'package:puntocheck/models/enums.dart';
 import 'package:puntocheck/models/pagos_suscripciones.dart';
 import 'package:puntocheck/models/planes_suscripcion.dart';
 import 'package:puntocheck/models/super_admin_dashboard.dart';
+import 'package:puntocheck/presentation/shared/widgets/app_snackbar.dart';
 import 'package:puntocheck/presentation/shared/widgets/empty_state.dart';
 import 'package:puntocheck/providers/app_providers.dart';
 import 'package:puntocheck/utils/theme/app_colors.dart';
@@ -70,6 +71,7 @@ class _SuperAdminPlansBillingViewState
                     .read(planEditorControllerProvider.notifier)
                     .updatePlan(plan.id, {'activo': !(plan.activo ?? true)}),
                 onEditPrice: (plan) => _openEditPriceDialog(context, ref, plan),
+                onDelete: (plan) => _confirmDeletePlan(context, ref, plan),
               ),
               const SizedBox(height: 18),
               _PaymentsSection(
@@ -140,8 +142,22 @@ class _SuperAdminPlansBillingViewState
       builder: (_) => const _CreatePlanDialog(),
     );
 
-    if (plan != null) {
+    if (plan == null) return;
+
+    try {
       await ref.read(planEditorControllerProvider.notifier).createPlan(plan);
+      final state = ref.read(planEditorControllerProvider);
+      if (state.hasError) {
+        showAppSnack(
+          context,
+          'Error creando plan: ${state.error}',
+          isError: true,
+        );
+      } else {
+        showAppSnack(context, 'Plan creado correctamente');
+      }
+    } catch (e) {
+      showAppSnack(context, 'Error creando plan: $e', isError: true);
     }
   }
 
@@ -159,6 +175,47 @@ class _SuperAdminPlansBillingViewState
         plan.id,
         {'precio_mensual': newPrice},
       );
+    }
+  }
+
+  Future<void> _confirmDeletePlan(
+    BuildContext context,
+    WidgetRef ref,
+    PlanesSuscripcion plan,
+  ) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Eliminar plan'),
+        content: Text('¿Eliminar el plan "${plan.nombre}"?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.errorRed,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Eliminar'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+    try {
+      await ref.read(planEditorControllerProvider.notifier).deletePlan(plan.id);
+      final state = ref.read(planEditorControllerProvider);
+      if (state.hasError) {
+        showAppSnack(context, 'Error eliminando plan: ${state.error}', isError: true);
+      } else {
+        showAppSnack(context, 'Plan eliminado');
+      }
+    } catch (e) {
+      showAppSnack(context, 'Error eliminando plan: $e', isError: true);
     }
   }
 }
@@ -247,10 +304,10 @@ void _openPaymentDetail(
           ],
           const SizedBox(height: 6),
           Text('Comprobante: ${pago.comprobanteUrl}'),
-          if (pago.fechaPago != null) ...[
+          if (pago.creadoEn != null) ...[
             const SizedBox(height: 6),
             Text(
-              'Fecha pago: ${pago.fechaPago!.toLocal().toString().split(' ').first}',
+              'Registrado: ${pago.creadoEn!.toLocal().toString().split(' ').first}',
             ),
           ],
           if (pago.fechaValidacion != null) ...[
@@ -461,6 +518,7 @@ class _PlanSection extends StatelessWidget {
     required this.onCreate,
     required this.onToggleActive,
     required this.onEditPrice,
+    required this.onDelete,
   });
 
   final AsyncValue<List<PlanesSuscripcion>> plansAsync;
@@ -468,6 +526,7 @@ class _PlanSection extends StatelessWidget {
   final VoidCallback onCreate;
   final Future<void> Function(PlanesSuscripcion plan) onToggleActive;
   final Future<void> Function(PlanesSuscripcion plan) onEditPrice;
+  final Future<void> Function(PlanesSuscripcion plan) onDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -517,6 +576,7 @@ class _PlanSection extends StatelessWidget {
                     isSaving: isSaving,
                     onToggleActive: () => onToggleActive(plan),
                     onEditPrice: () => onEditPrice(plan),
+                    onDelete: () => onDelete(plan),
                   ),
                   const SizedBox(height: 10),
                 ],
@@ -543,12 +603,14 @@ class _PlanCard extends StatelessWidget {
     required this.isSaving,
     required this.onToggleActive,
     required this.onEditPrice,
+    required this.onDelete,
   });
 
   final PlanesSuscripcion plan;
   final bool isSaving;
   final VoidCallback onToggleActive;
   final VoidCallback onEditPrice;
+  final VoidCallback onDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -605,21 +667,21 @@ class _PlanCard extends StatelessWidget {
                 const SizedBox(height: 6),
                 Text(
                   '\$${plan.precioMensual.toStringAsFixed(2)} / mes | '
-                  '${plan.maxEmpleados} empleados | '
-                  '${plan.maxManagers} managers | '
-                  '${plan.storageLimitGb} GB',
+                  '${plan.maxUsuarios} usuarios | '
+                  '${plan.maxSucursales} sucursales | '
+                  '${plan.almacenamientoGb} GB',
                   style: const TextStyle(color: AppColors.neutral700),
                 ),
               ],
             ),
           ),
           const SizedBox(width: 8),
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              IconButton(
-                tooltip: isActive ? 'Pausar' : 'Activar',
-                onPressed: isSaving ? null : onToggleActive,
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  tooltip: isActive ? 'Pausar' : 'Activar',
+                  onPressed: isSaving ? null : onToggleActive,
                 icon: Icon(
                   isActive
                       ? Icons.pause_circle_outline
@@ -635,6 +697,14 @@ class _PlanCard extends StatelessWidget {
                 icon: const Icon(
                   Icons.edit_outlined,
                   color: AppColors.neutral700,
+                ),
+              ),
+              IconButton(
+                tooltip: 'Eliminar',
+                onPressed: isSaving ? null : onDelete,
+                icon: const Icon(
+                  Icons.delete_outline,
+                  color: AppColors.errorRed,
                 ),
               ),
             ],
@@ -897,16 +967,16 @@ class _CreatePlanDialog extends StatefulWidget {
 class _CreatePlanDialogState extends State<_CreatePlanDialog> {
   final nameController = TextEditingController();
   final priceController = TextEditingController(text: '0.00');
-  final employeesController = TextEditingController(text: '100');
-  final managersController = TextEditingController(text: '10');
+  final usuariosController = TextEditingController(text: '100');
+  final sucursalesController = TextEditingController(text: '3');
   final storageController = TextEditingController(text: '10');
 
   @override
   void dispose() {
     nameController.dispose();
     priceController.dispose();
-    employeesController.dispose();
-    managersController.dispose();
+    usuariosController.dispose();
+    sucursalesController.dispose();
     storageController.dispose();
     super.dispose();
   }
@@ -947,16 +1017,16 @@ class _CreatePlanDialogState extends State<_CreatePlanDialog> {
               ),
               const SizedBox(height: 10),
               _LabeledField(
-                label: 'Máx. empleados',
+                label: 'Max. usuarios',
                 hint: '100',
-                controller: employeesController,
+                controller: usuariosController,
                 keyboardType: TextInputType.number,
               ),
               const SizedBox(height: 10),
               _LabeledField(
-                label: 'Máx. managers',
-                hint: '10',
-                controller: managersController,
+                label: 'Max. sucursales',
+                hint: '3',
+                controller: sucursalesController,
                 keyboardType: TextInputType.number,
               ),
               const SizedBox(height: 10),
@@ -985,28 +1055,33 @@ class _CreatePlanDialogState extends State<_CreatePlanDialog> {
                           borderRadius: BorderRadius.circular(12),
                         ),
                       ),
-                      onPressed: () {
-                        final price = double.tryParse(priceController.text);
-                        final maxEmp = int.tryParse(employeesController.text);
-                        final maxManagers = int.tryParse(
-                          managersController.text,
+                    onPressed: () {
+                      final price = double.tryParse(priceController.text);
+                      final maxUsuarios = int.tryParse(usuariosController.text);
+                      final maxSucursales = int.tryParse(
+                        sucursalesController.text,
+                      );
+                      final storage = int.tryParse(storageController.text);
+                      if (price == null ||
+                          maxUsuarios == null ||
+                          maxSucursales == null ||
+                          storage == null) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Completa los datos numéricos del plan'),
+                            backgroundColor: AppColors.errorRed,
+                          ),
                         );
-                        final storage = int.tryParse(storageController.text);
-                        if (price == null ||
-                            maxEmp == null ||
-                            maxManagers == null ||
-                            storage == null) {
-                          Navigator.of(context).pop();
-                          return;
-                        }
-                        final plan = PlanesSuscripcion(
-                          id: 'plan-${DateTime.now().millisecondsSinceEpoch}',
-                          nombre: nameController.text.trim().isEmpty
-                              ? 'Plan sin nombre'
-                              : nameController.text.trim(),
-                          maxEmpleados: maxEmp,
-                          maxManagers: maxManagers,
-                          storageLimitGb: storage,
+                        return;
+                      }
+                      final plan = PlanesSuscripcion(
+                        id: 'plan-${DateTime.now().millisecondsSinceEpoch}',
+                        nombre: nameController.text.trim().isEmpty
+                            ? 'Plan sin nombre'
+                            : nameController.text.trim(),
+                          maxUsuarios: maxUsuarios,
+                          maxSucursales: maxSucursales,
+                          almacenamientoGb: storage,
                           precioMensual: price,
                           activo: true,
                           tieneApiAccess: false,

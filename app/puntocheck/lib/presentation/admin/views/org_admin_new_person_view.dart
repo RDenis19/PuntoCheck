@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:puntocheck/models/enums.dart';
 import 'package:puntocheck/models/organizaciones.dart';
-import 'package:puntocheck/presentation/admin/widgets/manager_selector.dart';
+import 'package:puntocheck/presentation/admin/widgets/branch_selector.dart';
 import 'package:puntocheck/presentation/common/widgets/app_snackbar.dart';
 import 'package:puntocheck/providers/app_providers.dart';
 import 'package:puntocheck/utils/theme/app_colors.dart';
@@ -25,7 +25,7 @@ class _OrgAdminNewPersonViewState extends ConsumerState<OrgAdminNewPersonView> {
   final _telCtrl = TextEditingController();
   final _cargoCtrl = TextEditingController();
   RolUsuario _role = RolUsuario.employee;
-  String? _jefeInmediatoId;
+  String? _sucursalId;
   bool _isSaving = false;
   bool _obscure = true;
 
@@ -43,6 +43,10 @@ class _OrgAdminNewPersonViewState extends ConsumerState<OrgAdminNewPersonView> {
 
   Future<void> _submit(Organizaciones org) async {
     if (!_formKey.currentState!.validate()) return;
+    if (_sucursalId == null || _sucursalId!.isEmpty) {
+      showAppSnackBar(context, 'Selecciona una sucursal', success: false);
+      return;
+    }
     setState(() => _isSaving = true);
     final sessionTransition = ref.read(authSessionTransitionProvider.notifier);
     sessionTransition.state = true;
@@ -60,6 +64,7 @@ class _OrgAdminNewPersonViewState extends ConsumerState<OrgAdminNewPersonView> {
         'cargo': cargo,
         'telefono': telefono,
         'cedula': cedula,
+        'sucursal_id': _sucursalId,
       }..removeWhere((key, value) => value == null || value.trim().isEmpty);
 
       await auth.createUserPreservingSession(
@@ -77,7 +82,7 @@ class _OrgAdminNewPersonViewState extends ConsumerState<OrgAdminNewPersonView> {
               'cedula': cedula.isEmpty ? null : cedula,
               'telefono': telefono.isEmpty ? null : telefono,
               'cargo': cargo.isEmpty ? null : cargo,
-              'jefe_inmediato_id': _jefeInmediatoId,
+              'sucursal_id': _sucursalId,
             }..removeWhere((key, value) => value == null),
           );
         },
@@ -237,12 +242,13 @@ class _OrgAdminNewPersonViewState extends ConsumerState<OrgAdminNewPersonView> {
                         setState(() => _role = v ?? RolUsuario.employee),
                   ),
                   const SizedBox(height: 12),
-                  ManagerSelector(
-                    selectedManagerId: _jefeInmediatoId,
-                    onChanged: (value) =>
-                        setState(() => _jefeInmediatoId = value),
+                  BranchSelector(
+                    label: 'Sucursal',
+                    selectedBranchId: _sucursalId,
+                    showAllOption: false,
+                    onChanged: (value) => setState(() => _sucursalId = value),
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 20),
                   const SizedBox(height: 20),
                   SizedBox(
                     width: double.infinity,

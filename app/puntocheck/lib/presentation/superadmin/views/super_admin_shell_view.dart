@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:puntocheck/providers/app_providers.dart';
 import 'package:puntocheck/presentation/superadmin/views/super_admin_home_view.dart';
 import 'package:puntocheck/presentation/superadmin/views/super_admin_organizations_view.dart';
+import 'package:puntocheck/presentation/superadmin/views/super_admin_notifications_view.dart';
 import 'package:puntocheck/presentation/superadmin/views/super_admin_plans_billing_view.dart';
 import 'package:puntocheck/presentation/superadmin/views/super_admin_support_view.dart';
 import 'package:puntocheck/presentation/superadmin/widgets/super_admin_header.dart';
@@ -27,6 +28,7 @@ class _SuperAdminShellViewState extends ConsumerState<SuperAdminShellView> {
     final pages = const [
       SuperAdminHomeView(),
       SuperAdminOrganizationsView(),
+      SuperAdminNotificationsView(),
       SuperAdminPlansBillingView(),
       SuperAdminSupportView(),
     ];

@@ -1,9 +1,9 @@
 class PlanesSuscripcion {
   final String id;
   final String nombre;
-  final int maxEmpleados;
-  final int maxManagers;
-  final int storageLimitGb;
+  final int maxUsuarios;
+  final int maxSucursales;
+  final int almacenamientoGb;
   final double precioMensual; // NUMERIC
   final bool? tieneApiAccess;
   final bool? activo;
@@ -13,9 +13,9 @@ class PlanesSuscripcion {
   PlanesSuscripcion({
     required this.id,
     required this.nombre,
-    required this.maxEmpleados,
-    required this.maxManagers,
-    required this.storageLimitGb,
+    required this.maxUsuarios,
+    required this.maxSucursales,
+    required this.almacenamientoGb,
     required this.precioMensual,
     this.tieneApiAccess,
     this.activo,
@@ -40,16 +40,19 @@ class PlanesSuscripcion {
       return fallback;
     }
 
-    // El esquema usa `almacenamiento_gb`. Mantenemos compatibilidad con
-    // `storage_limit_gb` por si existen datos antiguos.
+    // Compatibilidad hacia atrヴs: priorizamos el esquema nuevo
+    // (max_usuarios, max_sucursales, almacenamiento_gb) pero aceptamos
+    // los nombres antiguos si existen datos legacy.
+    final rawMaxUsuarios = json['max_usuarios'] ?? json['max_empleados'];
+    final rawMaxSucursales = json['max_sucursales'] ?? json['max_managers'];
     final rawStorage = json['almacenamiento_gb'] ?? json['storage_limit_gb'];
 
     return PlanesSuscripcion(
       id: (json['id'] ?? '').toString(),
       nombre: (json['nombre'] ?? '').toString(),
-      maxEmpleados: _parseInt(json['max_empleados']),
-      maxManagers: _parseInt(json['max_managers']),
-      storageLimitGb: _parseInt(rawStorage, fallback: 5),
+      maxUsuarios: _parseInt(rawMaxUsuarios),
+      maxSucursales: _parseInt(rawMaxSucursales, fallback: 1),
+      almacenamientoGb: _parseInt(rawStorage, fallback: 5),
       precioMensual: _parseDouble(json['precio_mensual']),
       tieneApiAccess: json['tiene_api_access'] as bool?,
       activo: json['activo'] as bool?,
@@ -64,11 +67,10 @@ class PlanesSuscripcion {
   Map<String, dynamic> toJson() => {
     'id': id,
     'nombre': nombre,
-    'max_empleados': maxEmpleados,
-    'max_managers': maxManagers,
-    'almacenamiento_gb': storageLimitGb,
+    'max_usuarios': maxUsuarios,
+    'max_sucursales': maxSucursales,
+    'almacenamiento_gb': almacenamientoGb,
     'precio_mensual': precioMensual,
-    'tiene_api_access': tieneApiAccess,
     'activo': activo,
     // creado_en suele ser gestionado por la DB
   };

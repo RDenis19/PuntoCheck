@@ -1,10 +1,10 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:puntocheck/models/plantillas_horarios.dart';
 import 'package:puntocheck/services/schedule_service.dart';
 import 'package:puntocheck/utils/theme/app_colors.dart';
 
-/// Vista de detalle/edición de plantilla de horario
+/// Vista de detalle/ediciÃ³n de plantilla de horario
 class OrgAdminScheduleDetailView extends ConsumerStatefulWidget {
   final PlantillasHorarios schedule;
 
@@ -91,10 +91,10 @@ class _OrgAdminScheduleDetailViewState
                     const SizedBox(height: 16),
                     Row(
                       children: [
-                        Expanded(
-                          child: _InfoChip(
-                            icon: Icons.login_rounded,
-                            label: 'Entrada',
+                       Expanded(
+                         child: _InfoChip(
+                           icon: Icons.login_rounded,
+                           label: 'Entrada',
                             value: _formatTime(_schedule.horaEntrada),
                           ),
                         ),
@@ -142,7 +142,7 @@ class _OrgAdminScheduleDetailViewState
 
               _DetailCard(
                 icon: Icons.calendar_today_rounded,
-                title: 'Días Laborales',
+                title: 'DÃ­as Laborales',
                 child: Wrap(
                   spacing: 8,
                   runSpacing: 8,
@@ -191,7 +191,7 @@ class _OrgAdminScheduleDetailViewState
                       SizedBox(width: 12),
                       Expanded(
                         child: Text(
-                          'Turno Rotativo - Incluye rotación de turnos',
+                          'Turno Rotativo - Incluye rotaciÃ³n de turnos',
                           style: TextStyle(
                             color: Color(0xFF1A237E),
                             fontWeight: FontWeight.w700,
@@ -208,7 +208,8 @@ class _OrgAdminScheduleDetailViewState
     );
   }
 
-  String _formatTime(String time) {
+  String _formatTime(String? time) {
+    if (time == null || time.isEmpty) return "--";
     if (time.length >= 5) {
       return time.substring(0, 5);
     }
@@ -220,10 +221,10 @@ class _OrgAdminScheduleDetailViewState
       '',
       'Lunes',
       'Martes',
-      'Miércoles',
+      'MiÃ©rcoles',
       'Jueves',
       'Viernes',
-      'Sábado',
+      'SÃ¡bado',
       'Domingo'
     ];
     return day >= 1 && day <= 7 ? names[day] : '';
@@ -235,8 +236,8 @@ class _OrgAdminScheduleDetailViewState
       builder: (context) => AlertDialog(
         title: const Text('Eliminar Plantilla'),
         content: const Text(
-          '¿Estás seguro de eliminar esta plantilla de horario? '
-          'Los empleados asignados perderán su horario.',
+          'Â¿EstÃ¡s seguro de eliminar esta plantilla de horario? '
+          'Los empleados asignados perderÃ¡n su horario.',
         ),
         actions: [
           TextButton(
@@ -403,3 +404,5 @@ class _DetailRow extends StatelessWidget {
     );
   }
 }
+
+

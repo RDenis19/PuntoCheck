@@ -27,7 +27,7 @@ class ComplianceService {
         'fecha_fin': solicitud.fechaFin.toIso8601String(),
         'dias_totales': solicitud.diasTotales,
         'motivo_detalle': solicitud.motivoDetalle,
-        'documento_soporte_url': solicitud.documentoSoporteUrl,
+        'documento_url': solicitud.documentoSoporteUrl,
         'estado': EstadoAprobacion.pendiente.value, // Forzamos estado inicial
       };
 
@@ -133,9 +133,7 @@ class ComplianceService {
           .from('alertas_cumplimiento')
           .update({
             'estado': 'justificado',
-            'justificacion_admin': justification,
-            'atendido_por_id': supabase.auth.currentUser!.id,
-            'actualizado_en': DateTime.now().toIso8601String(),
+            'justificacion_auditor': justification,
           })
           .eq('id', alertId);
     } catch (e) {
@@ -227,6 +225,29 @@ class ComplianceService {
           .toList();
     } catch (e) {
       throw Exception('Error cargando notificaciones: $e');
+    }
+  }
+
+  /// Notificaciones del sistema (Super Admin / soporte), opcionalmente filtradas por organizaci\u00f3n.
+  Future<List<Notificacion>> getSystemNotifications({
+    String? orgId,
+    bool unreadOnly = false,
+    int limit = 50,
+  }) async {
+    try {
+      var query = supabase.from('notificaciones').select();
+      if (orgId != null) query = query.eq('organizacion_id', orgId);
+      if (unreadOnly) query = query.eq('leido', false);
+
+      final response = await query
+          .order('creado_en', ascending: false)
+          .limit(limit);
+
+      return (response as List)
+          .map((e) => Notificacion.fromJson(e))
+          .toList();
+    } catch (e) {
+      throw Exception('Error cargando notificaciones de sistema: $e');
     }
   }
 

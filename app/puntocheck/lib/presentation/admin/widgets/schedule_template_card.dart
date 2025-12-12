@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:puntocheck/models/plantillas_horarios.dart';
 import 'package:puntocheck/utils/theme/app_colors.dart';
 
@@ -105,7 +105,7 @@ class ScheduleTemplateCard extends StatelessWidget {
 
               const SizedBox(height: 12),
 
-              // Días laboraleswrap
+              // DÃ­as laboraleswrap
               Wrap(
                 spacing: 6,
                 runSpacing: 6,
@@ -175,8 +175,9 @@ class ScheduleTemplateCard extends StatelessWidget {
     );
   }
 
-  String _formatTime(String time) {
+  String _formatTime(String? time) {
     // time viene como "HH:mm:ss", retornar "HH:mm"
+    if (time == null || time.isEmpty) return "--";
     if (time.length >= 5) {
       return time.substring(0, 5);
     }
@@ -239,3 +240,4 @@ class _TimeChip extends StatelessWidget {
     );
   }
 }
+

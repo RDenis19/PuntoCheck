@@ -36,6 +36,7 @@ class _OrgAdminPaymentsViewState extends ConsumerState<OrgAdminPaymentsView> {
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => AsyncErrorView(error: e),
         data: (org) {
+          final currentPlan = _findPlan(plansAsync, org.planId);
           return paymentsAsync.when(
             loading: () => const Center(child: CircularProgressIndicator()),
             error: (e, _) => AsyncErrorView(
@@ -48,13 +49,11 @@ class _OrgAdminPaymentsViewState extends ConsumerState<OrgAdminPaymentsView> {
                 children: [
                   _PlanCard(
                     orgName: org.razonSocial,
-                    planName: _resolvePlanName(
-                      plansAsync,
-                      org.configuracionLegal?['plan_nombre'],
-                      org.planId,
-                    ),
+                    planName: _resolvePlanName(plansAsync, null, org.planId),
                     estado: org.estadoSuscripcion?.value ?? 'sin_estado',
                     fechaFin: org.fechaFinSuscripcion,
+                    plan: currentPlan,
+                    logoUrl: org.logoUrl,
                   ),
                   const SizedBox(height: 12),
                   const Text(
@@ -106,9 +105,9 @@ class _OrgAdminPaymentsViewState extends ConsumerState<OrgAdminPaymentsView> {
                                   'Monto: ${pago.monto.toStringAsFixed(2)}',
                                   style: const TextStyle(color: AppColors.neutral700),
                                 ),
-                                if (pago.fechaPago != null)
+                                if (pago.creadoEn != null)
                                   Text(
-                                    'Pagado: ${_fmtDate(pago.fechaPago!)}',
+                                    'Registrado: ${_fmtDate(pago.creadoEn!)}',
                                     style: const TextStyle(color: AppColors.neutral600, fontSize: 12),
                                   ),
                               ],
@@ -252,8 +251,8 @@ class _OrgAdminPaymentsViewState extends ConsumerState<OrgAdminPaymentsView> {
               _detailRow('Plan', planName),
               _detailRow('Monto', pago.monto.toStringAsFixed(2)),
               _detailRow('Estado', pago.estado?.value ?? 'pendiente'),
-              if (pago.fechaPago != null)
-                _detailRow('Fecha', _fmtDate(pago.fechaPago!)),
+              if (pago.creadoEn != null)
+                _detailRow('Registrado', _fmtDate(pago.creadoEn!)),
               if (pago.referenciaBancaria != null && pago.referenciaBancaria!.isNotEmpty)
                 _detailRow('Referencia', pago.referenciaBancaria!),
               const SizedBox(height: 12),
@@ -283,12 +282,16 @@ class _PlanCard extends StatelessWidget {
   final String planName;
   final String estado;
   final DateTime? fechaFin;
+  final PlanesSuscripcion? plan;
+  final String? logoUrl;
 
   const _PlanCard({
     required this.orgName,
     required this.planName,
     required this.estado,
     required this.fechaFin,
+    this.plan,
+    this.logoUrl,
   });
 
   @override
@@ -302,28 +305,35 @@ class _PlanCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            orgName,
-            style: const TextStyle(
-              fontWeight: FontWeight.w800,
-              fontSize: 16,
-              color: Colors.white,
-            ),
+          Row(
+            children: [
+              CircleAvatar(
+                backgroundColor: Colors.white.withValues(alpha: 0.14),
+                backgroundImage: (logoUrl != null && logoUrl!.isNotEmpty) ? NetworkImage(logoUrl!) : null,
+                child: (logoUrl == null || logoUrl!.isEmpty)
+                    ? const Icon(Icons.apartment_rounded, color: Colors.white)
+                    : null,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  orgName,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w800,
+                    fontSize: 16,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+              _PlanStatusPill(status: estado),
+            ],
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 6),
           Row(
             children: [
               const Icon(Icons.layers_outlined, size: 18, color: Colors.white),
               const SizedBox(width: 6),
               Text('Plan: $planName', style: const TextStyle(color: Colors.white)),
-            ],
-          ),
-          const SizedBox(height: 4),
-          Row(
-            children: [
-              const Icon(Icons.verified_user_outlined, size: 18, color: Colors.white),
-              const SizedBox(width: 6),
-              Text('Estado: $estado', style: const TextStyle(color: Colors.white)),
             ],
           ),
           if (fechaFin != null) ...[
@@ -334,15 +344,110 @@ class _PlanCard extends StatelessWidget {
                 const SizedBox(width: 6),
                 Text(
                   'Vence: ${_fmtDate(fechaFin!)}',
-                  style: const TextStyle(color: Colors.white),
+                  style: const TextStyle(color: Colors.white70, fontSize: 12),
                 ),
               ],
             ),
           ],
-          const SizedBox(height: 8),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _PlanInfoChip(
+                icon: Icons.people_alt_outlined,
+                label: '${plan?.maxUsuarios ?? '--'} usuarios',
+              ),
+              _PlanInfoChip(
+                icon: Icons.store_mall_directory_outlined,
+                label: '${plan?.maxSucursales ?? '--'} sucursales',
+              ),
+              _PlanInfoChip(
+                icon: Icons.cloud_outlined,
+                label: '${plan?.almacenamientoGb ?? '--'} GB',
+              ),
+              _PlanInfoChip(
+                icon: Icons.payments_outlined,
+                label: plan != null
+                    ? '\$${plan!.precioMensual.toStringAsFixed(2)}/mes'
+                    : 'Consultar plan',
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          const Text(
+            'Gestiona tus planes, pagos y cambios de suscripción aquí.',
+            style: TextStyle(color: Colors.white70, fontSize: 12),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PlanInfoChip extends StatelessWidget {
+  const _PlanInfoChip({required this.icon, required this.label});
+
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.14),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16, color: Colors.white),
+          const SizedBox(width: 6),
           Text(
-            'Registra un pago para renovar o cambiar de plan.',
-            style: const TextStyle(color: Colors.white70, fontSize: 12),
+            label,
+            style: const TextStyle(
+              fontWeight: FontWeight.w700,
+              color: Colors.white,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PlanStatusPill extends StatelessWidget {
+  const _PlanStatusPill({required this.status});
+
+  final String status;
+
+  @override
+  Widget build(BuildContext context) {
+    final normalized = status.toLowerCase();
+    final isActive = normalized.contains('activ');
+    final bg = isActive ? Colors.white.withValues(alpha: 0.18) : Colors.white.withValues(alpha: 0.12);
+    final border = isActive ? Colors.white.withValues(alpha: 0.35) : Colors.white.withValues(alpha: 0.25);
+    final fg = Colors.white;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: border, width: 1.2),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(isActive ? Icons.check_circle : Icons.pause_circle_outline, size: 16, color: fg),
+          const SizedBox(width: 6),
+          Text(
+            status.isEmpty ? 'sin estado' : status,
+            style: TextStyle(
+              color: fg,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.3,
+            ),
           ),
         ],
       ),
@@ -380,6 +485,19 @@ Widget _detailRow(String label, String value) {
   );
 }
 
+PlanesSuscripcion? _findPlan(
+  AsyncValue<List<PlanesSuscripcion>> plansAsync,
+  String? planId,
+) {
+  final plans = plansAsync.asData?.value;
+  if (plans == null || planId == null) return null;
+  try {
+    return plans.firstWhere((p) => p.id == planId);
+  } catch (_) {
+    return null;
+  }
+}
+
 final _plansProvider = FutureProvider.autoDispose<List<PlanesSuscripcion>>((ref) async {
   return ref.read(subscriptionServiceProvider).getPlans();
 });
@@ -397,9 +515,9 @@ String _resolvePlanName(
       orElse: () => PlanesSuscripcion(
         id: planId,
         nombre: planId,
-        maxEmpleados: 0,
-        maxManagers: 0,
-        storageLimitGb: 0,
+        maxUsuarios: 0,
+        maxSucursales: 0,
+        almacenamientoGb: 0,
         precioMensual: 0,
       ),
     );

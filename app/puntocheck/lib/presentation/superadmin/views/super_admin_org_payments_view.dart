@@ -114,9 +114,9 @@ class SuperAdminOrgPaymentsView extends ConsumerWidget {
               icon: Icons.verified_outlined,
             ),
             _DetailRow(
-              label: 'Fecha pago',
-              value: pago.fechaPago != null
-                  ? pago.fechaPago!.toLocal().toString().split(' ').first
+              label: 'Registrado',
+              value: pago.creadoEn != null
+                  ? pago.creadoEn!.toLocal().toString().split(' ').first
                   : 'No registrada',
               icon: Icons.event,
             ),
@@ -420,9 +420,9 @@ class _PaymentCard extends StatelessWidget {
                     crossAxisAlignment: WrapCrossAlignment.center,
                     children: [
                       _StatusChip(color: statusColor, label: statusLabel),
-                      if (pago.fechaPago != null)
+                      if (pago.creadoEn != null)
                         Text(
-                          'Fecha: ${pago.fechaPago!.toLocal().toString().split(' ').first}',
+                          'Fecha: ${pago.creadoEn!.toLocal().toString().split(' ').first}',
                         ),
                     ],
                   ),
