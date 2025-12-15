@@ -19,6 +19,7 @@ import 'package:puntocheck/presentation/admin/views/org_admin_payments_view.dart
 import 'package:puntocheck/presentation/admin/views/org_admin_schedule_assignments_view.dart';
 import 'package:puntocheck/presentation/admin/views/org_admin_schedules_view.dart';
 import 'package:puntocheck/presentation/admin/views/org_admin_shell_view.dart';
+import 'package:puntocheck/presentation/kiosk/views/device_kiosk_view.dart';
 import 'package:puntocheck/presentation/superadmin/views/super_admin_shell_view.dart';
 import 'package:puntocheck/presentation/splash/views/splash_view.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -45,6 +46,7 @@ class AppRoutes {
   static const orgAdminHoursBank = '$orgAdminHome/hours-bank';
   static const orgAdminLeaves = '$orgAdminHome/leaves';
   static const orgAdminLegalConfig = '$orgAdminHome/legal-config';
+  static const orgAdminKiosk = '$orgAdminHome/kiosk';
 
   static String homeForRole(RolUsuario role) {
     switch (role) {
@@ -182,6 +184,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             path: 'legal-config',
             builder: (_, __) => const OrgAdminLegalConfigView(),
           ),
+          GoRoute(path: 'kiosk', builder: (_, __) => const DeviceKioskView()),
         ],
       ),
       GoRoute(

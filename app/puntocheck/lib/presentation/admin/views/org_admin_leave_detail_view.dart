@@ -13,10 +13,7 @@ import 'package:puntocheck/utils/theme/app_colors.dart';
 class OrgAdminLeaveDetailView extends ConsumerStatefulWidget {
   final SolicitudesPermisos request;
 
-  const OrgAdminLeaveDetailView({
-    super.key,
-    required this.request,
-  });
+  const OrgAdminLeaveDetailView({super.key, required this.request});
 
   @override
   ConsumerState<OrgAdminLeaveDetailView> createState() =>
@@ -98,7 +95,7 @@ class _OrgAdminLeaveDetailViewState
                 children: [
                   // Header con estado grande
                   _buildHeader(),
-                  
+
                   const SizedBox(height: 20),
 
                   // Info del empleado
@@ -131,20 +128,13 @@ class _OrgAdminLeaveDetailViewState
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [
-            _getColor(),
-            _getColor().withValues(alpha: 0.8),
-          ],
+          colors: [_getColor(), _getColor().withValues(alpha: 0.8)],
         ),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
         children: [
-          Icon(
-            _getIcon(),
-            size: 48,
-            color: Colors.white,
-          ),
+          Icon(_getIcon(), size: 48, color: Colors.white),
           const SizedBox(height: 12),
           if (widget.request.estado != null)
             Container(
@@ -198,11 +188,7 @@ class _OrgAdminLeaveDetailViewState
             ),
             child: _employeePhotoUrl == null
                 ? const Center(
-                    child: Icon(
-                      Icons.person,
-                      color: Colors.white,
-                      size: 32,
-                    ),
+                    child: Icon(Icons.person, color: Colors.white, size: 32),
                   )
                 : null,
           ),
@@ -291,8 +277,10 @@ class _OrgAdminLeaveDetailViewState
                 _DetailRow(
                   label: 'Días totales',
                   value: Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
                     decoration: BoxDecoration(
                       color: AppColors.primaryRed.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(8),
@@ -415,7 +403,7 @@ class _OrgAdminLeaveDetailViewState
               const SizedBox(width: 12),
               Text(
                 widget.request.estado == EstadoAprobacion.aprobadoManager ||
-                    widget.request.estado == EstadoAprobacion.aprobadoRrhh
+                        widget.request.estado == EstadoAprobacion.aprobadoRrhh
                     ? 'Solicitud Aprobada'
                     : 'Solicitud Rechazada',
                 style: TextStyle(
@@ -430,10 +418,7 @@ class _OrgAdminLeaveDetailViewState
             const SizedBox(height: 8),
             Text(
               'Por: $_approverName',
-              style: TextStyle(
-                fontSize: 14,
-                color: _getColor(),
-              ),
+              style: TextStyle(fontSize: 14, color: _getColor()),
             ),
           ],
           if (widget.request.fechaResolucion != null) ...[
@@ -462,10 +447,7 @@ class _OrgAdminLeaveDetailViewState
             const SizedBox(height: 4),
             Text(
               widget.request.comentarioResolucion!,
-              style: const TextStyle(
-                fontSize: 14,
-                color: AppColors.neutral900,
-              ),
+              style: const TextStyle(fontSize: 14, color: AppColors.neutral900),
             ),
           ],
         ],
@@ -514,16 +496,14 @@ class _OrgAdminLeaveDetailViewState
   Future<void> _handleApprove(controller) async {
     final comment = await showDialog<String>(
       context: context,
-      builder: (context) => LeaveResolutionDialog(
-        isApproval: true,
-        onConfirm: () {},
-      ),
+      builder: (context) =>
+          LeaveResolutionDialog(isApproval: true, onConfirm: () {}),
     );
 
     if (comment != null) {
       await controller.resolve(
         requestId: widget.request.id,
-        status: EstadoAprobacion.aprobadoManager, // Manager/Admin aprueba
+        status: EstadoAprobacion.aprobadoRrhh, // Org Admin (RRHH) aprueba
         comment: comment.isEmpty ? null : comment,
       );
 
@@ -542,10 +522,8 @@ class _OrgAdminLeaveDetailViewState
   Future<void> _handleReject(controller) async {
     final comment = await showDialog<String>(
       context: context,
-      builder: (context) => LeaveResolutionDialog(
-        isApproval: false,
-        onConfirm: () {},
-      ),
+      builder: (context) =>
+          LeaveResolutionDialog(isApproval: false, onConfirm: () {}),
     );
 
     if (comment != null) {
@@ -569,37 +547,39 @@ class _OrgAdminLeaveDetailViewState
 
   Color _getColor() {
     if (widget.request.estado == null) return AppColors.neutral700;
-    
+
     if (widget.request.estado == EstadoAprobacion.pendiente) {
       return AppColors.warningOrange;
     } else if (widget.request.estado == EstadoAprobacion.aprobadoManager ||
-               widget.request.estado == EstadoAprobacion.aprobadoRrhh) {
+        widget.request.estado == EstadoAprobacion.aprobadoRrhh) {
       return AppColors.successGreen;
     } else if (widget.request.estado == EstadoAprobacion.rechazado) {
       return AppColors.errorRed;
-    } else { // cancelado_usuario
+    } else {
+      // cancelado_usuario
       return AppColors.neutral600;
     }
   }
 
   IconData _getIcon() {
     if (widget.request.estado == null) return Icons.help_outline;
-    
+
     if (widget.request.estado == EstadoAprobacion.pendiente) {
       return Icons.pending_outlined;
     } else if (widget.request.estado == EstadoAprobacion.aprobadoManager ||
-               widget.request.estado == EstadoAprobacion.aprobadoRrhh) {
+        widget.request.estado == EstadoAprobacion.aprobadoRrhh) {
       return Icons.check_circle;
     } else if (widget.request.estado == EstadoAprobacion.rechazado) {
       return Icons.cancel;
-    } else { // cancelado_usuario
+    } else {
+      // cancelado_usuario
       return Icons.block;
     }
   }
 
   String _getStatusText() {
     if (widget.request.estado == null) return 'Sin estado';
-    
+
     if (widget.request.estado == EstadoAprobacion.pendiente) {
       return 'PENDIENTE';
     } else if (widget.request.estado == EstadoAprobacion.aprobadoManager) {
@@ -608,7 +588,8 @@ class _OrgAdminLeaveDetailViewState
       return 'APROBADO (RRHH)';
     } else if (widget.request.estado == EstadoAprobacion.rechazado) {
       return 'RECHAZADO';
-    } else { // cancelado_usuario
+    } else {
+      // cancelado_usuario
       return 'CANCELADO';
     }
   }
@@ -626,7 +607,7 @@ class _OrgAdminLeaveDetailViewState
       'Septiembre',
       'Octubre',
       'Noviembre',
-      'Diciembre'
+      'Diciembre',
     ];
     return '${date.day} de ${months[date.month - 1]}, ${date.year}';
   }
@@ -640,10 +621,7 @@ class _DetailRow extends StatelessWidget {
   final String label;
   final Widget value;
 
-  const _DetailRow({
-    required this.label,
-    required this.value,
-  });
+  const _DetailRow({required this.label, required this.value});
 
   @override
   Widget build(BuildContext context) {

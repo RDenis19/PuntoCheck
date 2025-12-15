@@ -74,7 +74,7 @@ class OperationsService {
           .limit(limit);
 
       return (response as List)
-          .map((e) => RegistrosAsistencia.fromJson(e))
+          .map((e) => RegistrosAsistencia.fromDynamic(e))
           .toList();
     } catch (e) {
       throw Exception('Error cargando historial: $e');

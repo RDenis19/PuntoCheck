@@ -64,6 +64,18 @@ class _OrgAdminEditPersonViewState
     setState(() => _isSaving = true);
 
     try {
+      if (_role == RolUsuario.superAdmin || _role == RolUsuario.orgAdmin) {
+        throw Exception('Rol no permitido');
+      }
+
+      if (_sucursalId != null && _sucursalId!.isNotEmpty) {
+        final branches = await ref.read(orgAdminBranchesProvider.future);
+        final isBranchValid = branches.any((b) => b.id == _sucursalId);
+        if (!isBranchValid) {
+          throw Exception('Sucursal inválida para esta organización');
+        }
+      }
+
       final staff = ref.read(staffServiceProvider);
       final cedula = _cedulaCtrl.text.trim();
       final telefono = _telCtrl.text.trim();
@@ -118,9 +130,7 @@ class _OrgAdminEditPersonViewState
           return _buildForm(context, perfil);
         },
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(
-          child: Text('Error cargando perfil: $e'),
-        ),
+        error: (e, _) => Center(child: Text('Error cargando perfil: $e')),
       ),
     );
   }
@@ -137,25 +147,22 @@ class _OrgAdminEditPersonViewState
         value: RolUsuario.employee,
         child: Text('Empleado'),
       ),
-      const DropdownMenuItem(
-        value: RolUsuario.manager,
-        child: Text('Manager'),
-      ),
-      const DropdownMenuItem(
-        value: RolUsuario.auditor,
-        child: Text('Auditor'),
-      ),
+      const DropdownMenuItem(value: RolUsuario.manager, child: Text('Manager')),
+      const DropdownMenuItem(value: RolUsuario.auditor, child: Text('Auditor')),
     ];
 
     // Si el rol actual no está en la lista (ej. org_admin / super_admin), agregarlo para evitar crash.
-    final needsSpecialRole = _role == RolUsuario.orgAdmin || _role == RolUsuario.superAdmin;
+    final needsSpecialRole =
+        _role == RolUsuario.orgAdmin || _role == RolUsuario.superAdmin;
     final alreadyIncluded = rolesPermitidos.any((item) => item.value == _role);
     if (needsSpecialRole && !alreadyIncluded) {
       rolesPermitidos.add(
         DropdownMenuItem(
           value: _role,
           child: Text(
-            _role == RolUsuario.orgAdmin ? 'Administrador' : 'Super Administrador',
+            _role == RolUsuario.orgAdmin
+                ? 'Administrador'
+                : 'Super Administrador',
           ),
         ),
       );
@@ -252,9 +259,7 @@ class _OrgAdminEditPersonViewState
                           ),
                           Text(
                             perfil.email ?? perfil.correo ?? 'Sin email',
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w600,
-                            ),
+                            style: const TextStyle(fontWeight: FontWeight.w600),
                           ),
                         ],
                       ),
@@ -366,10 +371,7 @@ class _OrgAdminEditPersonViewState
                   )
                 : const Text(
                     'Guardar cambios',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                   ),
           ),
         ],
@@ -385,10 +387,7 @@ class _SectionCard extends StatelessWidget {
   final String title;
   final List<Widget> children;
 
-  const _SectionCard({
-    required this.title,
-    required this.children,
-  });
+  const _SectionCard({required this.title, required this.children});
 
   @override
   Widget build(BuildContext context) {

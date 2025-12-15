@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:typed_data';
 
 class Sucursales {
   final String id;
@@ -10,6 +11,7 @@ class Sucursales {
   final Map<String, dynamic>? ubicacionCentral;
   final int? radioMetros;
   final bool? tieneQrHabilitado;
+  final String? deviceIdQrAsignado;
   final bool? eliminado;
   final DateTime? creadoEn;
 
@@ -21,6 +23,7 @@ class Sucursales {
     this.ubicacionCentral,
     this.radioMetros,
     this.tieneQrHabilitado,
+    this.deviceIdQrAsignado,
     this.eliminado,
     this.creadoEn,
   });
@@ -67,7 +70,9 @@ class Sucursales {
                 };
               }
             } else {
-              final lon = (decoded['lon'] ?? decoded['lng'] ?? decoded['longitude']) as num?;
+              final lon =
+                  (decoded['lon'] ?? decoded['lng'] ?? decoded['longitude'])
+                      as num?;
               final lat = (decoded['lat'] ?? decoded['latitude']) as num?;
               if (lon != null && lat != null) {
                 parsedGeo = {
@@ -81,6 +86,19 @@ class Sucursales {
           // ignore and fallback to WKT
         }
       }
+
+      // PostGIS suele devolver geography/geometry como EWKB en hex (ej: 0101000020E6100000...).
+      if (parsedGeo == null) {
+        final hexCandidate = rawGeo.trim().replaceFirst(
+          RegExp(r'^0x', caseSensitive: false),
+          '',
+        );
+        final wkbPoint = _tryParseWkbPointHex(hexCandidate);
+        if (wkbPoint != null) {
+          parsedGeo = wkbPoint;
+        }
+      }
+
       if (parsedGeo == null && rawGeo.contains('POINT')) {
         final start = rawGeo.indexOf('(');
         final end = rawGeo.indexOf(')');
@@ -108,6 +126,7 @@ class Sucursales {
       ubicacionCentral: parsedGeo,
       radioMetros: json['radio_metros'],
       tieneQrHabilitado: json['tiene_qr_habilitado'],
+      deviceIdQrAsignado: json['device_id_qr_asignado'],
       eliminado: json['eliminado'],
       creadoEn: json['creado_en'] != null
           ? DateTime.parse(json['creado_en'])
@@ -123,6 +142,7 @@ class Sucursales {
     'ubicacion_central': ubicacionCentral,
     'radio_metros': radioMetros,
     'tiene_qr_habilitado': tieneQrHabilitado,
+    'device_id_qr_asignado': deviceIdQrAsignado,
     'eliminado': eliminado,
   };
 
@@ -134,6 +154,7 @@ class Sucursales {
     Map<String, dynamic>? ubicacionCentral,
     int? radioMetros,
     bool? tieneQrHabilitado,
+    String? deviceIdQrAsignado,
     bool? eliminado,
     DateTime? creadoEn,
   }) {
@@ -145,8 +166,57 @@ class Sucursales {
       ubicacionCentral: ubicacionCentral ?? this.ubicacionCentral,
       radioMetros: radioMetros ?? this.radioMetros,
       tieneQrHabilitado: tieneQrHabilitado ?? this.tieneQrHabilitado,
+      deviceIdQrAsignado: deviceIdQrAsignado ?? this.deviceIdQrAsignado,
       eliminado: eliminado ?? this.eliminado,
       creadoEn: creadoEn ?? this.creadoEn,
     );
   }
+}
+
+Map<String, dynamic>? _tryParseWkbPointHex(String hex) {
+  // Debe ser hex puro y tener longitud suficiente para WKB POINT (min 1+4+16 bytes = 42 hex chars).
+  if (hex.length < 42) return null;
+  if (!RegExp(r'^[0-9a-fA-F]+$').hasMatch(hex)) return null;
+
+  Uint8List bytes;
+  try {
+    bytes = Uint8List(hex.length ~/ 2);
+    for (var i = 0; i < bytes.length; i++) {
+      final byteStr = hex.substring(i * 2, i * 2 + 2);
+      bytes[i] = int.parse(byteStr, radix: 16);
+    }
+  } catch (_) {
+    return null;
+  }
+
+  final bd = ByteData.sublistView(bytes);
+  var offset = 0;
+  if (bd.lengthInBytes < 1 + 4 + 16) return null;
+
+  final order = bd.getUint8(offset);
+  offset += 1;
+  final endian = order == 0 ? Endian.big : Endian.little;
+
+  final type = bd.getUint32(offset, endian);
+  offset += 4;
+
+  // PostGIS EWKB flags (Z/M/SRID).
+  final hasSrid = (type & 0x20000000) != 0;
+  final baseType = type & 0x1FFFFFFF;
+  final isPoint = (baseType & 0xFF) == 1;
+  if (!isPoint) return null;
+
+  if (hasSrid) {
+    if (bd.lengthInBytes < offset + 4) return null;
+    offset += 4; // SRID (no se usa en cliente)
+  }
+
+  if (bd.lengthInBytes < offset + 16) return null;
+  final x = bd.getFloat64(offset, endian);
+  final y = bd.getFloat64(offset + 8, endian);
+
+  return {
+    'type': 'Point',
+    'coordinates': [x, y],
+  };
 }

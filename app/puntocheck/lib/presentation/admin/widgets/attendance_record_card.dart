@@ -11,26 +11,30 @@ class AttendanceRecordCard extends ConsumerWidget {
   final RegistrosAsistencia record;
   final VoidCallback? onTap;
 
-  const AttendanceRecordCard({
-    super.key,
-    required this.record,
-    this.onTap,
-  });
+  const AttendanceRecordCard({super.key, required this.record, this.onTap});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final employeeAsync = ref.watch(orgAdminPersonProvider(record.perfilId));
-    final branchName = record.sucursalId != null ? 'Sucursal' : 'Sin sucursal';
+    final branchesAsync = ref.watch(orgAdminBranchesProvider);
+    final branchName = record.sucursalId == null
+        ? 'Sin sucursal'
+        : branchesAsync.maybeWhen(
+            data: (branches) {
+              for (final branch in branches) {
+                if (branch.id == record.sucursalId) return branch.nombre;
+              }
+              return 'Sucursal desconocida';
+            },
+            orElse: () => 'Cargando sucursal...',
+          );
 
     return Card(
       elevation: 0,
       margin: const EdgeInsets.only(bottom: 12),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: BorderSide(
-          color: AppColors.neutral200,
-          width: 1.5,
-        ),
+        side: BorderSide(color: AppColors.neutral200, width: 1.5),
       ),
       child: InkWell(
         onTap: onTap,
@@ -57,11 +61,7 @@ class AttendanceRecordCard extends ConsumerWidget {
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: const Center(
-                      child: Icon(
-                        Icons.person,
-                        color: Colors.white,
-                        size: 24,
-                      ),
+                      child: Icon(Icons.person, color: Colors.white, size: 24),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -100,8 +100,10 @@ class AttendanceRecordCard extends ConsumerWidget {
                   ),
                   // Hora
                   Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
                     decoration: BoxDecoration(
                       color: AppColors.neutral100,
                       borderRadius: BorderRadius.circular(10),
@@ -141,6 +143,15 @@ class AttendanceRecordCard extends ConsumerWidget {
                     precisionMeters: record.ubicacionPrecisionMetros,
                     compact: true,
                   ),
+                  if (record.esMockLocation == true)
+                    _MiniBadge(
+                      label: 'Mock GPS',
+                      icon: Icons.location_off_outlined,
+                      background: AppColors.warningOrange.withValues(
+                        alpha: 0.12,
+                      ),
+                      foreground: AppColors.warningOrange,
+                    ),
                 ],
               ),
 
@@ -222,7 +233,7 @@ class AttendanceRecordCard extends ConsumerWidget {
       'Sep',
       'Oct',
       'Nov',
-      'Dic'
+      'Dic',
     ];
     return '${date.day} ${months[date.month - 1]} ${date.year}';
   }
@@ -235,10 +246,10 @@ class AttendanceRecordCard extends ConsumerWidget {
     switch (origin.toLowerCase()) {
       case 'gps_movil':
         return Icons.smartphone_rounded;
-      case 'qr':
+      case 'qr_fijo':
         return Icons.qr_code_2_rounded;
-      case 'manual':
-        return Icons.edit_rounded;
+      case 'offline_sync':
+        return Icons.cloud_sync_outlined;
       default:
         return Icons.device_unknown;
     }
@@ -248,12 +259,52 @@ class AttendanceRecordCard extends ConsumerWidget {
     switch (origin.toLowerCase()) {
       case 'gps_movil':
         return 'GPS';
-      case 'qr':
+      case 'qr_fijo':
         return 'QR';
-      case 'manual':
-        return 'Manual';
+      case 'offline_sync':
+        return 'Offline';
       default:
         return origin;
     }
+  }
+}
+
+class _MiniBadge extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final Color background;
+  final Color foreground;
+
+  const _MiniBadge({
+    required this.label,
+    required this.icon,
+    required this.background,
+    required this.foreground,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: background,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: foreground),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: TextStyle(
+              color: foreground,
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

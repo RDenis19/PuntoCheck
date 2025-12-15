@@ -4,6 +4,7 @@ import 'package:puntocheck/models/enums.dart';
 import 'package:puntocheck/presentation/admin/views/org_admin_new_person_view.dart';
 import 'package:puntocheck/presentation/admin/views/org_admin_person_detail_view.dart';
 import 'package:puntocheck/presentation/admin/widgets/async_error_view.dart';
+import 'package:puntocheck/presentation/admin/widgets/branch_selector.dart';
 import 'package:puntocheck/presentation/admin/widgets/empty_state.dart';
 import 'package:puntocheck/presentation/admin/widgets/org_admin_person_item.dart';
 import 'package:puntocheck/providers/app_providers.dart';
@@ -20,6 +21,7 @@ class _OrgAdminPeopleViewState extends ConsumerState<OrgAdminPeopleView> {
   String? _search;
   RolUsuario? _role;
   bool? _active = true; // null = todos, true = activos, false = inactivos
+  String? _branchId;
   final ScrollController _scrollController = ScrollController();
 
   @override
@@ -34,6 +36,7 @@ class _OrgAdminPeopleViewState extends ConsumerState<OrgAdminPeopleView> {
       search: _search,
       role: _role,
       active: _active,
+      branchId: _branchId,
     );
     final staffAsync = ref.watch(orgAdminStaffProvider(filter));
 
@@ -125,6 +128,12 @@ class _OrgAdminPeopleViewState extends ConsumerState<OrgAdminPeopleView> {
                         ),
                       ],
                     ),
+                  ),
+                  const SizedBox(height: 12),
+                  BranchSelector(
+                    label: 'Sucursal',
+                    selectedBranchId: _branchId,
+                    onChanged: (value) => setState(() => _branchId = value),
                   ),
                 ],
               ),

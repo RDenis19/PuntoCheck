@@ -196,7 +196,9 @@ class OrganizationService {
 
       // Convertimos GeoJSON a WKT si viene como mapa.
       final geo = sucursal.ubicacionCentral;
-      if (geo != null && geo['coordinates'] is List && geo['coordinates'].length == 2) {
+      if (geo != null &&
+          geo['coordinates'] is List &&
+          geo['coordinates'].length == 2) {
         final coords = geo['coordinates'] as List;
         final lon = (coords[0] as num).toDouble();
         final lat = (coords[1] as num).toDouble();
@@ -207,6 +209,9 @@ class OrganizationService {
       if (data['radio_metros'] == null && sucursal.radioMetros != null) {
         data['radio_metros'] = sucursal.radioMetros;
       }
+
+      // Evita enviar nulls innecesarios al insert.
+      data.removeWhere((_, v) => v == null);
 
       await supabase.from('sucursales').insert(data);
     } on PostgrestException catch (e) {
@@ -237,30 +242,71 @@ class OrganizationService {
     }
   }
 
+  /// Obtiene la sucursal vinculada a este dispositivo (kiosko).
+  /// Busca por `device_id_qr_asignado` y devuelve null si no existe.
+  ///
+  /// Nota: si existen múltiples sucursales con el mismo device id, lanza error
+  /// para forzar corrección en la configuración.
+  Future<Sucursales?> getBranchByAssignedDeviceId(String deviceId) async {
+    final id = deviceId.trim();
+    if (id.isEmpty) return null;
+    try {
+      final response = await supabase
+          .from('sucursales')
+          .select(
+            'id, organizacion_id, nombre, direccion, ubicacion_central, radio_metros, tiene_qr_habilitado, device_id_qr_asignado, eliminado, creado_en',
+          )
+          .eq('device_id_qr_asignado', id)
+          .or('eliminado.is.null,eliminado.eq.false')
+          .limit(2);
+
+      final rows = List<Map<String, dynamic>>.from(response as List);
+      if (rows.isEmpty) return null;
+      if (rows.length > 1) {
+        throw Exception(
+          'Hay más de una sucursal configurada con este Device ID. Debe ser único.',
+        );
+      }
+      return Sucursales.fromJson(rows.first);
+    } catch (e) {
+      throw Exception('Error obteniendo sucursal por Device ID: $e');
+    }
+  }
+
   /// Actualizar sucursal (Org Admin/Super Admin según RLS).
-  Future<void> updateBranch({
-    required String branchId,
-    String? nombre,
-    String? direccion,
-    double? lat,
-    double? lon,
-    int? radioMetros,
-    bool? tieneQrHabilitado,
-  }) async {
+  Future<void> updateBranch(Sucursales branch) async {
     try {
       final updates = <String, dynamic>{};
-      if (nombre != null) updates['nombre'] = nombre;
-      if (direccion != null) updates['direccion'] = direccion;
-      if (radioMetros != null) updates['radio_metros'] = radioMetros;
-      if (tieneQrHabilitado != null) {
-        updates['tiene_qr_habilitado'] = tieneQrHabilitado;
+
+      updates['nombre'] = branch.nombre;
+      updates['direccion'] = branch.direccion;
+
+      if (branch.radioMetros != null) {
+        updates['radio_metros'] = branch.radioMetros;
       }
-      if (lat != null && lon != null) {
+
+      if (branch.tieneQrHabilitado != null) {
+        updates['tiene_qr_habilitado'] = branch.tieneQrHabilitado;
+        updates['device_id_qr_asignado'] = branch.tieneQrHabilitado == true
+            ? branch.deviceIdQrAsignado
+            : null;
+      } else if (branch.deviceIdQrAsignado != null) {
+        updates['device_id_qr_asignado'] = branch.deviceIdQrAsignado;
+      }
+
+      final geo = branch.ubicacionCentral;
+      if (geo != null &&
+          geo['coordinates'] is List &&
+          geo['coordinates'].length == 2) {
+        final coords = geo['coordinates'] as List;
+        final lon = (coords[0] as num).toDouble();
+        final lat = (coords[1] as num).toDouble();
         updates['ubicacion_central'] = 'SRID=4326;POINT($lon $lat)';
       }
+
       if (updates.isEmpty) return;
 
-      await supabase.from('sucursales').update(updates).eq('id', branchId);
+      await supabase.from('sucursales').update(updates).eq('id', branch.id);
     } on PostgrestException catch (e) {
       if (e.code == '42501') {
         throw Exception(

@@ -19,6 +19,7 @@ class QrService {
   Future<String> generateQrForBranch({
     required String sucursalId,
     required String organizacionId,
+    Duration? validez,
     int horasValidez = 720, // 30 días por defecto
   }) async {
     try {
@@ -30,7 +31,7 @@ class QrService {
       final tokenHash = _hashToken(tokenRaw);
 
       final now = DateTime.now();
-      final expiracion = now.add(Duration(hours: horasValidez));
+      final expiracion = now.add(validez ?? Duration(hours: horasValidez));
 
       // 3. Insertar en DB (Solo el hash)
       await supabase.from('qr_codigos').insert({

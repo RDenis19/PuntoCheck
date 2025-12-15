@@ -19,12 +19,32 @@ class ManagerService {
       if (userId == null) throw Exception('Usuario no autenticado');
 
       final response = await supabase
-          .rpc('get_perfil_with_email', params: {'p_user_id': userId})
-          .single();
+          .from('perfiles')
+          .select()
+          .eq('id', userId)
+          .maybeSingle();
+
+      if (response == null) throw Exception('Perfil no encontrado');
       return Perfiles.fromJson(response);
     } catch (e) {
       throw Exception('Error cargando perfil del manager: $e');
     }
+  }
+
+  Future<List<String>> _getManagedBranchIds() async {
+    final userId = supabase.auth.currentUser?.id;
+    if (userId == null) throw Exception('Usuario no autenticado');
+
+    final response = await supabase
+        .from('encargados_sucursales')
+        .select('sucursal_id, activo')
+        .eq('manager_id', userId)
+        .or('activo.is.null,activo.eq.true');
+
+    return (response as List)
+        .map((e) => (e as Map)['sucursal_id'] as String?)
+        .whereType<String>()
+        .toList();
   }
 
   // Equipo directo -----------------------------------------------------------
@@ -33,11 +53,15 @@ class ManagerService {
       final userId = supabase.auth.currentUser?.id;
       if (userId == null) throw Exception('Usuario no autenticado');
 
+      final branchIds = await _getManagedBranchIds();
+      if (branchIds.isEmpty) return [];
+
       var query = supabase
           .from('perfiles')
           .select()
-          .eq('jefe_inmediato_id', userId)
-          .eq('eliminado', false);
+          .inFilter('sucursal_id', branchIds)
+          .eq('eliminado', false)
+          .neq('id', userId);
 
       if (searchQuery != null && searchQuery.isNotEmpty) {
         query = query.or(
@@ -57,11 +81,14 @@ class ManagerService {
       final userId = supabase.auth.currentUser?.id;
       if (userId == null) return false;
 
+      final branchIds = await _getManagedBranchIds();
+      if (branchIds.isEmpty) return false;
+
       final response = await supabase
           .from('perfiles')
           .select('id')
           .eq('id', employeeId)
-          .eq('jefe_inmediato_id', userId)
+          .inFilter('sucursal_id', branchIds)
           .eq('eliminado', false)
           .maybeSingle();
 
@@ -104,7 +131,7 @@ class ManagerService {
           await query.order('fecha_hora_marcacion', ascending: false).limit(limit);
 
       return (response as List)
-          .map((e) => RegistrosAsistencia.fromJson(e))
+          .map((e) => RegistrosAsistencia.fromDynamic(e))
           .toList();
     } catch (e) {
       throw Exception('Error cargando asistencia del equipo: $e');

@@ -27,7 +27,9 @@ class HoursBankService {
       }
 
       final response = await query.order('creado_en', ascending: false);
-      return (response as List).map((e) => BancoHorasCompensatorias.fromJson(e)).toList();
+      return (response as List)
+          .map((e) => BancoHorasCompensatorias.fromJson(e))
+          .toList();
     } catch (e) {
       throw Exception('Error al obtener banco de horas: $e');
     }
@@ -42,6 +44,9 @@ class HoursBankService {
     bool aceptaRenunciaPago = false,
   }) async {
     try {
+      final userId = supabase.auth.currentUser?.id;
+      if (userId == null) throw Exception('Usuario no autenticado');
+
       final response = await supabase
           .from('banco_horas')
           .insert({
@@ -50,6 +55,7 @@ class HoursBankService {
             'cantidad_horas': cantidadHoras,
             'concepto': concepto,
             'acepta_renuncia_pago': aceptaRenunciaPago,
+            'aprobado_por_id': userId,
           })
           .select()
           .single();

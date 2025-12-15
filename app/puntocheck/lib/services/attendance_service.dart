@@ -49,7 +49,7 @@ class AttendanceService {
           .limit(limit);
 
       return (response as List)
-          .map((json) => RegistrosAsistencia.fromJson(json))
+          .map((json) => RegistrosAsistencia.fromDynamic(json))
           .toList();
     } catch (e) {
       throw Exception('Error obteniendo historial: $e');
@@ -80,7 +80,7 @@ class AttendanceService {
           .maybeSingle(); // Retorna null si no hay registros
 
       if (response == null) return null;
-      return RegistrosAsistencia.fromJson(response);
+      return RegistrosAsistencia.fromDynamic(response);
     } catch (e) {
       throw Exception('Error verificando estado actual: $e');
     }
@@ -97,7 +97,7 @@ class AttendanceService {
           .limit(limit);
 
       return (response as List)
-          .map((json) => RegistrosAsistencia.fromJson(json))
+          .map((json) => RegistrosAsistencia.fromDynamic(json))
           .toList();
     } catch (e) {
       throw Exception('Error obteniendo asistencia reciente: $e');

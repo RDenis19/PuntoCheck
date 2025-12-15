@@ -120,7 +120,7 @@ class EmployeeService {
           .maybeSingle();
 
       if (response == null) return null;
-      return RegistrosAsistencia.fromJson(response);
+      return RegistrosAsistencia.fromDynamic(response);
     } on PostgrestException catch (e) {
       throw Exception('Error consultando última marcación: ${e.message}');
     } catch (e) {
@@ -142,7 +142,7 @@ class EmployeeService {
           .limit(limit);
 
       return (response as List)
-          .map((json) => RegistrosAsistencia.fromJson(json))
+          .map((json) => RegistrosAsistencia.fromDynamic(json))
           .toList();
     } on PostgrestException catch (e) {
       throw Exception('Error obteniendo historial: ${e.message}');

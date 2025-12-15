@@ -5,6 +5,7 @@ import '../models/notificacion.dart';
 import '../models/auditoria_log.dart';
 import '../models/enums.dart';
 import 'supabase_client.dart';
+import 'package:postgrest/postgrest.dart';
 
 class ComplianceService {
   ComplianceService._();
@@ -68,33 +69,31 @@ class ComplianceService {
     required EstadoAprobacion status,
     String? comment,
   }) async {
-    print('📝 ComplianceService.resolveRequest iniciado');
-    print('📝 Request ID: $requestId');
-    print('📝 Status: ${status.value}');
-    print('📝 Comment: ${comment ?? "null"}');
-    print('📝 User ID: ${supabase.auth.currentUser?.id}');
-    
     try {
+      final userId = supabase.auth.currentUser?.id;
+      if (userId == null) throw Exception('Usuario no autenticado');
+
       final updateData = {
         'estado': status.value,
-        'aprobado_por_id': supabase.auth.currentUser!.id,
+        'aprobado_por_id': userId,
         'fecha_resolucion': DateTime.now().toIso8601String(),
         'comentario_resolucion': comment,
       };
-      
-      print('📝 Update data: $updateData');
-      
+
       final result = await supabase
           .from('solicitudes_permisos')
           .update(updateData)
           .eq('id', requestId)
-          .select();
-      
-      print('✅ Resultado: $result');
-      print('✅ Solicitud resuelta');
-    } catch (e, stackTrace) {
-      print('❌ ERROR: $e');
-      print('❌ Stack: $stackTrace');
+          .select('id');
+
+      if (result is List && result.isEmpty) {
+        throw Exception(
+          'No se pudo resolver la solicitud. Verifica permisos o si aún está disponible.',
+        );
+      }
+    } on PostgrestException catch (e) {
+      throw Exception('No se pudo resolver la solicitud: ${e.message}');
+    } catch (e) {
       throw Exception('Error resolviendo solicitud: $e');
     }
   }
@@ -197,10 +196,10 @@ class ComplianceService {
     String? justification,
   }) async {
     try {
-      await supabase.from('alertas_cumplimiento').update({
-        'estado': newStatus,
-        'justificacion_auditor': justification,
-      }).eq('id', alertId);
+      await supabase
+          .from('alertas_cumplimiento')
+          .update({'estado': newStatus, 'justificacion_auditor': justification})
+          .eq('id', alertId);
     } catch (e) {
       throw Exception('Error resolviendo alerta: $e');
     }
@@ -220,9 +219,7 @@ class ComplianceService {
           .order('creado_en', ascending: false)
           .limit(50);
 
-      return (response as List)
-          .map((e) => Notificacion.fromJson(e))
-          .toList();
+      return (response as List).map((e) => Notificacion.fromJson(e)).toList();
     } catch (e) {
       throw Exception('Error cargando notificaciones: $e');
     }
@@ -243,9 +240,7 @@ class ComplianceService {
           .order('creado_en', ascending: false)
           .limit(limit);
 
-      return (response as List)
-          .map((e) => Notificacion.fromJson(e))
-          .toList();
+      return (response as List).map((e) => Notificacion.fromJson(e)).toList();
     } catch (e) {
       throw Exception('Error cargando notificaciones de sistema: $e');
     }
@@ -254,10 +249,14 @@ class ComplianceService {
   /// Marcar notificación como leída
   Future<void> markNotificationAsRead(String notificationId) async {
     try {
+      final userId = supabase.auth.currentUser?.id;
+      if (userId == null) throw Exception('Usuario no autenticado');
+
       await supabase
           .from('notificaciones')
           .update({'leido': true})
-          .eq('id', notificationId);
+          .eq('id', notificationId)
+          .eq('usuario_destino_id', userId);
     } catch (e) {
       throw Exception('Error marcando notificación: $e');
     }
@@ -307,9 +306,7 @@ class ComplianceService {
           .order('creado_en', ascending: false)
           .limit(limit);
 
-      return (response as List)
-          .map((e) => AuditoriaLog.fromJson(e))
-          .toList();
+      return (response as List).map((e) => AuditoriaLog.fromJson(e)).toList();
     } catch (e) {
       throw Exception('Error cargando auditoría: $e');
     }

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/alertas_cumplimiento.dart';
 import '../models/auditoria_log.dart';
+import '../models/encargados_sucursales.dart';
 import '../models/enums.dart';
 import '../models/notificacion.dart';
 import '../models/organizaciones.dart';
@@ -68,7 +69,9 @@ final orgAdminStaffProvider =
         final matchesRole = filter.role == null || perfil.rol == filter.role;
         final matchesActive =
             filter.active == null || perfil.activo == filter.active;
-        return matchesRole && matchesActive;
+        final matchesBranch =
+            filter.branchId == null || perfil.sucursalId == filter.branchId;
+        return matchesRole && matchesActive && matchesBranch;
       }).toList();
     });
 
@@ -93,11 +96,12 @@ final orgAdminPaymentsProvider =
       return ref.read(paymentsServiceProvider).listPayments(orgId: orgId);
     });
 
-final orgAdminBranchesProvider =
-    FutureProvider.autoDispose<List<Sucursales>>((ref) async {
-      final orgId = await _requireOrgId(ref);
-      return ref.read(organizationServiceProvider).getBranches(orgId);
-    });
+final orgAdminBranchesProvider = FutureProvider.autoDispose<List<Sucursales>>((
+  ref,
+) async {
+  final orgId = await _requireOrgId(ref);
+  return ref.read(organizationServiceProvider).getBranches(orgId);
+});
 
 final orgAdminAttendanceProvider = FutureProvider.family
     .autoDispose<List<RegistrosAsistencia>, OrgAdminAttendanceFilter>((
@@ -194,19 +198,26 @@ class OrgAdminPeopleFilter {
   final String? search;
   final RolUsuario? role;
   final bool? active;
+  final String? branchId;
 
-  const OrgAdminPeopleFilter({this.search, this.role, this.active});
+  const OrgAdminPeopleFilter({
+    this.search,
+    this.role,
+    this.active,
+    this.branchId,
+  });
 
   @override
   bool operator ==(Object other) {
     return other is OrgAdminPeopleFilter &&
         other.search == search &&
         other.role == role &&
-        other.active == active;
+        other.active == active &&
+        other.branchId == branchId;
   }
 
   @override
-  int get hashCode => Object.hash(search, role, active);
+  int get hashCode => Object.hash(search, role, active, branchId);
 }
 
 class OrgAdminAttendanceFilter {
@@ -261,6 +272,7 @@ class OrgAdminPermissionController extends AsyncNotifier<void> {
     if (!state.hasError) {
       // Invalidar TODAS las solicitudes (false) en lugar de solo pendientes
       ref
+        ..invalidate(orgAdminPermissionsProvider(true))
         ..invalidate(orgAdminPermissionsProvider(false))
         ..invalidate(orgAdminAlertsProvider);
     }
@@ -370,3 +382,67 @@ class AlertsController extends AsyncNotifier<void> {
 final alertsControllerProvider = AsyncNotifierProvider<AlertsController, void>(
   AlertsController.new,
 );
+
+// ============================================================================
+// Sucursales: Encargados + Mutaciones
+// ============================================================================
+
+final orgAdminBranchManagersProvider = FutureProvider.family
+    .autoDispose<List<EncargadosSucursales>, String>((ref, branchId) async {
+      return ref.read(staffServiceProvider).getBranchManagers(branchId);
+    });
+
+class OrgAdminBranchMutationController extends AsyncNotifier<void> {
+  @override
+  FutureOr<void> build() => null;
+
+  Future<void> create(Sucursales branch) async {
+    state = const AsyncValue.loading();
+    state = await AsyncValue.guard(
+      () => ref.read(organizationServiceProvider).createBranch(branch),
+    );
+    if (!state.hasError) {
+      ref.invalidate(orgAdminBranchesProvider);
+    }
+  }
+
+  Future<void> updateBranch(Sucursales branch) async {
+    state = const AsyncValue.loading();
+    state = await AsyncValue.guard(
+      () => ref.read(organizationServiceProvider).updateBranch(branch),
+    );
+    if (!state.hasError) {
+      ref.invalidate(orgAdminBranchesProvider);
+    }
+  }
+
+  Future<void> delete(String branchId) async {
+    state = const AsyncValue.loading();
+    state = await AsyncValue.guard(
+      () => ref.read(organizationServiceProvider).deleteBranch(branchId),
+    );
+    if (!state.hasError) {
+      ref.invalidate(orgAdminBranchesProvider);
+    }
+  }
+
+  Future<void> setManagers({
+    required String branchId,
+    required Set<String> managerIds,
+  }) async {
+    state = const AsyncValue.loading();
+    state = await AsyncValue.guard(
+      () => ref
+          .read(staffServiceProvider)
+          .setBranchManagers(branchId: branchId, managerIds: managerIds),
+    );
+    if (!state.hasError) {
+      ref.invalidate(orgAdminBranchManagersProvider(branchId));
+    }
+  }
+}
+
+final orgAdminBranchMutationControllerProvider =
+    AsyncNotifierProvider<OrgAdminBranchMutationController, void>(
+      OrgAdminBranchMutationController.new,
+    );

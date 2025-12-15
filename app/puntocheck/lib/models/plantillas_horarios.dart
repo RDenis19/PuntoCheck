@@ -7,12 +7,16 @@ class PlantillasHorarios {
   // Compatibilidad: mantenemos campos básicos tomando el primer turno_jornada.
   final String? horaEntrada;
   final String? horaSalida;
+  // Nota: en DB este campo es `tolerancia_entrada_minutos`.
+  // Se mantiene el nombre por compatibilidad con pantallas existentes.
   final int? tiempoDescansoMinutos;
   final List<int>? diasLaborales; // INT[]
   final bool? esRotativo;
   final bool? eliminado;
   final DateTime? creadoEn;
   final List<TurnosJornada> turnos;
+
+  int? get toleranciaEntradaMinutos => tiempoDescansoMinutos;
 
   PlantillasHorarios({
     required this.id,
@@ -32,8 +36,8 @@ class PlantillasHorarios {
     final turnosJson = json['turnos_jornada'] as List?;
     final turnos = turnosJson != null
         ? turnosJson
-            .map((e) => TurnosJornada.fromJson(Map<String, dynamic>.from(e)))
-            .toList()
+              .map((e) => TurnosJornada.fromJson(Map<String, dynamic>.from(e)))
+              .toList()
         : <TurnosJornada>[];
 
     final primerTurno = turnos.isNotEmpty ? turnos.first : null;
@@ -44,8 +48,8 @@ class PlantillasHorarios {
       nombre: json['nombre'],
       horaEntrada: primerTurno?.horaInicio,
       horaSalida: primerTurno?.horaFin,
-      tiempoDescansoMinutos: json['tolerancia_entrada_minutos'] ??
-          json['tiempo_descanso_minutos'],
+      tiempoDescansoMinutos:
+          json['tolerancia_entrada_minutos'] ?? json['tiempo_descanso_minutos'],
       diasLaborales: json['dias_laborales'] != null
           ? List<int>.from(json['dias_laborales'])
           : null,
@@ -59,12 +63,12 @@ class PlantillasHorarios {
   }
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'organizacion_id': organizacionId,
-        'nombre': nombre,
-        'tolerancia_entrada_minutos': tiempoDescansoMinutos,
-        'dias_laborales': diasLaborales,
-        'es_rotativo': esRotativo,
-        'eliminado': eliminado,
-      };
+    'id': id,
+    'organizacion_id': organizacionId,
+    'nombre': nombre,
+    'tolerancia_entrada_minutos': tiempoDescansoMinutos,
+    'dias_laborales': diasLaborales,
+    'es_rotativo': esRotativo,
+    'eliminado': eliminado,
+  };
 }

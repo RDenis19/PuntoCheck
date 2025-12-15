@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:puntocheck/models/sucursales.dart';
+import 'package:puntocheck/utils/device_identity.dart';
 import 'package:puntocheck/utils/theme/app_colors.dart';
 
 class OrgAdminBranchForm extends StatefulWidget {
@@ -25,7 +27,9 @@ class _OrgAdminBranchFormState extends State<OrgAdminBranchForm> {
   late TextEditingController _latCtrl;
   late TextEditingController _lonCtrl;
   late TextEditingController _radioCtrl;
+  late TextEditingController _deviceIdCtrl;
   bool _qrEnabled = true;
+  bool _loadingDeviceId = false;
 
   @override
   void initState() {
@@ -40,7 +44,10 @@ class _OrgAdminBranchFormState extends State<OrgAdminBranchForm> {
     _radioCtrl = TextEditingController(
       text: (widget.initial.radioMetros ?? 100).toString(),
     );
-    _qrEnabled = widget.initial.tieneQrHabilitado ?? true;
+    _qrEnabled = widget.initial.tieneQrHabilitado ?? false;
+    _deviceIdCtrl = TextEditingController(
+      text: widget.initial.deviceIdQrAsignado ?? '',
+    );
   }
 
   @override
@@ -50,6 +57,7 @@ class _OrgAdminBranchFormState extends State<OrgAdminBranchForm> {
     _latCtrl.dispose();
     _lonCtrl.dispose();
     _radioCtrl.dispose();
+    _deviceIdCtrl.dispose();
     super.dispose();
   }
 
@@ -75,7 +83,8 @@ class _OrgAdminBranchFormState extends State<OrgAdminBranchForm> {
               labelText: 'Nombre',
               prefixIcon: Icon(Icons.store_mall_directory_outlined),
             ),
-            validator: (v) => v == null || v.isEmpty ? 'Nombre requerido' : null,
+            validator: (v) =>
+                v == null || v.isEmpty ? 'Nombre requerido' : null,
           ),
           const SizedBox(height: 10),
           TextFormField(
@@ -128,12 +137,62 @@ class _OrgAdminBranchFormState extends State<OrgAdminBranchForm> {
             value: _qrEnabled,
             onChanged: (v) => setState(() => _qrEnabled = v),
           ),
+          if (_qrEnabled) ...[
+            const SizedBox(height: 10),
+            TextFormField(
+              controller: _deviceIdCtrl,
+              decoration: const InputDecoration(
+                labelText: 'Device ID (PuntoCheck) asignado (opcional)',
+                prefixIcon: Icon(Icons.phone_android_outlined),
+                helperText:
+                    'Es un ID generado por la app (no es IMEI). Si lo asignas, puedes amarrar el QR fijo a un equipo especifico.',
+              ),
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: widget.isSaving || _loadingDeviceId
+                        ? null
+                        : _fillWithMyDeviceId,
+                    icon: _loadingDeviceId
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.smartphone_outlined),
+                    label: const Text('Usar mi Device ID'),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                IconButton(
+                  tooltip: 'Copiar',
+                  onPressed: _deviceIdCtrl.text.trim().isEmpty
+                      ? null
+                      : () async {
+                          await Clipboard.setData(
+                            ClipboardData(text: _deviceIdCtrl.text.trim()),
+                          );
+                          if (!mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Device ID copiado')),
+                          );
+                        },
+                  icon: const Icon(Icons.copy_rounded),
+                ),
+              ],
+            ),
+          ],
           const SizedBox(height: 14),
           Row(
             children: [
               Expanded(
                 child: OutlinedButton(
-                  onPressed: widget.isSaving ? null : () => Navigator.of(context).maybePop(false),
+                  onPressed: widget.isSaving
+                      ? null
+                      : () => Navigator.of(context).maybePop(false),
                   child: const Text('Cancelar'),
                 ),
               ),
@@ -161,12 +220,17 @@ class _OrgAdminBranchFormState extends State<OrgAdminBranchForm> {
     final lat = double.tryParse(_latCtrl.text);
     final lon = double.tryParse(_lonCtrl.text);
     final radio = int.tryParse(_radioCtrl.text);
+    final deviceId = _deviceIdCtrl.text.trim().isEmpty
+        ? null
+        : _deviceIdCtrl.text.trim();
 
     final updated = Sucursales(
       id: widget.initial.id,
       organizacionId: widget.initial.organizacionId,
       nombre: _nameCtrl.text.trim(),
-      direccion: _addressCtrl.text.trim().isEmpty ? null : _addressCtrl.text.trim(),
+      direccion: _addressCtrl.text.trim().isEmpty
+          ? null
+          : _addressCtrl.text.trim(),
       ubicacionCentral: (lat != null && lon != null)
           ? {
               'type': 'Point',
@@ -175,8 +239,28 @@ class _OrgAdminBranchFormState extends State<OrgAdminBranchForm> {
           : widget.initial.ubicacionCentral,
       radioMetros: radio ?? widget.initial.radioMetros,
       tieneQrHabilitado: _qrEnabled,
+      deviceIdQrAsignado: _qrEnabled ? deviceId : null,
     );
     await widget.onSubmit(updated);
+  }
+
+  Future<void> _fillWithMyDeviceId() async {
+    setState(() => _loadingDeviceId = true);
+    try {
+      final identity = await getDeviceIdentity();
+      if (!mounted) return;
+      setState(() => _deviceIdCtrl.text = identity.id);
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Detectado: ${identity.model}')));
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('No se pudo obtener Device ID: $e')),
+      );
+    } finally {
+      if (mounted) setState(() => _loadingDeviceId = false);
+    }
   }
 
   List<double>? _extractLonLat(dynamic geo) {

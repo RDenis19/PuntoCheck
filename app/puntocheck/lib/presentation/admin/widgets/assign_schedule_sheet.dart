@@ -11,10 +11,12 @@ import 'package:puntocheck/utils/theme/app_colors.dart';
 /// Bottom sheet para asignar un horario a un empleado
 class AssignScheduleSheet extends ConsumerStatefulWidget {
   final Function(AsignacionesHorarios) onAssigned;
+  final String? initialEmployeeId;
 
   const AssignScheduleSheet({
     super.key,
     required this.onAssigned,
+    this.initialEmployeeId,
   });
 
   @override
@@ -28,6 +30,12 @@ class _AssignScheduleSheetState extends ConsumerState<AssignScheduleSheet> {
   DateTime _fechaInicio = DateTime.now();
   DateTime? _fechaFin;
   bool _isSaving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedEmployeeId = widget.initialEmployeeId;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -116,7 +124,9 @@ class _AssignScheduleSheetState extends ConsumerState<AssignScheduleSheet> {
                           return Container(
                             padding: const EdgeInsets.all(16),
                             decoration: BoxDecoration(
-                              color: AppColors.warningOrange.withValues(alpha: 0.1),
+                              color: AppColors.warningOrange.withValues(
+                                alpha: 0.1,
+                              ),
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: const Text(
@@ -340,8 +350,10 @@ class _AssignScheduleSheetState extends ConsumerState<AssignScheduleSheet> {
     );
   }
 
-  Future<void> _selectDate(BuildContext context,
-      {required bool isStart}) async {
+  Future<void> _selectDate(
+    BuildContext context, {
+    required bool isStart,
+  }) async {
     final picked = await showDatePicker(
       context: context,
       initialDate: isStart ? _fechaInicio : (_fechaFin ?? DateTime.now()),
@@ -350,9 +362,7 @@ class _AssignScheduleSheetState extends ConsumerState<AssignScheduleSheet> {
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.light(
-              primary: AppColors.primaryRed,
-            ),
+            colorScheme: const ColorScheme.light(primary: AppColors.primaryRed),
           ),
           child: child!,
         );
@@ -380,9 +390,9 @@ class _AssignScheduleSheetState extends ConsumerState<AssignScheduleSheet> {
 
   Future<void> _save() async {
     if (_selectedEmployeeId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Selecciona un empleado')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Selecciona un empleado')));
       return;
     }
 
@@ -400,15 +410,42 @@ class _AssignScheduleSheetState extends ConsumerState<AssignScheduleSheet> {
       final orgId = profile?.organizacionId;
       if (orgId == null) throw Exception('No org ID');
 
+      final startStr = _fechaInicio.toIso8601String().split('T').first;
+      final endStr = (_fechaFin ?? DateTime(9999, 12, 31))
+          .toIso8601String()
+          .split('T')
+          .first;
+
+      final overlaps = await supabase
+          .from('asignaciones_horarios')
+          .select('id')
+          .eq('organizacion_id', orgId)
+          .eq('perfil_id', _selectedEmployeeId!)
+          .lte('fecha_inicio', endStr)
+          .or('fecha_fin.is.null,fecha_fin.gte.$startStr');
+
+      if ((overlaps as List).isNotEmpty) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'El empleado ya tiene un horario asignado que se cruza con esas fechas. '
+              'Cambia el rango o edita la asignación existente.',
+            ),
+          ),
+        );
+        return;
+      }
+
       final response = await supabase
           .from('asignaciones_horarios')
           .insert({
             'perfil_id': _selectedEmployeeId,
             'organizacion_id': orgId,
             'plantilla_id': _selectedTemplateId,
-            'fecha_inicio': _fechaInicio.toIso8601String().split('T')[0],
+            'fecha_inicio': startStr,
             if (_fechaFin != null)
-              'fecha_fin': _fechaFin!.toIso8601String().split('T')[0],
+              'fecha_fin': _fechaFin!.toIso8601String().split('T').first,
           })
           .select()
           .single();
@@ -423,9 +460,9 @@ class _AssignScheduleSheetState extends ConsumerState<AssignScheduleSheet> {
       Navigator.pop(context);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error al asignar horario: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error al asignar horario: $e')));
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }

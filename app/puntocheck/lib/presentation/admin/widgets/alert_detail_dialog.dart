@@ -83,7 +83,9 @@ class _AlertDetailDialogState extends State<AlertDetailDialog> {
               decoration: BoxDecoration(
                 color: _severityColor.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: _severityColor.withValues(alpha: 0.3)),
+                border: Border.all(
+                  color: _severityColor.withValues(alpha: 0.3),
+                ),
               ),
               child: Row(
                 children: [
@@ -125,16 +127,12 @@ class _AlertDetailDialogState extends State<AlertDetailDialog> {
           child: const Text('Cancelar'),
         ),
         TextButton(
-          onPressed: _isLoading
-              ? null
-              : () => _handleResolve('rechazado'),
-          style: TextButton.styleFrom(foregroundColor: AppColors.errorRed),
-          child: const Text('Rechazar'),
+          onPressed: _isLoading ? null : () => _handleResolve('revisado'),
+          style: TextButton.styleFrom(foregroundColor: AppColors.neutral700),
+          child: const Text('Marcar revisado'),
         ),
         ElevatedButton(
-          onPressed: _isLoading
-              ? null
-              : () => _handleResolve('justificado'),
+          onPressed: _isLoading ? null : () => _handleResolve('justificado'),
           style: ElevatedButton.styleFrom(
             backgroundColor: AppColors.successGreen,
             foregroundColor: Colors.white,
@@ -182,11 +180,11 @@ class _AlertDetailDialogState extends State<AlertDetailDialog> {
 
   Future<void> _handleResolve(String status) async {
     final justification = _justificationController.text.trim();
-    
-    if (justification.isEmpty && status == 'rechazado') {
+
+    if (justification.isEmpty && status == 'justificado') {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Debes proporcionar una justificación para rechazar'),
+          content: Text('Debes proporcionar una justificación para justificar'),
           backgroundColor: AppColors.errorRed,
         ),
       );
@@ -196,7 +194,10 @@ class _AlertDetailDialogState extends State<AlertDetailDialog> {
     setState(() => _isLoading = true);
 
     try {
-      await widget.onResolve(status, justification.isEmpty ? null : justification);
+      await widget.onResolve(
+        status,
+        justification.isEmpty ? null : justification,
+      );
       if (mounted) {
         Navigator.pop(context, true);
       }

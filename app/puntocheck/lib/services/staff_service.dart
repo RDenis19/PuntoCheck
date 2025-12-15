@@ -9,6 +9,45 @@ class StaffService {
   StaffService._();
   static final instance = StaffService._();
 
+  Never _throwFriendlyProfileWriteError(PostgrestException e) {
+    final haystack = <Object?>[
+      e.message,
+      e.details,
+      e.hint,
+    ].where((v) => v != null).map((v) => v.toString()).join(' ').toLowerCase();
+
+    final isPlanLimit =
+        haystack.contains('check_cupo_plan') ||
+        haystack.contains('max_usuarios') ||
+        haystack.contains('max usuarios') ||
+        haystack.contains('limite de usuarios') ||
+        haystack.contains('límite de usuarios') ||
+        haystack.contains('cupo plan') ||
+        (haystack.contains('cupo') && haystack.contains('plan')) ||
+        (haystack.contains('plan') && haystack.contains('usuarios'));
+
+    if (isPlanLimit) {
+      throw Exception(
+        'No se pudo crear el usuario: tu plan alcanzó el límite de usuarios. '
+        'Desactiva/elimina usuarios o actualiza tu plan.',
+      );
+    }
+
+    if (e.code == '23505') {
+      throw Exception(
+        'No se pudo crear el usuario: ya existe un perfil con esos datos.',
+      );
+    }
+
+    if (e.code == '42501') {
+      throw Exception(
+        'Sin permisos para crear perfiles (revisa políticas RLS).',
+      );
+    }
+
+    throw Exception('Error guardando perfil: ${e.message}');
+  }
+
   /// Obtener lista de personal con búsqueda.
   /// El orden por defecto es por fecha de creación (desc) para priorizar ingresos recientes.
   Future<List<Perfiles>> getStaff(
@@ -26,16 +65,16 @@ class StaffService {
 
       if (searchQuery != null && searchQuery.isNotEmpty) {
         final sq = searchQuery.trim();
-        query = query.or(
-          'apellidos.ilike.%$sq%,nombres.ilike.%$sq%',
-        );
+        query = query.or('apellidos.ilike.%$sq%,nombres.ilike.%$sq%');
       }
 
       final response = await query.order(orderBy, ascending: ascending);
       return (response as List).map((e) => Perfiles.fromJson(e)).toList();
     } on PostgrestException catch (e) {
       if (e.code == '42501') {
-        throw Exception('Sin permisos para ver el equipo (RLS en perfiles). Verifica la policy para super_admin.');
+        throw Exception(
+          'Sin permisos para ver el equipo (RLS en perfiles). Verifica la policy para super_admin.',
+        );
       }
       throw Exception('Error cargando personal: ${e.message}');
     } catch (e) {
@@ -77,7 +116,7 @@ class StaffService {
           'Sin permisos para crear perfiles (revisa políticas RLS).',
         );
       }
-      throw Exception('Error creando perfil: ${e.message}');
+      _throwFriendlyProfileWriteError(e);
     } catch (e) {
       throw Exception('Error creando perfil: $e');
     }
@@ -142,14 +181,19 @@ class StaffService {
       await supabase.from('perfiles').insert(data);
     } on PostgrestException catch (e) {
       if (e.code == '23505') {
-        throw Exception('El usuario ya tiene un perfil registrado.');
+        // Si el trigger `handle_new_user` ya creó el perfil, lo actualizamos.
+        final updates = Map<String, dynamic>.from(data)
+          ..remove('id')
+          ..removeWhere((key, value) => value == null);
+        await supabase.from('perfiles').update(updates).eq('id', userId);
+        return;
       }
       if (e.code == '42501') {
         throw Exception(
           'Sin permisos para crear perfiles (revisa políticas RLS).',
         );
       }
-      throw Exception('Error creando perfil: ${e.message}');
+      _throwFriendlyProfileWriteError(e);
     } catch (e) {
       throw Exception('Error creando perfil: $e');
     }
@@ -163,19 +207,19 @@ class StaffService {
     try {
       final response = await supabase
           .from('encargados_sucursales')
-          .select(
-            '''
+          .select('''
             id, sucursal_id, manager_id, activo, creado_en,
             perfiles:manager_id (id, nombres, apellidos, organizacion_id, rol, sucursal_id)
-            ''',
-          )
+            ''')
           .eq('sucursal_id', branchId)
           .or('activo.is.null,activo.eq.true');
 
       return (response as List)
-          .map((e) => EncargadosSucursales.fromJson(
-                Map<String, dynamic>.from(e as Map),
-              ))
+          .map(
+            (e) => EncargadosSucursales.fromJson(
+              Map<String, dynamic>.from(e as Map),
+            ),
+          )
           .toList();
     } catch (e) {
       throw Exception('Error cargando encargados de sucursal: $e');
@@ -210,11 +254,94 @@ class StaffService {
       });
     } on PostgrestException catch (e) {
       if (e.code == '23505') {
-        throw Exception('Ya existe un encargado activo para esta sucursal.');
+        throw Exception(
+          'Ese perfil ya esta asignado como encargado en esta sucursal.',
+        );
       }
       throw Exception('Error asignando encargado: ${e.message}');
     } catch (e) {
       throw Exception('Error asignando encargado: $e');
+    }
+  }
+
+  Future<List<EncargadosSucursales>> getBranchManagersForBranches(
+    List<String> branchIds,
+  ) async {
+    if (branchIds.isEmpty) return const [];
+    try {
+      final response = await supabase
+          .from('encargados_sucursales')
+          .select('''
+            id, sucursal_id, manager_id, activo, creado_en,
+            perfiles:manager_id (id, nombres, apellidos, organizacion_id, rol, sucursal_id)
+            ''')
+          .inFilter('sucursal_id', branchIds)
+          .or('activo.is.null,activo.eq.true');
+
+      return (response as List)
+          .map(
+            (e) => EncargadosSucursales.fromJson(
+              Map<String, dynamic>.from(e as Map),
+            ),
+          )
+          .toList();
+    } catch (e) {
+      throw Exception('Error cargando encargados: $e');
+    }
+  }
+
+  /// Sincroniza encargados activos de una sucursal con el set deseado.
+  /// - Inserta o reactiva para ids presentes.
+  /// - Desactiva (activo=false) los que ya no esten.
+  Future<void> setBranchManagers({
+    required String branchId,
+    required Set<String> managerIds,
+  }) async {
+    try {
+      final existing = await supabase
+          .from('encargados_sucursales')
+          .select('id, manager_id, activo')
+          .eq('sucursal_id', branchId);
+
+      final rows = List<Map<String, dynamic>>.from(existing as List);
+      final Map<String, Map<String, dynamic>> byManagerId = {
+        for (final r in rows) (r['manager_id'] as String): r,
+      };
+
+      final Set<String> activeManagerIds = {
+        for (final r in rows)
+          if (r['activo'] != false) (r['manager_id'] as String),
+      };
+
+      final toActivate = managerIds.difference(activeManagerIds);
+      final toDeactivate = activeManagerIds.difference(managerIds);
+
+      for (final managerId in toActivate) {
+        final row = byManagerId[managerId];
+        if (row != null) {
+          await supabase
+              .from('encargados_sucursales')
+              .update({'activo': true})
+              .eq('id', row['id']);
+        } else {
+          await supabase.from('encargados_sucursales').insert({
+            'sucursal_id': branchId,
+            'manager_id': managerId,
+            'activo': true,
+          });
+        }
+      }
+
+      for (final managerId in toDeactivate) {
+        final row = byManagerId[managerId];
+        if (row == null) continue;
+        await supabase
+            .from('encargados_sucursales')
+            .update({'activo': false})
+            .eq('id', row['id']);
+      }
+    } catch (e) {
+      throw Exception('Error sincronizando encargados: $e');
     }
   }
 

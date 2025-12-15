@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:puntocheck/providers/app_providers.dart';
+import 'package:puntocheck/presentation/login/views/device_setup_view.dart';
 import 'package:puntocheck/presentation/shared/widgets/primary_button.dart';
 import 'package:puntocheck/presentation/shared/widgets/text_field_icon.dart';
+import 'package:puntocheck/utils/device_identity.dart';
 import 'package:puntocheck/utils/theme/app_colors.dart';
 import 'package:go_router/go_router.dart';
 import 'package:puntocheck/routes/app_router.dart';
@@ -20,12 +22,29 @@ class _LoginViewState extends ConsumerState<LoginView> {
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
   bool _hasNavigated = false;
+  bool _loadingDeviceId = false;
 
   @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
+  }
+
+  Future<void> _openDeviceSetup() async {
+    if (_loadingDeviceId) return;
+    setState(() => _loadingDeviceId = true);
+    try {
+      if (!mounted) return;
+      // Inicializa/garantiza que exista un Device ID antes de abrir la pantalla.
+      await getDeviceIdentity();
+      if (!mounted) return;
+      await Navigator.of(
+        context,
+      ).push<void>(MaterialPageRoute(builder: (_) => const DeviceSetupView()));
+    } finally {
+      if (mounted) setState(() => _loadingDeviceId = false);
+    }
   }
 
   Future<void> _onLogin() async {
@@ -161,6 +180,18 @@ class _LoginViewState extends ConsumerState<LoginView> {
                 text: 'Iniciar Sesion',
                 isLoading: isLoading,
                 onPressed: _onLogin,
+              ),
+              const SizedBox(height: 14),
+              TextButton.icon(
+                onPressed: _loadingDeviceId ? null : _openDeviceSetup,
+                icon: _loadingDeviceId
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.phonelink_setup_outlined),
+                label: const Text('Configurar dispositivo (kiosko)'),
               ),
               const SizedBox(height: 40),
             ],

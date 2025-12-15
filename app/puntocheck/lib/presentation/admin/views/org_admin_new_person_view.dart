@@ -47,6 +47,23 @@ class _OrgAdminNewPersonViewState extends ConsumerState<OrgAdminNewPersonView> {
       showAppSnackBar(context, 'Selecciona una sucursal', success: false);
       return;
     }
+
+    // Validación extra: la sucursal debe existir dentro de la organización.
+    final branches = await ref.read(orgAdminBranchesProvider.future);
+    final isBranchValid = branches.any((b) => b.id == _sucursalId);
+    if (!isBranchValid) {
+      showAppSnackBar(
+        context,
+        'Sucursal inválida para esta organización',
+        success: false,
+      );
+      return;
+    }
+
+    if (_role == RolUsuario.superAdmin || _role == RolUsuario.orgAdmin) {
+      showAppSnackBar(context, 'Rol no permitido', success: false);
+      return;
+    }
     setState(() => _isSaving = true);
     final sessionTransition = ref.read(authSessionTransitionProvider.notifier);
     sessionTransition.state = true;
@@ -57,6 +74,7 @@ class _OrgAdminNewPersonViewState extends ConsumerState<OrgAdminNewPersonView> {
       final telefono = _telCtrl.text.trim();
       final cargo = _cargoCtrl.text.trim();
       final metadata = <String, String?>{
+        // Metadata opcional para auditoría / triggers; el perfil se creará explícitamente.
         'rol': _role.value,
         'organizacion_id': org.id,
         'nombres': _namesCtrl.text.trim(),
@@ -67,25 +85,24 @@ class _OrgAdminNewPersonViewState extends ConsumerState<OrgAdminNewPersonView> {
         'sucursal_id': _sucursalId,
       }..removeWhere((key, value) => value == null || value.trim().isEmpty);
 
-      await auth.createUserPreservingSession(
+      final createdUser = await auth.createUserPreservingSession(
         email: _emailCtrl.text.trim(),
         password: _passCtrl.text,
         metadata: metadata,
-        runWithNewUserSession: (user) async {
-          await Future.delayed(const Duration(milliseconds: 300));
-          await staff.updateProfile(
-            user.id,
-            {
-              'nombres': _namesCtrl.text.trim(),
-              'apellidos': _lastCtrl.text.trim(),
-              'rol': _role.value,
-              'cedula': cedula.isEmpty ? null : cedula,
-              'telefono': telefono.isEmpty ? null : telefono,
-              'cargo': cargo.isEmpty ? null : cargo,
-              'sucursal_id': _sucursalId,
-            }..removeWhere((key, value) => value == null),
-          );
-        },
+      );
+
+      // Crear/actualizar el perfil en la BD bajo la sesión del org_admin (RLS).
+      // Si existe trigger `handle_new_user`, createOrgProfile hará update en caso de duplicado.
+      await staff.createOrgProfile(
+        userId: createdUser.id,
+        orgId: org.id,
+        nombres: _namesCtrl.text.trim(),
+        apellidos: _lastCtrl.text.trim(),
+        rol: _role,
+        cedula: cedula.isEmpty ? null : cedula,
+        telefono: telefono.isEmpty ? null : telefono,
+        cargo: cargo.isEmpty ? null : cargo,
+        sucursalId: _sucursalId,
       );
 
       ref.invalidate(orgAdminStaffProvider);

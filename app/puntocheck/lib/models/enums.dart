@@ -41,8 +41,19 @@ enum TipoPermiso {
   final String value;
   const TipoPermiso(this.value);
 
-  factory TipoPermiso.fromString(String value) =>
-      TipoPermiso.values.firstWhere((e) => e.value == value);
+  factory TipoPermiso.fromString(String value) {
+    final normalized = value.trim().toLowerCase();
+
+    // Compatibilidad por si en la BD existen valores antiguos.
+    if (normalized == 'maternidad' || normalized == 'paternidad') {
+      return TipoPermiso.maternidadPaternidad;
+    }
+
+    for (final item in TipoPermiso.values) {
+      if (item.value == normalized) return item;
+    }
+    return TipoPermiso.otro;
+  }
 }
 
 // CREATE TYPE estado_aprobacion
@@ -56,14 +67,19 @@ enum EstadoAprobacion {
   final String value;
   const EstadoAprobacion(this.value);
 
-  factory EstadoAprobacion.fromString(String value) =>
-      EstadoAprobacion.values.firstWhere((e) => e.value == value);
-  
+  factory EstadoAprobacion.fromString(String value) {
+    final normalized = value.trim().toLowerCase();
+    for (final item in EstadoAprobacion.values) {
+      if (item.value == normalized) return item;
+    }
+    return EstadoAprobacion.pendiente;
+  }
+
   // Helper para saber si está aprobado (cualquier tipo)
-  bool get esAprobado => 
-      this == EstadoAprobacion.aprobadoManager || 
+  bool get esAprobado =>
+      this == EstadoAprobacion.aprobadoManager ||
       this == EstadoAprobacion.aprobadoRrhh;
-  
+
   // Helper para saber si está pendiente o puede modificarse
   bool get esPendiente => this == EstadoAprobacion.pendiente;
 }

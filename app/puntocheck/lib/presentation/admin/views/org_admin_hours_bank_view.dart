@@ -96,19 +96,21 @@ class OrgAdminHoursBankView extends ConsumerWidget {
                   SliverPadding(
                     padding: const EdgeInsets.fromLTRB(16, 0, 16, 80),
                     sliver: SliverList(
-                      delegate: SliverChildBuilderDelegate(
-                        (context, index) {
-                          final record = records[index];
-                          return HoursBankCard(
-                            record: record,
-                            employeeName: 'Empleado', // TODO: fetch real name
-                            onTap: () {
-                              // TODO: Ver detalle
-                            },
-                          );
-                        },
-                        childCount: records.length,
-                      ),
+                      delegate: SliverChildBuilderDelegate((context, index) {
+                        final record = records[index];
+                        final employeeProfile = ref
+                            .watch(orgAdminPersonProvider(record.empleadoId))
+                            .valueOrNull;
+                        final employeeName =
+                            employeeProfile?.nombreCompleto ?? 'Cargando...';
+                        return HoursBankCard(
+                          record: record,
+                          employeeName: employeeName,
+                          onTap: () {
+                            // TODO: Ver detalle
+                          },
+                        );
+                      }, childCount: records.length),
                     ),
                   ),
                 ],
@@ -167,9 +169,7 @@ class OrgAdminHoursBankView extends ConsumerWidget {
 
   void _navigateToNew(BuildContext context) {
     Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => const OrgAdminNewHoursEntryView(),
-      ),
+      MaterialPageRoute(builder: (_) => const OrgAdminNewHoursEntryView()),
     );
   }
 }

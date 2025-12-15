@@ -53,9 +53,10 @@ class OrgAdminSchedulesView extends ConsumerWidget {
                 return EmptyState(
                   icon: Icons.schedule_outlined,
                   title: 'Sin plantillas de horarios',
-                  subtitle: 'Crea tu primera plantilla para asignar a empleados',
+                  subtitle:
+                      'Crea tu primera plantilla para asignar a empleados',
                   primaryLabel: 'Crear Plantilla',
-                  onPrimary: () => _navigateToNew(context),
+                  onPrimary: () => _navigateToNew(context, ref),
                 );
               }
 
@@ -66,7 +67,7 @@ class OrgAdminSchedulesView extends ConsumerWidget {
                   final schedule = schedules[index];
                   return ScheduleTemplateCard(
                     template: schedule,
-                    onTap: () => _navigateToDetail(context, schedule),
+                    onTap: () => _navigateToDetail(context, ref, schedule),
                   );
                 },
               );
@@ -113,7 +114,7 @@ class OrgAdminSchedulesView extends ConsumerWidget {
         ),
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _navigateToNew(context),
+        onPressed: () => _navigateToNew(context, ref),
         backgroundColor: AppColors.primaryRed,
         foregroundColor: Colors.white,
         icon: const Icon(Icons.add),
@@ -122,19 +123,29 @@ class OrgAdminSchedulesView extends ConsumerWidget {
     );
   }
 
-  void _navigateToNew(BuildContext context) {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => const OrgAdminNewScheduleView(),
-      ),
+  Future<void> _navigateToNew(BuildContext context, WidgetRef ref) async {
+    final changed = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(builder: (_) => const OrgAdminNewScheduleView()),
     );
+
+    if (changed == true) {
+      ref.invalidate(_schedulesProvider);
+    }
   }
 
-  void _navigateToDetail(BuildContext context, PlantillasHorarios schedule) {
-    Navigator.of(context).push(
+  Future<void> _navigateToDetail(
+    BuildContext context,
+    WidgetRef ref,
+    PlantillasHorarios schedule,
+  ) async {
+    final changed = await Navigator.of(context).push<bool>(
       MaterialPageRoute(
         builder: (_) => OrgAdminScheduleDetailView(schedule: schedule),
       ),
     );
+
+    if (changed == true) {
+      ref.invalidate(_schedulesProvider);
+    }
   }
 }

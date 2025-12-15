@@ -1,21 +1,23 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:puntocheck/models/sucursales.dart';
 import 'package:puntocheck/presentation/admin/views/org_admin_branch_detail_view.dart';
+import 'package:puntocheck/presentation/admin/views/org_admin_branch_managers_view.dart';
 import 'package:puntocheck/presentation/admin/views/org_admin_branches_map_view.dart';
 import 'package:puntocheck/presentation/admin/views/org_admin_new_branch_view.dart';
 import 'package:puntocheck/presentation/admin/widgets/org_admin_branch_item.dart';
 import 'package:puntocheck/presentation/admin/widgets/empty_state.dart';
 import 'package:puntocheck/presentation/admin/widgets/async_error_view.dart';
+import 'package:puntocheck/routes/app_router.dart';
 import 'package:puntocheck/utils/theme/app_colors.dart';
 import 'package:puntocheck/providers/app_providers.dart';
+import 'package:go_router/go_router.dart';
 
 class OrgAdminBranchesView extends ConsumerWidget {
   const OrgAdminBranchesView({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final branchesFuture = ref.watch(_branchesProvider);
+    final branchesFuture = ref.watch(orgAdminBranchesProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -23,6 +25,18 @@ class OrgAdminBranchesView extends ConsumerWidget {
         backgroundColor: Colors.white,
         foregroundColor: AppColors.neutral900,
         elevation: 0.5,
+        actions: [
+          IconButton(
+            tooltip: 'Kiosko',
+            icon: const Icon(Icons.qr_code_2_outlined),
+            onPressed: () => context.go(AppRoutes.orgAdminKiosk),
+          ),
+          IconButton(
+            tooltip: 'Encargados',
+            icon: const Icon(Icons.groups_outlined),
+            onPressed: () => _openManagers(context),
+          ),
+        ],
       ),
       body: SafeArea(
         child: branchesFuture.when(
@@ -31,15 +45,16 @@ class OrgAdminBranchesView extends ConsumerWidget {
               return EmptyState(
                 icon: Icons.store_mall_directory_outlined,
                 title: 'Aun no tienes sucursales',
-                subtitle: 'Crea tu primera sucursal para definir geocercas y QR.',
+                subtitle:
+                    'Crea tu primera sucursal para definir geocercas y QR.',
                 primaryLabel: 'Crear sucursal',
                 onPrimary: () => _openCreate(context, ref),
               );
             }
             return RefreshIndicator(
               onRefresh: () async {
-                ref.invalidate(_branchesProvider);
-                await ref.read(_branchesProvider.future);
+                ref.invalidate(orgAdminBranchesProvider);
+                await ref.read(orgAdminBranchesProvider.future);
               },
               child: ListView.separated(
                 padding: const EdgeInsets.fromLTRB(16, 12, 16, 80),
@@ -56,7 +71,7 @@ class OrgAdminBranchesView extends ConsumerWidget {
                         ),
                       );
                       if (updated == true) {
-                        ref.invalidate(_branchesProvider);
+                        ref.invalidate(orgAdminBranchesProvider);
                       }
                     },
                   );
@@ -67,7 +82,7 @@ class OrgAdminBranchesView extends ConsumerWidget {
           loading: () => const Center(child: CircularProgressIndicator()),
           error: (e, _) => AsyncErrorView(
             error: e,
-            onRetry: () => ref.invalidate(_branchesProvider),
+            onRetry: () => ref.invalidate(orgAdminBranchesProvider),
           ),
         ),
       ),
@@ -83,25 +98,22 @@ class OrgAdminBranchesView extends ConsumerWidget {
       MaterialPageRoute(builder: (_) => const OrgAdminNewBranchView()),
     );
     if (created == true && context.mounted) {
-      ref.invalidate(_branchesProvider);
+      ref.invalidate(orgAdminBranchesProvider);
     }
   }
 
   void _openMap(BuildContext context) {
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const OrgAdminBranchesMapView()));
+  }
+
+  void _openManagers(BuildContext context) {
     Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => const OrgAdminBranchesMapView()),
+      MaterialPageRoute(builder: (_) => const OrgAdminBranchManagersView()),
     );
   }
 }
-
-final _branchesProvider = FutureProvider<List<Sucursales>>((ref) async {
-  final profile = await ref.watch(profileProvider.future);
-  final orgId = profile?.organizacionId;
-  if (orgId == null || orgId.isEmpty) {
-    throw Exception('No se pudo resolver la organizacion del admin.');
-  }
-  return ref.read(organizationServiceProvider).getBranches(orgId);
-});
 
 class _FabActions extends StatefulWidget {
   final VoidCallback onCreate;
@@ -200,7 +212,3 @@ class _ActionChip extends StatelessWidget {
     );
   }
 }
-
-
-
-

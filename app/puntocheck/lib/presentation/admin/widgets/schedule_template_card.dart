@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:puntocheck/models/plantillas_horarios.dart';
 import 'package:puntocheck/utils/theme/app_colors.dart';
 
@@ -25,10 +25,7 @@ class ScheduleTemplateCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 12),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: BorderSide(
-          color: AppColors.neutral200,
-          width: 1.5,
-        ),
+        side: BorderSide(color: AppColors.neutral200, width: 1.5),
       ),
       child: InkWell(
         onTap: onTap,
@@ -133,17 +130,17 @@ class ScheduleTemplateCard extends StatelessWidget {
 
               const SizedBox(height: 12),
 
-              // Footer: Descanso + empleados
+              // Footer: Tolerancia + empleados
               Row(
                 children: [
                   Icon(
-                    Icons.coffee_outlined,
+                    Icons.timer_outlined,
                     size: 16,
                     color: AppColors.neutral600,
                   ),
                   const SizedBox(width: 6),
                   Text(
-                    'Descanso: ${template.tiempoDescansoMinutos ?? 60} min',
+                    'Tolerancia entrada: ${template.toleranciaEntradaMinutos ?? 10} min',
                     style: const TextStyle(
                       color: AppColors.neutral700,
                       fontSize: 13,
@@ -228,10 +225,7 @@ class _TimeChip extends StatelessWidget {
               ),
               Text(
                 label,
-                style: TextStyle(
-                  fontSize: 10,
-                  color: AppColors.neutral600,
-                ),
+                style: TextStyle(fontSize: 10, color: AppColors.neutral600),
               ),
             ],
           ),
@@ -240,4 +234,3 @@ class _TimeChip extends StatelessWidget {
     );
   }
 }
-
