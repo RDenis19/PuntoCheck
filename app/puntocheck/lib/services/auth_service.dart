@@ -1,67 +1,63 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../models/perfiles.dart';
+
 import '../models/organizaciones.dart';
+import '../models/perfiles.dart';
 import 'supabase_client.dart';
 
 class AuthService {
-  // Singleton
   AuthService._();
   static final instance = AuthService._();
 
-  /// Obtener usuario actual de Auth (Email/ID)
   User? get currentUser => supabase.auth.currentUser;
-
-  /// Sesion activa (evita que la UI acceda directo al cliente Supabase).
   Session? get currentSession => supabase.auth.currentSession;
-
-  /// Stream para escuchar cambios de sesiИn (Login/Logout)
   Stream<AuthState> get authStateChanges => supabase.auth.onAuthStateChange;
 
-  /// Iniciar sesiИn
   Future<void> signIn(String email, String password) async {
     try {
-      await supabase.auth.signInWithPassword(email: email, password: password);
-    } on AuthException catch (e) {
-      throw Exception(e.message); // "Credenciales invケlidas", etc.
-    } catch (e) {
-      throw Exception('Error inesperado al iniciar sesiИn: $e');
-    }
-  }
-
-  /// Cerrar sesiИn
-  Future<void> signOut() async {
-    await supabase.auth.signOut();
-  }
-
-  /// Actualizar contraseña del usuario actual.
-  Future<void> updatePassword(String newPassword) async {
-    try {
-      await supabase.auth.updateUser(
-        UserAttributes(password: newPassword),
+      await _withTransientNetworkRetry(
+        () => supabase.auth.signInWithPassword(email: email, password: password),
       );
     } on AuthException catch (e) {
       throw Exception(e.message);
     } catch (e) {
-      throw Exception('Error actualizando contraseña: $e');
+      final msg = _friendlyNetworkMessage(e);
+      throw Exception(msg ?? 'Error inesperado al iniciar sesión: $e');
     }
   }
 
-  /// Obtener el perfil completo del usuario logueado
-  /// Hace un JOIN con la tabla de Organizaciones para tener todo el contexto.
+  Future<void> signOut() async {
+    await supabase.auth.signOut();
+  }
+
+  Future<void> updatePassword(String newPassword) async {
+    try {
+      await _withTransientNetworkRetry(
+        () => supabase.auth.updateUser(UserAttributes(password: newPassword)),
+      );
+    } on AuthException catch (e) {
+      throw Exception(e.message);
+    } catch (e) {
+      final msg = _friendlyNetworkMessage(e);
+      throw Exception(msg ?? 'Error actualizando contraseña: $e');
+    }
+  }
+
   Future<Map<String, dynamic>> getFullUserProfile() async {
     final userId = currentUser?.id;
     if (userId == null) throw Exception('No hay usuario logueado');
 
     try {
-      final response = await supabase
-          .from('perfiles')
-          .select('*, organizaciones(*)') // Join con organizaciones
-          .eq('id', userId)
-          .single();
+      final response = await _withTransientNetworkRetry(
+        () => supabase
+            .from('perfiles')
+            .select('*, organizaciones(*)')
+            .eq('id', userId)
+            .single(),
+      );
 
-      // Mapeamos manualmente para separar Perfil y OrganizaciИn
       final perfil = Perfiles.fromJson(response);
 
       Organizaciones? org;
@@ -72,22 +68,24 @@ class AuthService {
       return {'perfil': perfil, 'organizacion': org};
     } on PostgrestException catch (e) {
       throw Exception('Error cargando perfil: ${e.message}');
+    } catch (e) {
+      final msg = _friendlyNetworkMessage(e);
+      throw Exception(msg ?? 'Error cargando perfil: $e');
     }
   }
 
-  /// Crear usuario en Auth (email/password) con metadata opcional.
-  /// れtil para que el Super Admin genere admins de organizaciИn en un solo paso
-  /// y que el trigger `handle_new_user` cree la fila en `perfiles`.
   Future<User> createUser({
     required String email,
     required String password,
     Map<String, dynamic>? metadata,
   }) async {
     try {
-      final response = await supabase.auth.signUp(
-        email: email,
-        password: password,
-        data: metadata,
+      final response = await _withTransientNetworkRetry(
+        () => supabase.auth.signUp(
+          email: email,
+          password: password,
+          data: metadata,
+        ),
       );
       final user = response.user;
       if (user == null) {
@@ -97,12 +95,11 @@ class AuthService {
     } on AuthException catch (e) {
       throw Exception(e.message);
     } catch (e) {
-      throw Exception('Error creando usuario: $e');
+      final msg = _friendlyNetworkMessage(e);
+      throw Exception(msg ?? 'Error creando usuario: $e');
     }
   }
 
-  /// Crea un usuario SIN perder la sesión actual del admin.
-  /// Retorna el usuario creado y restaura la sesión previa (si existía).
   Future<User> createUserPreservingSession({
     required String email,
     required String password,
@@ -125,30 +122,81 @@ class AuthService {
     }
 
     try {
-      final response = await supabase.auth.signUp(
-        email: email,
-        password: password,
-        data: metadata,
+      final response = await _withTransientNetworkRetry(
+        () => supabase.auth.signUp(
+          email: email,
+          password: password,
+          data: metadata,
+        ),
       );
       final user = response.user;
       if (user == null) {
         throw Exception('No se obtuvo usuario al crear la cuenta');
       }
 
-      // Ejecuta acciones usando la sesión del usuario recién creado (si se requiere).
       if (runWithNewUserSession != null) {
         await runWithNewUserSession(user);
       }
 
       await restorePreviousSession();
-
       return user;
     } on AuthException catch (e) {
       await restorePreviousSession();
       throw Exception(e.message);
     } catch (e) {
       await restorePreviousSession();
-      throw Exception('Error creando usuario: $e');
+      final msg = _friendlyNetworkMessage(e);
+      throw Exception(msg ?? 'Error creando usuario: $e');
     }
   }
+
+  static Future<T> _withTransientNetworkRetry<T>(
+    Future<T> Function() fn, {
+    int retries = 2,
+    Duration initialDelay = const Duration(milliseconds: 600),
+  }) async {
+    var attempt = 0;
+    while (true) {
+      try {
+        return await fn();
+      } catch (e) {
+        if (!_isTransientNetworkError(e) || attempt >= retries) rethrow;
+        final delay = Duration(
+          milliseconds: initialDelay.inMilliseconds * (attempt + 1),
+        );
+        await Future<void>.delayed(delay);
+        attempt++;
+      }
+    }
+  }
+
+  static bool _isTransientNetworkError(Object e) {
+    final text = e.toString().toLowerCase();
+    return text.contains('socketexception') ||
+        text.contains('clientexception') ||
+        text.contains('failed host lookup') ||
+        text.contains('no address associated with hostname') ||
+        text.contains('network is unreachable') ||
+        text.contains('connection reset') ||
+        text.contains('connection refused') ||
+        text.contains('timed out') ||
+        text.contains('dns');
+  }
+
+  static String? _friendlyNetworkMessage(Object e) {
+    final text = e.toString().toLowerCase();
+    if (text.contains('failed host lookup') ||
+        text.contains('no address associated with hostname') ||
+        text.contains('dns')) {
+      return 'No se pudo conectar (DNS). Revisa tu Internet y vuelve a intentar.';
+    }
+    if (text.contains('network is unreachable') ||
+        text.contains('timed out') ||
+        text.contains('socketexception') ||
+        text.contains('clientexception')) {
+      return 'No se pudo conectar a Internet. Revisa tu conexión y vuelve a intentar.';
+    }
+    return null;
+  }
 }
+

@@ -4,7 +4,6 @@ import 'package:puntocheck/models/enums.dart';
 import 'package:puntocheck/models/solicitudes_permisos.dart';
 import 'package:puntocheck/presentation/admin/widgets/leave_resolution_dialog.dart';
 import 'package:puntocheck/presentation/admin/widgets/permission_type_chip.dart';
-import 'package:puntocheck/presentation/admin/widgets/status_badge.dart';
 import 'package:puntocheck/providers/app_providers.dart';
 import 'package:puntocheck/services/supabase_client.dart';
 import 'package:puntocheck/utils/theme/app_colors.dart';

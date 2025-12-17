@@ -4,7 +4,7 @@ import 'package:puntocheck/presentation/manager/views/manager_person_detail_view
 import 'package:puntocheck/utils/theme/app_colors.dart';
 
 /// Card reutilizable para mostrar un miembro del equipo del manager.
-/// 
+///
 /// Muestra:
 /// - Avatar con inicial
 /// - Nombre completo
@@ -25,12 +25,26 @@ class ManagerTeamMemberCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isActive = employee.activo ?? true;
+    final isDeleted = employee.eliminado ?? false;
+    final isActive = (employee.activo ?? true) && !isDeleted;
+
+    final statusLabel = isDeleted
+        ? 'Eliminado'
+        : (isActive ? 'Activo' : 'Inactivo');
+    final statusColor = isDeleted
+        ? AppColors.errorRed
+        : (isActive ? AppColors.successGreen : AppColors.neutral600);
+    final statusBgColor = isDeleted
+        ? AppColors.errorRed.withValues(alpha: 0.10)
+        : (isActive
+              ? AppColors.successGreen.withValues(alpha: 0.10)
+              : AppColors.neutral200);
 
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: onTap ??
+        onTap:
+            onTap ??
             () {
               // Navegar a la vista de detalle del empleado
               Navigator.push(
@@ -47,7 +61,9 @@ class ManagerTeamMemberCard extends StatelessWidget {
             color: Colors.white,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: isActive ? AppColors.neutral200 : AppColors.neutral300,
+              color: isDeleted
+                  ? AppColors.errorRed.withValues(alpha: 0.25)
+                  : (isActive ? AppColors.neutral200 : AppColors.neutral300),
               width: 1,
             ),
             boxShadow: [
@@ -65,9 +81,11 @@ class ManagerTeamMemberCard extends StatelessWidget {
                 width: 56,
                 height: 56,
                 decoration: BoxDecoration(
-                  color: isActive
-                      ? AppColors.primaryRed.withValues(alpha: 0.1)
-                      : AppColors.neutral200,
+                  color: isDeleted
+                      ? AppColors.errorRed.withValues(alpha: 0.10)
+                      : (isActive
+                            ? AppColors.primaryRed.withValues(alpha: 0.1)
+                            : AppColors.neutral200),
                   shape: BoxShape.circle,
                 ),
                 child: Center(
@@ -78,9 +96,11 @@ class ManagerTeamMemberCard extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.w800,
-                      color: isActive
-                          ? AppColors.primaryRed
-                          : AppColors.neutral600,
+                      color: isDeleted
+                          ? AppColors.errorRed
+                          : (isActive
+                                ? AppColors.primaryRed
+                                : AppColors.neutral600),
                     ),
                   ),
                 ),
@@ -114,55 +134,45 @@ class ManagerTeamMemberCard extends StatelessWidget {
                             vertical: 3,
                           ),
                           decoration: BoxDecoration(
-                            color: isActive
-                                ? AppColors.successGreen.withValues(alpha: 0.1)
-                                : AppColors.neutral200,
+                            color: statusBgColor,
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(
-                                Icons.circle,
-                                size: 8,
-                                color: isActive
-                                    ? AppColors.successGreen
-                                    : AppColors.neutral500,
-                              ),
+                              Icon(Icons.circle, size: 8, color: statusColor),
                               const SizedBox(width: 4),
                               Text(
-                                isActive ? 'Activo' : 'Inactivo',
+                                statusLabel,
                                 style: TextStyle(
                                   fontSize: 11,
                                   fontWeight: FontWeight.w700,
-                                  color: isActive
-                                      ? AppColors.successGreen
-                                      : AppColors.neutral600,
+                                  color: statusColor,
                                 ),
                               ),
                             ],
                           ),
                         ),
                         if (scheduleName != null) ...[
-                           const SizedBox(width: 8),
-                           Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 3,
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 3,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppColors.infoBlue.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              scheduleName!,
+                              style: const TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.infoBlue,
                               ),
-                              decoration: BoxDecoration(
-                                color: AppColors.infoBlue.withValues(alpha: 0.1),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Text(
-                                scheduleName!,
-                                style: const TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w700,
-                                  color: AppColors.infoBlue,
-                                ),
-                              ),
-                           ),
+                            ),
+                          ),
                         ],
                       ],
                     ),
@@ -219,11 +229,7 @@ class ManagerTeamMemberCard extends StatelessWidget {
 
               // Icono de flecha
               const SizedBox(width: 8),
-              Icon(
-                Icons.chevron_right,
-                color: AppColors.neutral400,
-                size: 20,
-              ),
+              Icon(Icons.chevron_right, color: AppColors.neutral400, size: 20),
             ],
           ),
         ),

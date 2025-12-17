@@ -106,8 +106,22 @@ enum GravedadAlerta {
   final String value;
   const GravedadAlerta(this.value);
 
-  factory GravedadAlerta.fromString(String value) =>
-      GravedadAlerta.values.firstWhere((e) => e.value == value);
+  factory GravedadAlerta.fromString(String value) {
+    final normalized = value.trim().toLowerCase();
+
+    // Compatibilidad con valores antiguos/alternativos en BD.
+    if (normalized == 'advertencia' || normalized == 'warning') {
+      return GravedadAlerta.leve;
+    }
+    if (normalized == 'alta') return GravedadAlerta.graveLegal;
+    if (normalized == 'media') return GravedadAlerta.moderada;
+    if (normalized == 'baja') return GravedadAlerta.leve;
+
+    for (final item in GravedadAlerta.values) {
+      if (item.value == normalized) return item;
+    }
+    return GravedadAlerta.leve;
+  }
 }
 
 // Mapeo del tipo SQL: public.estado_pago

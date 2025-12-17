@@ -9,6 +9,7 @@ import 'package:puntocheck/presentation/employee/views/employee_notifications_vi
 import 'package:puntocheck/providers/employee_providers.dart';
 import 'package:puntocheck/services/employee_service.dart';
 import 'package:puntocheck/utils/theme/app_colors.dart';
+import 'package:puntocheck/models/plantillas_horarios.dart';
 
 class EmployeeHomeView extends ConsumerStatefulWidget {
   const EmployeeHomeView({super.key});
@@ -227,10 +228,7 @@ class _EmployeeHomeViewState extends ConsumerState<EmployeeHomeView> {
     }
 
     final plantilla = schedule.plantilla;
-    final entrada = (plantilla.horaEntrada ?? '--');
-    final salida = (plantilla.horaSalida ?? '--');
-    final horarioStr =
-        '${entrada.length >= 5 ? entrada.substring(0, 5) : entrada} - ${salida.length >= 5 ? salida.substring(0, 5) : salida}';
+    final horarioStr = _formatTemplateRange(plantilla);
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -285,6 +283,28 @@ class _EmployeeHomeViewState extends ConsumerState<EmployeeHomeView> {
         ],
       ),
     );
+  }
+
+  String _formatTemplateRange(PlantillasHorarios plantilla) {
+    final turnos = [...plantilla.turnos]
+      ..sort((a, b) => (a.orden ?? 0).compareTo(b.orden ?? 0));
+    if (turnos.isEmpty) {
+      final entrada = (plantilla.horaEntrada ?? '--');
+      final salida = (plantilla.horaSalida ?? '--');
+      final start = entrada.length >= 5 ? entrada.substring(0, 5) : entrada;
+      final end = salida.length >= 5 ? salida.substring(0, 5) : salida;
+      return '$start - $end';
+    }
+
+    final first = turnos.first;
+    final last = turnos.last;
+    final start = (first.horaInicio ?? '--');
+    final end = (last.horaFin ?? '--');
+
+    final startStr = start.length >= 5 ? start.substring(0, 5) : start;
+    final endStr = end.length >= 5 ? end.substring(0, 5) : end;
+    final suffix = (last.esDiaSiguiente == true) ? ' (+1)' : '';
+    return '$startStr - $endStr$suffix';
   }
 
   Widget _buildSummaryItem({required IconData icon, required Color color, required String value, required String label}) {

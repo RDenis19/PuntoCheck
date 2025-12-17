@@ -6,6 +6,7 @@ import 'package:puntocheck/presentation/manager/views/manager_team_view.dart';
 import 'package:puntocheck/presentation/manager/views/manager_attendance_view.dart';
 import 'package:puntocheck/presentation/manager/views/manager_shifts_view.dart';
 import 'package:puntocheck/presentation/manager/views/manager_profile_view.dart';
+import 'package:puntocheck/presentation/manager/views/manager_notifications_view.dart';
 import 'package:puntocheck/presentation/manager/widgets/manager_header.dart';
 import 'package:puntocheck/presentation/manager/widgets/manager_tab_navigation.dart';
 
@@ -28,6 +29,7 @@ class _ManagerShellViewState extends ConsumerState<ManagerShellView> {
   Widget build(BuildContext context) {
     final profileAsync = ref.watch(managerProfileProvider);
     final orgAsync = ref.watch(managerOrganizationProvider);
+    final unreadCountAsync = ref.watch(managerUnreadNotificationsCountProvider);
 
     final pages = const [
       ManagerDashboardView(), // Tab 0: Inicio (con FAB)
@@ -49,12 +51,21 @@ class _ManagerShellViewState extends ConsumerState<ManagerShellView> {
                   data: (org) => org.razonSocial,
                   orElse: () => 'Cargando...',
                 );
+                final unread = unreadCountAsync.valueOrNull;
 
                 return SafeArea(
                   bottom: false,
                   child: ManagerHeader(
                     userName: userName,
                     organizationName: orgName,
+                    unreadNotificationsCount: unread,
+                    onNotificationsPressed: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const ManagerNotificationsView(),
+                        ),
+                      );
+                    },
                   ),
                 );
               },

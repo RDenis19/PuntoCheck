@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:puntocheck/models/perfiles.dart';
+import 'package:puntocheck/models/sucursales.dart';
 import 'package:puntocheck/providers/manager_providers.dart';
 import 'package:puntocheck/utils/theme/app_colors.dart';
 
@@ -24,12 +25,16 @@ class ManagerAssignScheduleSheet extends ConsumerStatefulWidget {
 
 class _ManagerAssignScheduleSheetState
     extends ConsumerState<ManagerAssignScheduleSheet> {
+  bool _assignAllInBranch = false;
+  String? _selectedBranchId;
   String? _selectedEmployeeId;
   String? _selectedTemplateId;
   DateTime _fechaInicio = DateTime.now();
   DateTime? _fechaFin;
 
   bool get _isEditing => widget.existingSchedule != null;
+  bool get _canBulkAssign =>
+      !_isEditing && widget.preselectedEmployeeId == null;
 
   @override
   void initState() {
@@ -53,7 +58,16 @@ class _ManagerAssignScheduleSheetState
   Widget build(BuildContext context) {
     final templatesAsync = ref.watch(managerScheduleTemplatesProvider);
     final teamAsync = ref.watch(managerTeamProvider(null));
+    final branchesAsync = ref.watch(managerBranchesProvider);
     final isSaving = ref.watch(managerScheduleControllerProvider).isLoading;
+
+    final branches = branchesAsync.valueOrNull ?? const <Sucursales>[];
+    if (_canBulkAssign && _selectedBranchId == null && branches.length == 1) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        setState(() => _selectedBranchId = branches.first.id);
+      });
+    }
 
     return Container(
       decoration: const BoxDecoration(
@@ -105,8 +119,92 @@ class _ManagerAssignScheduleSheetState
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Empleado',
-                        style: TextStyle(fontWeight: FontWeight.w600)),
+                    if (_canBulkAssign)
+                      Container(
+                        margin: const EdgeInsets.only(bottom: 16),
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: AppColors.neutral100,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: AppColors.neutral200),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(
+                              Icons.group_outlined,
+                              color: AppColors.neutral700,
+                            ),
+                            const SizedBox(width: 10),
+                            const Expanded(
+                              child: Text(
+                                'Asignar a todos los empleados de una sucursal',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.neutral900,
+                                ),
+                              ),
+                            ),
+                            Switch(
+                              value: _assignAllInBranch,
+                              activeThumbColor: AppColors.primaryRed,
+                              onChanged: isSaving
+                                  ? null
+                                  : (v) => setState(() {
+                                        _assignAllInBranch = v;
+                                        if (v) _selectedEmployeeId = null;
+                                      }),
+                            ),
+                          ],
+                        ),
+                      ),
+                    if (_canBulkAssign && branches.length > 1) ...[
+                      const Text(
+                        'Sucursal',
+                        style: TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                      const SizedBox(height: 8),
+                      DropdownButtonFormField<String?>(
+                        value: _selectedBranchId,
+                        decoration: InputDecoration(
+                          filled: true,
+                          fillColor: AppColors.neutral100,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide:
+                                const BorderSide(color: AppColors.neutral300),
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 12,
+                          ),
+                          prefixIcon: const Icon(
+                            Icons.store_mall_directory_outlined,
+                            color: AppColors.neutral600,
+                          ),
+                        ),
+                        hint: const Text('Seleccionar sucursal'),
+                        isExpanded: true,
+                        items: branches
+                            .map(
+                              (b) => DropdownMenuItem<String?>(
+                                value: b.id,
+                                child: Text(
+                                  b.nombre,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: isSaving
+                            ? null
+                            : (v) => setState(() => _selectedBranchId = v),
+                      ),
+                      const SizedBox(height: 20),
+                    ],
+                    const Text(
+                      'Empleado',
+                      style: TextStyle(fontWeight: FontWeight.w600),
+                    ),
                     const SizedBox(height: 8),
                     Container(
                       decoration: BoxDecoration(
@@ -116,19 +214,54 @@ class _ManagerAssignScheduleSheetState
                       ),
                       child: teamAsync.when(
                         data: (List<Perfiles> team) {
-                          if (team.isEmpty) return const SizedBox();
+                          final filtered = _filterTeamByBranch(team);
+                          final active = filtered
+                              .where((p) => p.activo != false)
+                              .toList();
+
+                          if (_assignAllInBranch) {
+                            return Padding(
+                              padding: const EdgeInsets.all(14),
+                              child: Row(
+                                children: [
+                                  const Icon(
+                                    Icons.people_alt_outlined,
+                                    color: AppColors.neutral600,
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: Text(
+                                      active.isEmpty
+                                          ? 'No hay empleados activos en esta sucursal'
+                                          : 'Se asignará a ${active.length} empleados activos',
+                                      style: const TextStyle(
+                                        color: AppColors.neutral700,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }
+
+                          if (active.isEmpty) return const SizedBox();
                           return DropdownButtonFormField<String?>(
                             value: _selectedEmployeeId,
                             decoration: const InputDecoration(
                               contentPadding: EdgeInsets.symmetric(
-                                  horizontal: 16, vertical: 12),
+                                horizontal: 16,
+                                vertical: 12,
+                              ),
                               border: InputBorder.none,
-                              prefixIcon: Icon(Icons.person_outline,
-                                  color: AppColors.neutral600),
+                              prefixIcon: Icon(
+                                Icons.person_outline,
+                                color: AppColors.neutral600,
+                              ),
                             ),
                             hint: const Text('Seleccionar empleado'),
                             isExpanded: true,
-                            items: team
+                            items: active
                                 .map(
                                   (empleado) => DropdownMenuItem<String?>(
                                     value: empleado.id,
@@ -142,8 +275,9 @@ class _ManagerAssignScheduleSheetState
                             onChanged: widget.preselectedEmployeeId != null ||
                                     _isEditing
                                 ? null
-                                : (value) =>
-                                    setState(() => _selectedEmployeeId = value),
+                                : (value) => setState(
+                                      () => _selectedEmployeeId = value,
+                                    ),
                           );
                         },
                         loading: () => const Padding(
@@ -351,7 +485,7 @@ class _ManagerAssignScheduleSheetState
   }
 
   Future<void> _saveAssignment() async {
-    if (_selectedEmployeeId == null || _selectedTemplateId == null) {
+    if (_selectedTemplateId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Por favor complete todos los campos requeridos'),
@@ -364,6 +498,9 @@ class _ManagerAssignScheduleSheetState
 
     try {
       if (_isEditing) {
+        if (_selectedEmployeeId == null) {
+          throw Exception('Selecciona un empleado');
+        }
         await controller.updateSchedule(
           assignmentId: widget.existingSchedule!['id'] as String,
           templateId: _selectedTemplateId!,
@@ -371,12 +508,28 @@ class _ManagerAssignScheduleSheetState
           endDate: _fechaFin,
         );
       } else {
-        await controller.assignSchedule(
-          employeeId: _selectedEmployeeId!,
-          templateId: _selectedTemplateId!,
-          startDate: _fechaInicio,
-          endDate: _fechaFin,
-        );
+        if (_assignAllInBranch) {
+          final employeeIds = await _resolveBranchEmployeeIds();
+          if (employeeIds.isEmpty) {
+            throw Exception('No hay empleados activos para asignar');
+          }
+          await controller.assignScheduleBulk(
+            employeeIds: employeeIds,
+            templateId: _selectedTemplateId!,
+            startDate: _fechaInicio,
+            endDate: _fechaFin,
+          );
+        } else {
+          if (_selectedEmployeeId == null) {
+            throw Exception('Selecciona un empleado');
+          }
+          await controller.assignSchedule(
+            employeeId: _selectedEmployeeId!,
+            templateId: _selectedTemplateId!,
+            startDate: _fechaInicio,
+            endDate: _fechaFin,
+          );
+        }
       }
 
       final state = ref.read(managerScheduleControllerProvider);
@@ -391,7 +544,9 @@ class _ManagerAssignScheduleSheetState
           SnackBar(
             content: Text(_isEditing
                 ? 'Horario actualizado exitosamente'
-                : 'Horario asignado exitosamente'),
+                : _assignAllInBranch
+                    ? 'Horario asignado al equipo'
+                    : 'Horario asignado exitosamente'),
             backgroundColor: Colors.green,
           ),
         );
@@ -408,5 +563,31 @@ class _ManagerAssignScheduleSheetState
         );
       }
     }
+  }
+
+  List<Perfiles> _filterTeamByBranch(List<Perfiles> team) {
+    if (!_canBulkAssign) return team;
+    final branchId = _selectedBranchId;
+    if (branchId == null || branchId.isEmpty) return team;
+    return team.where((p) => p.sucursalId == branchId).toList();
+  }
+
+  Future<List<String>> _resolveBranchEmployeeIds() async {
+    final branches = ref.read(managerBranchesProvider).valueOrNull ?? const <Sucursales>[];
+    if (branches.isNotEmpty && _selectedBranchId == null && branches.length == 1) {
+      _selectedBranchId = branches.first.id;
+    }
+
+    final branchId = _selectedBranchId;
+    if (branchId == null || branchId.isEmpty) {
+      throw Exception('Selecciona una sucursal');
+    }
+
+    final team = await ref.read(managerTeamProvider(null).future);
+    return team
+        .where((p) => p.sucursalId == branchId)
+        .where((p) => p.activo != false)
+        .map((p) => p.id)
+        .toList();
   }
 }

@@ -7,6 +7,12 @@ class RegistrosAsistencia {
   final String perfilId;
   final String organizacionId;
   final String? sucursalId;
+  final String? sucursalNombre;
+  final String? perfilNombres;
+  final String? perfilApellidos;
+  final String? turnoNombreTurno;
+  final String? turnoHoraInicio;
+  final String? turnoHoraFin;
   final String?
   tipoRegistro; // CHECK ('entrada', 'salida'...) - No es enum en DB
   final DateTime fechaHoraMarcacion;
@@ -17,8 +23,6 @@ class RegistrosAsistencia {
   final bool? esMockLocation;
   final String evidenciaFotoUrl;
   final OrigenMarcacion? origen;
-  final String? deviceId;
-  final String? deviceModel;
   final bool? esValidoLegalmente;
   final String? notasSistema;
   final String? turnoJornadaId;
@@ -30,6 +34,12 @@ class RegistrosAsistencia {
     required this.perfilId,
     required this.organizacionId,
     this.sucursalId,
+    this.sucursalNombre,
+    this.perfilNombres,
+    this.perfilApellidos,
+    this.turnoNombreTurno,
+    this.turnoHoraInicio,
+    this.turnoHoraFin,
     this.tipoRegistro,
     required this.fechaHoraMarcacion,
     this.fechaHoraSincronizacion,
@@ -39,14 +49,20 @@ class RegistrosAsistencia {
     this.esMockLocation,
     required this.evidenciaFotoUrl,
     this.origen,
-    this.deviceId,
-    this.deviceModel,
     this.esValidoLegalmente,
     this.notasSistema,
     this.turnoJornadaId,
     this.eliminado,
     this.creadoEn,
   });
+
+  String get perfilNombreCompleto {
+    final nombres = (perfilNombres ?? '').trim();
+    final apellidos = (perfilApellidos ?? '').trim();
+    final full = '$nombres $apellidos'.trim();
+    if (full.isNotEmpty) return full;
+    return 'ID: ${perfilId.substring(0, 8)}';
+  }
 
   static Map<String, dynamic> _normalize(dynamic json) {
     if (json is Map<String, dynamic>) return json;
@@ -137,11 +153,45 @@ class RegistrosAsistencia {
 
   factory RegistrosAsistencia.fromJson(Map<String, dynamic> json) {
     final parsedGeo = _parseGeoPoint(json['ubicacion_gps']);
+
+    String? perfilNombres;
+    String? perfilApellidos;
+    final perfil = json['perfiles'];
+    if (perfil is Map) {
+      final map = Map<String, dynamic>.from(perfil);
+      perfilNombres = map['nombres']?.toString();
+      perfilApellidos = map['apellidos']?.toString();
+    }
+
+    String? sucursalNombre;
+    final sucursal = json['sucursales'];
+    if (sucursal is Map) {
+      final map = Map<String, dynamic>.from(sucursal);
+      sucursalNombre = map['nombre']?.toString();
+    }
+
+    String? turnoNombreTurno;
+    String? turnoHoraInicio;
+    String? turnoHoraFin;
+    final turno = json['turnos_jornada'];
+    if (turno is Map) {
+      final map = Map<String, dynamic>.from(turno);
+      turnoNombreTurno = map['nombre_turno']?.toString();
+      turnoHoraInicio = map['hora_inicio']?.toString();
+      turnoHoraFin = map['hora_fin']?.toString();
+    }
+
     return RegistrosAsistencia(
       id: json['id'],
       perfilId: json['perfil_id'],
       organizacionId: json['organizacion_id'],
       sucursalId: json['sucursal_id'],
+      sucursalNombre: sucursalNombre,
+      perfilNombres: perfilNombres,
+      perfilApellidos: perfilApellidos,
+      turnoNombreTurno: turnoNombreTurno,
+      turnoHoraInicio: turnoHoraInicio,
+      turnoHoraFin: turnoHoraFin,
       tipoRegistro: json['tipo_registro'],
       fechaHoraMarcacion: DateTime.parse(json['fecha_hora_marcacion']),
       fechaHoraSincronizacion:
@@ -162,8 +212,6 @@ class RegistrosAsistencia {
       origen: json['origen'] != null
           ? OrigenMarcacion.fromString(json['origen'])
           : null,
-      deviceId: json['device_id'],
-      deviceModel: json['device_model'],
       esValidoLegalmente: json['es_valido_legalmente'],
       notasSistema: (json['notas'] ?? json['notas_sistema']) as String?,
       turnoJornadaId: json['turno_jornada_id'],
@@ -192,8 +240,6 @@ class RegistrosAsistencia {
     'es_mock_location': esMockLocation,
     'evidencia_foto_url': evidenciaFotoUrl,
     'origen': origen?.value,
-    'device_id': deviceId,
-    'device_model': deviceModel,
     'es_valido_legalmente': esValidoLegalmente,
     'notas_sistema': notasSistema,
     'turno_jornada_id': turnoJornadaId,

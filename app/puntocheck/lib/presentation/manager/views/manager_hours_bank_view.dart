@@ -7,12 +7,12 @@ import 'package:puntocheck/providers/manager_providers.dart';
 import 'package:puntocheck/utils/theme/app_colors.dart';
 
 /// Vista de banco de horas del equipo del Manager.
-/// 
+///
 /// Permite al manager:
 /// - Ver movimientos de horas del equipo
 /// - Filtrar por empleado
 /// - Ver detalles (horas, concepto, aprobador)
-/// 
+///
 /// Reutiliza `HoursBankCard` del Admin (sin duplicar código).
 class ManagerHoursBankView extends ConsumerStatefulWidget {
   const ManagerHoursBankView({super.key});
@@ -27,9 +27,13 @@ class _ManagerHoursBankViewState extends ConsumerState<ManagerHoursBankView> {
 
   @override
   Widget build(BuildContext context) {
-    final hoursBankAsync =
-        ref.watch(managerTeamHoursBankProvider(_selectedEmployeeId));
-    final teamAsync = ref.watch(managerTeamProvider(null)); // null = todo el equipo
+    final hoursBankAsync = ref.watch(
+      managerTeamHoursBankProvider(_selectedEmployeeId),
+    );
+    final teamAsync = ref.watch(
+      managerTeamAllProvider(null),
+    ); // null = todo el equipo (incluye inactivos/eliminados)
+    final controllerState = ref.watch(managerHoursBankControllerProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -44,6 +48,11 @@ class _ManagerHoursBankViewState extends ConsumerState<ManagerHoursBankView> {
             onPressed: () {
               ref.invalidate(managerTeamHoursBankProvider);
             },
+          ),
+          IconButton(
+            icon: const Icon(Icons.add_circle_outline),
+            tooltip: 'Nuevo movimiento',
+            onPressed: () => _openNewMovementSheet(context),
           ),
         ],
       ),
@@ -67,7 +76,10 @@ class _ManagerHoursBankViewState extends ConsumerState<ManagerHoursBankView> {
                 const SizedBox(height: 8),
                 teamAsync.when(
                   data: (team) => DropdownButtonFormField<String?>(
-                    value: _selectedEmployeeId,
+                    key: ValueKey(
+                      'employee-filter-${_selectedEmployeeId ?? 'all'}',
+                    ),
+                    initialValue: _selectedEmployeeId,
                     decoration: InputDecoration(
                       hintText: 'Todos los empleados',
                       contentPadding: const EdgeInsets.symmetric(
@@ -76,13 +88,15 @@ class _ManagerHoursBankViewState extends ConsumerState<ManagerHoursBankView> {
                       ),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide:
-                            const BorderSide(color: AppColors.neutral300),
+                        borderSide: const BorderSide(
+                          color: AppColors.neutral300,
+                        ),
                       ),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide:
-                            const BorderSide(color: AppColors.neutral300),
+                        borderSide: const BorderSide(
+                          color: AppColors.neutral300,
+                        ),
                       ),
                     ),
                     items: [
@@ -103,9 +117,8 @@ class _ManagerHoursBankViewState extends ConsumerState<ManagerHoursBankView> {
                       });
                     },
                   ),
-                  loading: () => const Center(
-                    child: CircularProgressIndicator(),
-                  ),
+                  loading: () =>
+                      const Center(child: CircularProgressIndicator()),
                   error: (_, __) => const Text('Error cargando equipo'),
                 ),
               ],
@@ -128,8 +141,19 @@ class _ManagerHoursBankViewState extends ConsumerState<ManagerHoursBankView> {
                       message: _selectedEmployeeId != null
                           ? 'Este empleado no tiene movimientos de horas'
                           : 'No hay movimientos de horas registrados',
+                      actionLabel: controllerState.isLoading
+                          ? null
+                          : 'Registrar movimiento',
+                      onAction: controllerState.isLoading
+                          ? null
+                          : () => _openNewMovementSheet(context),
                     );
                   }
+
+                  final teamMap = <String, String>{
+                    for (final p in teamAsync.valueOrNull ?? const [])
+                      p.id: p.nombreCompleto,
+                  };
 
                   // Calcular balance total
                   final totalHours = records.fold<double>(
@@ -152,26 +176,22 @@ class _ManagerHoursBankViewState extends ConsumerState<ManagerHoursBankView> {
                           itemCount: records.length,
                           itemBuilder: (context, index) {
                             final record = records[index];
-                            
-                            // Obtener nombre del empleado
-                            final employeeProfile = ref
-                                .watch(managerPersonProvider(record.empleadoId))
-                                .valueOrNull;
 
-                            final employeeName = employeeProfile != null
-                                ? employeeProfile.nombreCompleto
-                                : 'Cargando...';
+                            final employeeName =
+                                teamMap[record.empleadoId] ?? 'Empleado';
 
                             // Reutilizar HoursBankCard del Admin
                             return HoursBankCard(
                               record: record,
                               employeeName: employeeName,
                               onTap: () {
-                                // TODO: Mostrar detalle si es necesario
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text('Movimiento: ${record.concepto}'),
-                                    behavior: SnackBarBehavior.floating,
+                                showModalBottomSheet<void>(
+                                  context: context,
+                                  isScrollControlled: true,
+                                  backgroundColor: Colors.transparent,
+                                  builder: (ctx) => _HoursBankDetailSheet(
+                                    record: record,
+                                    employeeName: employeeName,
                                   ),
                                 );
                               },
@@ -183,9 +203,7 @@ class _ManagerHoursBankViewState extends ConsumerState<ManagerHoursBankView> {
                   );
                 },
                 loading: () => const Center(
-                  child: CircularProgressIndicator(
-                    color: AppColors.primaryRed,
-                  ),
+                  child: CircularProgressIndicator(color: AppColors.primaryRed),
                 ),
                 error: (error, _) => Center(
                   child: Padding(
@@ -231,6 +249,20 @@ class _ManagerHoursBankViewState extends ConsumerState<ManagerHoursBankView> {
       ),
     );
   }
+
+  void _openNewMovementSheet(BuildContext context) {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => _HoursBankEntrySheet(
+        preselectedEmployeeId: _selectedEmployeeId,
+        onCreated: () {
+          ref.invalidate(managerTeamHoursBankProvider(_selectedEmployeeId));
+        },
+      ),
+    );
+  }
 }
 
 // ============================================================================
@@ -241,10 +273,7 @@ class _SummaryCard extends StatelessWidget {
   final double totalHours;
   final int recordCount;
 
-  const _SummaryCard({
-    required this.totalHours,
-    required this.recordCount,
-  });
+  const _SummaryCard({required this.totalHours, required this.recordCount});
 
   @override
   Widget build(BuildContext context) {
@@ -325,6 +354,478 @@ class _SummaryCard extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _HoursBankEntrySheet extends ConsumerStatefulWidget {
+  final String? preselectedEmployeeId;
+  final VoidCallback onCreated;
+
+  const _HoursBankEntrySheet({
+    required this.preselectedEmployeeId,
+    required this.onCreated,
+  });
+
+  @override
+  ConsumerState<_HoursBankEntrySheet> createState() =>
+      _HoursBankEntrySheetState();
+}
+
+class _HoursBankDetailSheet extends StatelessWidget {
+  final BancoHorasCompensatorias record;
+  final String employeeName;
+
+  const _HoursBankDetailSheet({
+    required this.record,
+    required this.employeeName,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isPositive = record.cantidadHoras >= 0;
+    final color = isPositive ? AppColors.successGreen : AppColors.errorRed;
+
+    return Container(
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      child: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: color.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(
+                      isPositive ? Icons.add : Icons.remove,
+                      color: color,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      employeeName,
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w900,
+                        color: AppColors.neutral900,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.close),
+                  ),
+                ],
+              ),
+              const Divider(height: 24),
+              _DetailRow(
+                label: 'Horas',
+                value:
+                    '${isPositive ? '+' : ''}${record.cantidadHoras.toStringAsFixed(1)}',
+              ),
+              _DetailRow(label: 'Concepto', value: record.concepto),
+              if (record.aceptaRenunciaPago == true)
+                const Padding(
+                  padding: EdgeInsets.only(top: 8),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.verified_user_outlined,
+                        size: 16,
+                        color: AppColors.successGreen,
+                      ),
+                      SizedBox(width: 8),
+                      Text(
+                        'Acepta renuncia de pago',
+                        style: TextStyle(
+                          color: AppColors.successGreen,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              if (record.aprobadoPorId != null)
+                _DetailRow(label: 'Aprobado por', value: record.aprobadoPorId!),
+              if (record.creadoEn != null)
+                _DetailRow(
+                  label: 'Creado',
+                  value: record.creadoEn!.toIso8601String(),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _DetailRow extends StatelessWidget {
+  final String label;
+  final String value;
+
+  const _DetailRow({required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 110,
+            child: Text(
+              label,
+              style: const TextStyle(
+                fontWeight: FontWeight.w700,
+                color: AppColors.neutral700,
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              value,
+              style: const TextStyle(color: AppColors.neutral900),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _HoursBankEntrySheetState extends ConsumerState<_HoursBankEntrySheet> {
+  final _hoursController = TextEditingController(text: '8');
+  final _conceptController = TextEditingController(
+    text: 'Día compensatorio otorgado',
+  );
+
+  bool _isDebit = true;
+  bool _acceptsWaiver = false;
+  String? _employeeId;
+
+  @override
+  void initState() {
+    super.initState();
+    _employeeId = widget.preselectedEmployeeId;
+  }
+
+  @override
+  void dispose() {
+    _hoursController.dispose();
+    _conceptController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final teamAsync = ref.watch(managerTeamProvider(null));
+    final controllerState = ref.watch(managerHoursBankControllerProvider);
+
+    return Container(
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      child: SafeArea(
+        child: Padding(
+          padding: EdgeInsets.only(
+            left: 20,
+            right: 20,
+            top: 16,
+            bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryRed.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(
+                      Icons.add_task_rounded,
+                      color: AppColors.primaryRed,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: Text(
+                      'Nuevo movimiento',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w900,
+                        color: AppColors.neutral900,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: controllerState.isLoading
+                        ? null
+                        : () => Navigator.pop(context),
+                    icon: const Icon(Icons.close),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              const Text(
+                'Empleado',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.neutral600,
+                ),
+              ),
+              const SizedBox(height: 8),
+              teamAsync.when(
+                data: (team) => DropdownButtonFormField<String>(
+                  key: ValueKey('employee-entry-${_employeeId ?? 'none'}'),
+                  initialValue: _employeeId,
+                  items: [
+                    for (final e in team)
+                      DropdownMenuItem(
+                        value: e.id,
+                        child: Text(e.nombreCompleto),
+                      ),
+                  ],
+                  onChanged: controllerState.isLoading
+                      ? null
+                      : (v) => setState(() => _employeeId = v),
+                  decoration: InputDecoration(
+                    hintText: 'Selecciona un empleado',
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: AppColors.neutral300),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: AppColors.neutral300),
+                    ),
+                  ),
+                ),
+                loading: () =>
+                    const LinearProgressIndicator(color: AppColors.primaryRed),
+                error: (e, _) => Text(
+                  'Error cargando equipo: $e',
+                  style: const TextStyle(color: AppColors.errorRed),
+                ),
+              ),
+              const SizedBox(height: 14),
+              const Text(
+                'Tipo',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.neutral600,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(
+                    child: ChoiceChip(
+                      label: const Text('Crédito (+)'),
+                      selected: !_isDebit,
+                      onSelected: controllerState.isLoading
+                          ? null
+                          : (v) {
+                              if (!v) return;
+                              setState(() {
+                                _isDebit = false;
+                                _conceptController.text =
+                                    'Horas extra cargadas';
+                                if (_hoursController.text.trim().isEmpty) {
+                                  _hoursController.text = '1';
+                                }
+                              });
+                            },
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: ChoiceChip(
+                      label: const Text('Débito (-)'),
+                      selected: _isDebit,
+                      onSelected: controllerState.isLoading
+                          ? null
+                          : (v) {
+                              if (!v) return;
+                              setState(() {
+                                _isDebit = true;
+                                _conceptController.text =
+                                    'Día compensatorio otorgado';
+                                if (_hoursController.text.trim().isEmpty) {
+                                  _hoursController.text = '8';
+                                }
+                              });
+                            },
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _hoursController,
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
+                      enabled: !controllerState.isLoading,
+                      decoration: InputDecoration(
+                        labelText: 'Horas',
+                        prefixIcon: const Icon(Icons.timer_outlined),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    flex: 2,
+                    child: TextField(
+                      controller: _conceptController,
+                      enabled: !controllerState.isLoading,
+                      decoration: InputDecoration(
+                        labelText: 'Concepto',
+                        prefixIcon: const Icon(Icons.short_text_rounded),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text(
+                  'Acepta renuncia de pago',
+                  style: TextStyle(fontWeight: FontWeight.w700),
+                ),
+                subtitle: const Text(
+                  'Marca si el empleado acepta compensar sin pago extra',
+                ),
+                value: _acceptsWaiver,
+                onChanged: controllerState.isLoading
+                    ? null
+                    : (v) => setState(() => _acceptsWaiver = v),
+                activeThumbColor: AppColors.primaryRed,
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: controllerState.isLoading ? null : _submit,
+                  icon: controllerState.isLoading
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Icon(Icons.save_rounded, size: 18),
+                  label: Text(
+                    controllerState.isLoading ? 'Guardando...' : 'Guardar',
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primaryRed,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _submit() async {
+    final employeeId = _employeeId;
+    if (employeeId == null || employeeId.isEmpty) {
+      _snack('Selecciona un empleado', isError: true);
+      return;
+    }
+
+    final rawHours = _hoursController.text.trim().replaceAll(',', '.');
+    final hours = double.tryParse(rawHours);
+    if (hours == null || hours <= 0) {
+      _snack('Ingresa una cantidad de horas válida', isError: true);
+      return;
+    }
+
+    final concept = _conceptController.text.trim();
+    if (concept.isEmpty) {
+      _snack('Ingresa un concepto', isError: true);
+      return;
+    }
+
+    final signedHours = _isDebit ? -hours : hours;
+    final controller = ref.read(managerHoursBankControllerProvider.notifier);
+
+    await controller.registerHours(
+      employeeId: employeeId,
+      hours: signedHours,
+      concept: concept,
+      acceptsWaiver: _acceptsWaiver,
+    );
+
+    final state = ref.read(managerHoursBankControllerProvider);
+    if (state.hasError) {
+      _snack(
+        'No se pudo registrar. Si tu rol no tiene permisos, solicita al Org Admin.',
+        isError: true,
+      );
+      return;
+    }
+
+    widget.onCreated();
+    if (!mounted) return;
+    Navigator.pop(context);
+    _snack('Movimiento registrado');
+  }
+
+  void _snack(String message, {bool isError = false}) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: isError ? AppColors.errorRed : AppColors.successGreen,
+        behavior: SnackBarBehavior.floating,
       ),
     );
   }

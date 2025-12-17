@@ -1,18 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:puntocheck/models/enums.dart';
 import 'package:puntocheck/models/solicitudes_permisos.dart';
 import 'package:puntocheck/presentation/manager/views/manager_leave_detail_view.dart';
 import 'package:puntocheck/utils/theme/app_colors.dart';
-import 'package:intl/intl.dart';
 
-/// Card para mostrar solicitud de permiso en lista del Manager.
-/// 
-/// Muestra información resumida del permiso:
-/// - Nombre del empleado
-/// - Tipo de permiso
-/// - Fechas y duración
-/// - Estado
-/// - Botones de acción si está pendiente
+/// Card para mostrar una solicitud de permiso en la lista del Manager.
 class ManagerPermissionCard extends StatelessWidget {
   final SolicitudesPermisos permission;
   final String employeeName;
@@ -39,22 +32,18 @@ class ManagerPermissionCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 12),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: BorderSide(
-          color: AppColors.neutral200,
-          width: 1.5,
-        ),
+        side: const BorderSide(color: AppColors.neutral200, width: 1.5),
       ),
       child: InkWell(
-        onTap: onTap ??
-            () async {
-              // Navegar a la vista de detalle
-              final result = await Navigator.push<bool>(
+        onTap:
+            onTap ??
+            () {
+              Navigator.push<void>(
                 context,
                 MaterialPageRoute(
                   builder: (_) => ManagerLeaveDetailView(request: permission),
                 ),
               );
-              // result será true si se aprobó/rechazó el permiso
             },
         borderRadius: BorderRadius.circular(16),
         child: Padding(
@@ -62,10 +51,8 @@ class ManagerPermissionCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Header: Empleado + Estado
               Row(
                 children: [
-                  // Avatar circular
                   Container(
                     width: 44,
                     height: 44,
@@ -75,17 +62,18 @@ class ManagerPermissionCard extends StatelessWidget {
                     ),
                     child: Center(
                       child: Text(
-                        employeeName.isNotEmpty ? employeeName[0].toUpperCase() : '?',
+                        employeeName.isNotEmpty
+                            ? employeeName[0].toUpperCase()
+                            : '?',
                         style: const TextStyle(
                           color: AppColors.primaryRed,
-                          fontWeight: FontWeight.w700,
+                          fontWeight: FontWeight.w800,
                           fontSize: 18,
                         ),
                       ),
                     ),
                   ),
                   const SizedBox(width: 12),
-                  // Nombre y estado
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -93,10 +81,12 @@ class ManagerPermissionCard extends StatelessWidget {
                         Text(
                           employeeName,
                           style: const TextStyle(
-                            fontWeight: FontWeight.w700,
+                            fontWeight: FontWeight.w800,
                             fontSize: 15,
                             color: AppColors.neutral900,
                           ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                         const SizedBox(height: 4),
                         Container(
@@ -125,7 +115,7 @@ class ManagerPermissionCard extends StatelessWidget {
                                 statusConfig.label,
                                 style: TextStyle(
                                   color: statusConfig.textColor,
-                                  fontWeight: FontWeight.w700,
+                                  fontWeight: FontWeight.w800,
                                   fontSize: 12,
                                 ),
                               ),
@@ -137,18 +127,12 @@ class ManagerPermissionCard extends StatelessWidget {
                   ),
                 ],
               ),
-
               const SizedBox(height: 14),
-
-              // Tipo de permiso
               _PermissionTypeChip(tipo: permission.tipo),
-
               const SizedBox(height: 12),
-
-              // Fechas y duración
               Row(
                 children: [
-                  Icon(
+                  const Icon(
                     Icons.calendar_today_outlined,
                     size: 16,
                     color: AppColors.neutral600,
@@ -162,6 +146,8 @@ class ManagerPermissionCard extends StatelessWidget {
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
                       ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                   Container(
@@ -177,15 +163,13 @@ class ManagerPermissionCard extends StatelessWidget {
                       '${permission.diasTotales} ${permission.diasTotales == 1 ? 'día' : 'días'}',
                       style: const TextStyle(
                         color: AppColors.infoBlue,
-                        fontWeight: FontWeight.w700,
+                        fontWeight: FontWeight.w800,
                         fontSize: 12,
                       ),
                     ),
                   ),
                 ],
               ),
-
-              // Botones de acción si está pendiente
               if (isPending && (onApprove != null || onReject != null)) ...[
                 const SizedBox(height: 14),
                 Row(
@@ -237,7 +221,7 @@ class ManagerPermissionCard extends StatelessWidget {
     );
   }
 
-  String _formatDate(DateTime date) {
+  static String _formatDate(DateTime date) {
     return DateFormat('dd/MM/yyyy').format(date);
   }
 
@@ -252,10 +236,17 @@ class ManagerPermissionCard extends StatelessWidget {
           textColor: AppColors.warningOrange,
         );
       case EstadoAprobacion.aprobadoManager:
+        return _StatusConfig(
+          label: 'Aprobado (Manager)',
+          icon: Icons.check_circle,
+          backgroundColor: AppColors.successGreen.withValues(alpha: 0.1),
+          borderColor: AppColors.successGreen.withValues(alpha: 0.3),
+          textColor: AppColors.successGreen,
+        );
       case EstadoAprobacion.aprobadoRrhh:
         return _StatusConfig(
-          label: 'Aprobado',
-          icon: Icons.check_circle,
+          label: 'Aprobado (Final)',
+          icon: Icons.verified_rounded,
           backgroundColor: AppColors.successGreen.withValues(alpha: 0.1),
           borderColor: AppColors.successGreen.withValues(alpha: 0.3),
           textColor: AppColors.successGreen,
@@ -271,8 +262,8 @@ class ManagerPermissionCard extends StatelessWidget {
       case EstadoAprobacion.canceladoUsuario:
         return _StatusConfig(
           label: 'Cancelado',
-          icon: Icons.remove_circle,
-          backgroundColor: AppColors.neutral300.withValues(alpha: 0.1),
+          icon: Icons.block,
+          backgroundColor: AppColors.neutral200,
           borderColor: AppColors.neutral300,
           textColor: AppColors.neutral700,
         );
@@ -288,10 +279,6 @@ class ManagerPermissionCard extends StatelessWidget {
   }
 }
 
-// ============================================================================
-// Widgets auxiliares
-// ============================================================================
-
 class _PermissionTypeChip extends StatelessWidget {
   final TipoPermiso tipo;
 
@@ -299,86 +286,41 @@ class _PermissionTypeChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final config = _getTypeConfig(tipo);
-
+    final label = _label(tipo);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            config.color.withValues(alpha: 0.15),
-            config.color.withValues(alpha: 0.08),
-          ],
-        ),
+        color: AppColors.primaryRed.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(
-          color: config.color.withValues(alpha: 0.3),
-          width: 1.5,
-        ),
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(config.icon, size: 16, color: config.color),
-          const SizedBox(width: 6),
-          Text(
-            config.label,
-            style: TextStyle(
-              color: config.color,
-              fontWeight: FontWeight.w800,
-              fontSize: 13,
-            ),
-          ),
-        ],
+      child: Text(
+        label,
+        style: const TextStyle(
+          color: AppColors.primaryRed,
+          fontWeight: FontWeight.w800,
+          fontSize: 12,
+        ),
       ),
     );
   }
 
-  _TypeConfig _getTypeConfig(TipoPermiso tipo) {
+  static String _label(TipoPermiso tipo) {
     switch (tipo) {
-      case TipoPermiso.vacaciones:
-        return _TypeConfig(
-          label: 'VACACIONES',
-          icon: Icons.beach_access,
-          color: const Color(0xFF0288D1), // Blue 700
-        );
       case TipoPermiso.enfermedad:
-        return _TypeConfig(
-          label: 'ENFERMEDAD',
-          icon: Icons.medical_services,
-          color: const Color(0xFFC62828), // Red 800
-        );
+        return 'Enfermedad';
       case TipoPermiso.maternidadPaternidad:
-        return _TypeConfig(
-          label: 'MATERNIDAD/PATERNIDAD',
-          icon: Icons.family_restroom,
-          color: const Color(0xFF6A1B9A), // Purple 800
-        );
+        return 'Maternidad/Paternidad';
       case TipoPermiso.calamidadDomestica:
-        return _TypeConfig(
-          label: 'CALAMIDAD',
-          icon: Icons.warning_amber,
-          color: AppColors.warningOrange,
-        );
+        return 'Calamidad doméstica';
+      case TipoPermiso.vacaciones:
+        return 'Vacaciones';
       case TipoPermiso.legalVotacion:
-        return _TypeConfig(
-          label: 'LEGAL/VOTACIÓN',
-          icon: Icons.how_to_vote,
-          color: const Color(0xFF2E7D32), // Green 800
-        );
+        return 'Votación (legal)';
       case TipoPermiso.otro:
-        return _TypeConfig(
-          label: 'OTRO',
-          icon: Icons.more_horiz,
-          color: AppColors.neutral700,
-        );
+        return 'Otro';
     }
   }
 }
-
-// ============================================================================
-// Modelos auxiliares
-// ============================================================================
 
 class _StatusConfig {
   final String label;
@@ -393,17 +335,5 @@ class _StatusConfig {
     required this.backgroundColor,
     required this.borderColor,
     required this.textColor,
-  });
-}
-
-class _TypeConfig {
-  final String label;
-  final IconData icon;
-  final Color color;
-
-  const _TypeConfig({
-    required this.label,
-    required this.icon,
-    required this.color,
   });
 }

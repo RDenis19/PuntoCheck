@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:puntocheck/models/asignaciones_horarios.dart';
-import 'package:puntocheck/models/plantillas_horarios.dart';
 import 'package:puntocheck/presentation/admin/widgets/employee_selector.dart';
 import 'package:puntocheck/providers/app_providers.dart';
 import 'package:puntocheck/services/schedule_service.dart';

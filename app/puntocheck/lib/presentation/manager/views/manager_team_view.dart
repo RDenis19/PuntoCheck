@@ -6,10 +6,10 @@ import 'package:puntocheck/presentation/shared/widgets/empty_state.dart';
 import 'package:puntocheck/utils/theme/app_colors.dart';
 
 /// Vista del equipo del manager (3.2).
-/// 
+///
 /// Muestra la lista de empleados asignados al manager:
-/// - Filtrados por jefe_inmediato_id = manager.id
-/// - Solo empleados activos (eliminado = false)
+/// - Filtrados por sucursales donde es encargado
+/// - Solo empleados (rol=employee) y no eliminados
 /// - Con búsqueda por nombre/apellido
 class ManagerTeamView extends ConsumerStatefulWidget {
   const ManagerTeamView({super.key});
@@ -21,6 +21,7 @@ class ManagerTeamView extends ConsumerStatefulWidget {
 class _ManagerTeamViewState extends ConsumerState<ManagerTeamView> {
   final _searchController = TextEditingController();
   String? _searchQuery;
+  bool _includeInactive = false;
 
   @override
   void dispose() {
@@ -38,7 +39,11 @@ class _ManagerTeamViewState extends ConsumerState<ManagerTeamView> {
 
   @override
   Widget build(BuildContext context) {
-    final teamAsync = ref.watch(managerTeamProvider(_searchQuery));
+    final teamAsync = ref.watch(
+      _includeInactive
+          ? managerTeamAllProvider(_searchQuery)
+          : managerTeamProvider(_searchQuery),
+    );
 
     return Scaffold(
       body: SafeArea(
@@ -102,13 +107,13 @@ class _ManagerTeamViewState extends ConsumerState<ManagerTeamView> {
                   ),
                   const SizedBox(height: 16),
 
-                  // Barra de búsqueda
-                  TextField(
-                    controller: _searchController,
-                    onChanged: (_) => _onSearchChanged(),
-                    decoration: InputDecoration(
-                      hintText: 'Buscar por nombre o apellido...',
-                      prefixIcon: const Icon(Icons.search, size: 20),
+                   // Barra de búsqueda
+                   TextField(
+                     controller: _searchController,
+                     onChanged: (_) => _onSearchChanged(),
+                     decoration: InputDecoration(
+                       hintText: 'Buscar por nombre o apellido...',
+                       prefixIcon: const Icon(Icons.search, size: 20),
                       suffixIcon: _searchController.text.isNotEmpty
                           ? IconButton(
                               icon: const Icon(Icons.clear, size: 20),
@@ -129,10 +134,44 @@ class _ManagerTeamViewState extends ConsumerState<ManagerTeamView> {
                         vertical: 12,
                       ),
                     ),
-                  ),
-                ],
-              ),
-            ),
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        ChoiceChip(
+                          label: const Text('Activos'),
+                          selected: !_includeInactive,
+                          onSelected: (_) =>
+                              setState(() => _includeInactive = false),
+                          selectedColor:
+                              AppColors.primaryRed.withValues(alpha: 0.12),
+                          labelStyle: TextStyle(
+                            fontWeight: FontWeight.w700,
+                            color: !_includeInactive
+                                ? AppColors.primaryRed
+                                : AppColors.neutral700,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        ChoiceChip(
+                          label: const Text('Todos'),
+                          selected: _includeInactive,
+                          onSelected: (_) =>
+                              setState(() => _includeInactive = true),
+                          selectedColor:
+                              AppColors.primaryRed.withValues(alpha: 0.12),
+                          labelStyle: TextStyle(
+                            fontWeight: FontWeight.w700,
+                            color: _includeInactive
+                                ? AppColors.primaryRed
+                                : AppColors.neutral700,
+                          ),
+                        ),
+                      ],
+                    ),
+                 ],
+               ),
+             ),
 
             // Lista de empleados
             Expanded(
@@ -185,7 +224,11 @@ class _ManagerTeamViewState extends ConsumerState<ManagerTeamView> {
 
                   return RefreshIndicator(
                     onRefresh: () async {
-                      ref.invalidate(managerTeamProvider(_searchQuery));
+                      ref.invalidate(
+                        _includeInactive
+                            ? managerTeamAllProvider(_searchQuery)
+                            : managerTeamProvider(_searchQuery),
+                      );
                     },
                     color: AppColors.primaryRed,
                     child: ListView.separated(
@@ -215,8 +258,9 @@ class _ManagerTeamViewState extends ConsumerState<ManagerTeamView> {
                                       vertical: 2,
                                     ),
                                     decoration: BoxDecoration(
-                                      color: AppColors.primaryRed
-                                          .withValues(alpha: 0.1),
+                                      color: AppColors.primaryRed.withValues(
+                                        alpha: 0.1,
+                                      ),
                                       borderRadius: BorderRadius.circular(8),
                                     ),
                                     child: Text(
@@ -235,20 +279,27 @@ class _ManagerTeamViewState extends ConsumerState<ManagerTeamView> {
                         }
 
                         final employee = team[index - 1];
-                        
+
                         // Obtener horario del empleado desde la lista de horarios (si ya fue cargada por el provider en otro lado o aquí)
                         // Para evitar sobrecarga, podemos usar ref.watch(managerTeamSchedulesProvider(null)) si queremos eager loading
                         // O simplemente dejarlo vacío si no es crítico.
                         // Pero el usuario lo pidió. Vamos a intentar obtenerlo del provider de horarios.
-                        final schedulesAsync = ref.watch(managerTeamSchedulesProvider(null)); // Cacheado
+                        final schedulesAsync = ref.watch(
+                          managerTeamSchedulesProvider(null),
+                        ); // Cacheado
                         final scheduleName = schedulesAsync.maybeWhen(
                           data: (schedules) {
                             final empSchedule = schedules.firstWhere(
                               (s) => s['perfil_id'] == employee.id,
-                              orElse: () => <String, dynamic>{}, // Retornar mapa vacío en lugar de null
+                              orElse: () =>
+                                  <
+                                    String,
+                                    dynamic
+                                  >{}, // Retornar mapa vacío en lugar de null
                             );
                             if (empSchedule.isEmpty) return null;
-                            return empSchedule['plantillas_horarios']['nombre'] as String?;
+                            return empSchedule['plantillas_horarios']['nombre']
+                                as String?;
                           },
                           orElse: () => null,
                         );

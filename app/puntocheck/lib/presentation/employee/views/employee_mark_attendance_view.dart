@@ -8,8 +8,8 @@ import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:puntocheck/models/sucursales.dart';
+import 'package:puntocheck/models/sucursal_geo_extension.dart';
 import 'package:puntocheck/providers/employee_providers.dart';
-import 'package:puntocheck/utils/device_identity.dart';
 import 'package:puntocheck/utils/theme/app_colors.dart';
 
 class EmployeeMarkAttendanceView extends ConsumerStatefulWidget {
@@ -39,6 +39,9 @@ class _EmployeeMarkAttendanceViewState
   bool _isInsideGeofence = false;
   String? _nearestBranchId;
   String? _nearestBranchName;
+  LatLng? _nearestBranchCenter;
+  bool _singleBranchContext = false;
+  bool _overlayExpanded = false;
 
   // Tipo de registro seleccionado
   String _selectedType = 'entrada';
@@ -65,9 +68,47 @@ class _EmployeeMarkAttendanceViewState
     );
   }
 
+  void _goToBranchLocation() {
+    if (_nearestBranchCenter == null || _mapController == null) return;
+    _mapController!.animateCamera(
+      CameraUpdate.newLatLngZoom(_nearestBranchCenter!, 17),
+    );
+  }
+
+  Future<void> _fitToUserAndBranch() async {
+    final controller = _mapController;
+    final user = _currentPosition;
+    final branch = _nearestBranchCenter;
+    if (controller == null || user == null || branch == null) return;
+
+    final u = LatLng(user.latitude, user.longitude);
+    final b = branch;
+
+    final sw = LatLng(
+      u.latitude < b.latitude ? u.latitude : b.latitude,
+      u.longitude < b.longitude ? u.longitude : b.longitude,
+    );
+    final ne = LatLng(
+      u.latitude > b.latitude ? u.latitude : b.latitude,
+      u.longitude > b.longitude ? u.longitude : b.longitude,
+    );
+
+    try {
+      await controller.animateCamera(
+        CameraUpdate.newLatLngBounds(
+          LatLngBounds(southwest: sw, northeast: ne),
+          70,
+        ),
+      );
+    } catch (_) {
+      await controller.animateCamera(CameraUpdate.newLatLngZoom(u, 16));
+    }
+  }
+
   @override
   void initState() {
     super.initState();
+    _selectedType = widget.actionType;
     _tabController = TabController(length: 2, vsync: this);
     _initLocation();
     _startClock();
@@ -86,6 +127,20 @@ class _EmployeeMarkAttendanceViewState
       }
       setState(() {});
     });
+  }
+
+  Color _colorForType(String type) {
+    switch (type) {
+      case 'entrada':
+        return AppColors.successGreen;
+      case 'salida':
+        return AppColors.primaryRed;
+      case 'inicio_break':
+      case 'fin_break':
+        return AppColors.warningOrange;
+      default:
+        return AppColors.primaryRed;
+    }
   }
 
   @override
@@ -166,30 +221,29 @@ class _EmployeeMarkAttendanceViewState
     final Set<Marker> newMarkers = {};
 
     for (final branch in branches) {
-      final coords = branch.ubicacionCentral?['coordinates'];
-      final bLng = (coords is List && coords.length == 2)
-          ? (coords[0] as num?)?.toDouble()
-          : null;
-      final bLat = (coords is List && coords.length == 2)
-          ? (coords[1] as num?)?.toDouble()
-          : null;
-      if (bLat == null || bLng == null) continue;
+      final center = branch.centerLatLng;
+      if (center == null) continue;
 
       final double radius = (branch.radioMetros ?? 50).toDouble();
       final dist = (myLat != null && myLng != null)
-          ? Geolocator.distanceBetween(myLat, myLng, bLat, bLng)
+          ? Geolocator.distanceBetween(
+              myLat,
+              myLng,
+              center.latitude,
+              center.longitude,
+            )
           : double.infinity;
 
       if (dist < minDistance) {
         minDistance = dist;
         nearestBranch = branch;
-        nearestCenter = LatLng(bLat, bLng);
+        nearestCenter = center;
       }
 
       newCircles.add(
         Circle(
           circleId: CircleId(branch.id),
-          center: LatLng(bLat, bLng),
+          center: center,
           radius: radius,
           fillColor: AppColors.primaryRed.withValues(alpha: 0.1),
           strokeColor: AppColors.primaryRed,
@@ -200,7 +254,7 @@ class _EmployeeMarkAttendanceViewState
       newMarkers.add(
         Marker(
           markerId: MarkerId(branch.id),
-          position: LatLng(bLat, bLng),
+          position: center,
           infoWindow: InfoWindow(title: branch.nombre),
         ),
       );
@@ -215,14 +269,15 @@ class _EmployeeMarkAttendanceViewState
     if (nearestBranch != null) {
       final double radius = (nearestBranch.radioMetros ?? 50).toDouble();
       nBranchName = nearestBranch.nombre;
+      nBranchId = nearestBranch.id;
 
       if (minDistance <= radius) {
         statusMsg = 'Dentro de: ${nearestBranch.nombre}';
         statusCol = AppColors.successGreen;
         inside = true;
-        nBranchId = nearestBranch.id;
       } else {
-        statusMsg = 'Fuera de zona (${minDistance.toStringAsFixed(0)}m)';
+        statusMsg =
+            'Fuera de: ${nearestBranch.nombre} (${minDistance.toStringAsFixed(0)}m)';
       }
     } else {
       statusMsg = 'Sin sucursales cercanas';
@@ -237,11 +292,14 @@ class _EmployeeMarkAttendanceViewState
         _isInsideGeofence = inside;
         _nearestBranchId = nBranchId;
         _nearestBranchName = nBranchName;
+        _nearestBranchCenter = nearestCenter;
+        _singleBranchContext = branches.length == 1;
         _fallbackCenter ??= nearestCenter;
       });
-      _mapController?.animateCamera(
-        CameraUpdate.newLatLngZoom(LatLng(myLat ?? 0, myLng ?? 0), 17),
-      );
+
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _fitToUserAndBranch();
+      });
     }
   }
 
@@ -254,11 +312,6 @@ class _EmployeeMarkAttendanceViewState
     if (photo != null) {
       setState(() => _evidencePhoto = File(photo.path));
     }
-  }
-
-  Future<Map<String, String>> _getDeviceInfo() async {
-    final identity = await getDeviceIdentity();
-    return {'id': identity.id, 'model': identity.model};
   }
 
   Future<void> _submitAttendance({bool isQr = false}) async {
@@ -278,9 +331,6 @@ class _EmployeeMarkAttendanceViewState
         sucursalIdQr = qrInfo['sucursal_id'];
       }
 
-      // 2. Info Dispositivo
-      final devInfo = await _getDeviceInfo();
-
       // 3. Registrar via provider/service
       await controller.registerAttendance(
         tipoRegistro: _selectedType,
@@ -289,8 +339,6 @@ class _EmployeeMarkAttendanceViewState
         sucursalId: isQr ? sucursalIdQr : _nearestBranchId,
         estaDentroGeocerca: isQr ? true : _isInsideGeofence,
         notas: isQr ? 'Validado por QR' : 'Registro GPS',
-        deviceId: devInfo['id'] ?? 'unknown',
-        deviceModel: devInfo['model'] ?? 'unknown',
         isQr: isQr,
         evidenciaPhoto: _evidencePhoto,
         precisionMetros: _currentPosition?.accuracy,
@@ -391,7 +439,12 @@ class _EmployeeMarkAttendanceViewState
             circles: _circles,
             markers: _markers,
             mapType: MapType.normal,
-            onMapCreated: (ctrl) => _mapController = ctrl,
+            onMapCreated: (ctrl) {
+              _mapController = ctrl;
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                _fitToUserAndBranch();
+              });
+            },
           )
         else
           Container(
@@ -399,141 +452,19 @@ class _EmployeeMarkAttendanceViewState
             child: const Center(child: CircularProgressIndicator()),
           ),
 
-        // Data Overlay
         Positioned(
-          top: 16,
+          top: 8,
           left: 16,
           right: 16,
-          child: Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.95),
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black12,
-                  blurRadius: 10,
-                  offset: Offset(0, 4),
-                ),
-              ],
-            ),
-            child: Column(
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          DateFormat('HH:mm:ss').format(_currentTime),
-                          style: const TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.neutral900,
-                          ),
-                        ),
-                        Text(
-                          DateFormat(
-                            'EEEE, d MMM yyyy',
-                            'es',
-                          ).format(_currentTime),
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color: AppColors.neutral500,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: AppColors.neutral100,
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: DropdownButtonHideUnderline(
-                            child: DropdownButton<String>(
-                              value: _selectedType,
-                              items: const [
-                                DropdownMenuItem(
-                                  value: 'entrada',
-                                  child: Text('Entrada'),
-                                ),
-                                DropdownMenuItem(
-                                  value: 'salida',
-                                  child: Text('Salida'),
-                                ),
-                                DropdownMenuItem(
-                                  value: 'inicio_break',
-                                  child: Text('Inicio break'),
-                                ),
-                                DropdownMenuItem(
-                                  value: 'fin_break',
-                                  child: Text('Fin break'),
-                                ),
-                              ],
-                              onChanged: (val) {
-                                if (val != null)
-                                  setState(() => _selectedType = val);
-                              },
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: _statusColor.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: _statusColor),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(Icons.circle, size: 10, color: _statusColor),
-                          const SizedBox(width: 6),
-                          Text(
-                            _isInsideGeofence ? 'EN ZONA' : 'FUERA DE ZONA',
-                            style: TextStyle(
-                              color: _statusColor,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 12,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                const Divider(height: 24),
-                Row(
-                  children: [
-                    const Icon(
-                      Icons.place,
-                      size: 16,
-                      color: AppColors.neutral500,
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        _nearestBranchName != null
-                            ? 'Cerca de: $_nearestBranchName'
-                            : 'Buscando sucursal...',
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
+          child: SafeArea(
+            bottom: false,
+            child: AnimatedCrossFade(
+              duration: const Duration(milliseconds: 180),
+              crossFadeState: _overlayExpanded
+                  ? CrossFadeState.showSecond
+                  : CrossFadeState.showFirst,
+              firstChild: _buildOverlayCollapsed(),
+              secondChild: _buildOverlayExpanded(),
             ),
           ),
         ),
@@ -545,6 +476,19 @@ class _EmployeeMarkAttendanceViewState
             backgroundColor: Colors.white,
             onPressed: _goToMyLocation,
             child: const Icon(Icons.my_location, color: AppColors.primaryRed),
+          ),
+        ),
+        Positioned(
+          right: 16,
+          bottom: 130,
+          child: FloatingActionButton.small(
+            heroTag: 'recenter_branch',
+            backgroundColor: Colors.white,
+            onPressed: _nearestBranchCenter == null ? null : _goToBranchLocation,
+            child: const Icon(
+              Icons.store_mall_directory,
+              color: AppColors.primaryRed,
+            ),
           ),
         ),
 
@@ -636,9 +580,7 @@ class _EmployeeMarkAttendanceViewState
                         ? null
                         : () => _submitAttendance(isQr: false),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: widget.actionType == 'entrada'
-                          ? AppColors.successGreen
-                          : AppColors.primaryRed,
+                      backgroundColor: _colorForType(_selectedType),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16),
                       ),
@@ -660,6 +602,209 @@ class _EmployeeMarkAttendanceViewState
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildOverlayCard({required Widget child}) {
+    return Material(
+      elevation: 0,
+      color: Colors.transparent,
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.92),
+          borderRadius: BorderRadius.circular(14),
+          boxShadow: const [
+            BoxShadow(
+              color: Colors.black12,
+              blurRadius: 10,
+              offset: Offset(0, 4),
+            ),
+          ],
+        ),
+        child: child,
+      ),
+    );
+  }
+
+  Widget _buildOverlayCollapsed() {
+    final branchLabel = _nearestBranchName == null
+        ? 'Sucursal: --'
+        : (_singleBranchContext
+            ? 'Sucursal: $_nearestBranchName'
+            : 'Cerca de: $_nearestBranchName');
+
+    return _buildOverlayCard(
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: _statusColor.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: _statusColor),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.circle, size: 10, color: _statusColor),
+                const SizedBox(width: 6),
+                Text(
+                  _isInsideGeofence ? 'EN ZONA' : 'FUERA',
+                  style: TextStyle(
+                    color: _statusColor,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              branchLabel,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontWeight: FontWeight.w600,
+                color: AppColors.neutral900,
+              ),
+            ),
+          ),
+          IconButton(
+            onPressed: () => setState(() => _overlayExpanded = true),
+            icon: const Icon(Icons.expand_more, color: AppColors.neutral700),
+            tooltip: 'Ver detalles',
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildOverlayExpanded() {
+    final branchLabel = _nearestBranchName == null
+        ? 'Buscando sucursal...'
+        : (_singleBranchContext
+            ? 'Sucursal: $_nearestBranchName'
+            : 'Cerca de: $_nearestBranchName');
+
+    return _buildOverlayCard(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      DateFormat('HH:mm:ss').format(_currentTime),
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.neutral900,
+                      ),
+                    ),
+                    Text(
+                      DateFormat('EEEE, d MMM yyyy', 'es').format(_currentTime),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: AppColors.neutral500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              IconButton(
+                onPressed: () => setState(() => _overlayExpanded = false),
+                icon: const Icon(Icons.expand_less, color: AppColors.neutral700),
+                tooltip: 'Minimizar',
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: AppColors.neutral100,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<String>(
+                      value: _selectedType,
+                      isDense: true,
+                      items: const [
+                        DropdownMenuItem(value: 'entrada', child: Text('Entrada')),
+                        DropdownMenuItem(value: 'salida', child: Text('Salida')),
+                        DropdownMenuItem(value: 'inicio_break', child: Text('Inicio break')),
+                        DropdownMenuItem(value: 'fin_break', child: Text('Fin break')),
+                      ],
+                      onChanged: (val) {
+                        if (val != null) setState(() => _selectedType = val);
+                      },
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: _statusColor.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: _statusColor),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.circle, size: 10, color: _statusColor),
+                    const SizedBox(width: 6),
+                    Text(
+                      _isInsideGeofence ? 'EN ZONA' : 'FUERA DE ZONA',
+                      style: TextStyle(
+                        color: _statusColor,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              const Icon(Icons.place, size: 16, color: AppColors.neutral500),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  branchLabel,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              _locationStatus,
+              style: const TextStyle(fontSize: 12, color: AppColors.neutral600),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      ),
     );
   }
 

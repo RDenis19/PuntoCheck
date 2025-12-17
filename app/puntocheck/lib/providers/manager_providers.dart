@@ -2,12 +2,16 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../models/alertas_cumplimiento.dart';
 import '../models/organizaciones.dart';
+import '../models/encargados_sucursales.dart';
+import '../models/enums.dart';
 import '../models/perfiles.dart';
 import '../models/registros_asistencia.dart';
 import '../models/solicitudes_permisos.dart';
 import '../models/banco_horas_compensatorias.dart';
 import '../models/plantillas_horarios.dart';
+import '../models/sucursales.dart';
 import '../services/manager_service.dart';
 import 'auth_providers.dart';
 import 'core_providers.dart';
@@ -47,6 +51,23 @@ final managerOrganizationProvider = FutureProvider<Organizaciones>((ref) async {
 });
 
 // ============================================================================
+// 1 - SUCURSAL DEL MANAGER + ENCARGADOS
+// ============================================================================
+
+/// Sucursales donde el usuario actual es encargado (manager).
+final managerBranchesProvider = FutureProvider.autoDispose<List<Sucursales>>((
+  ref,
+) async {
+  return ref.read(managerServiceProvider).getManagedBranches();
+});
+
+/// Encargados (managers) asignados a una sucursal.
+final managerBranchManagersProvider = FutureProvider.autoDispose
+    .family<List<EncargadosSucursales>, String>((ref, branchId) async {
+      return ref.read(staffServiceProvider).getBranchManagers(branchId);
+    });
+
+// ============================================================================
 // 3.2 - EQUIPO DE TRABAJO
 // ============================================================================
 
@@ -60,6 +81,17 @@ final managerTeamProvider = FutureProvider.family<List<Perfiles>, String?>((
   return ref.read(managerServiceProvider).getMyTeam(searchQuery: searchQuery);
 });
 
+/// Igual que `managerTeamProvider`, pero incluye inactivos/eliminados.
+final managerTeamAllProvider = FutureProvider.family<List<Perfiles>, String?>((
+  ref,
+  searchQuery,
+) async {
+  return ref.read(managerServiceProvider).getMyTeam(
+        searchQuery: searchQuery,
+        includeDeleted: true,
+      );
+});
+
 /// Provider para obtener un empleado específico del equipo.
 ///
 /// Útil para mostrar información detallada de un miembro del equipo.
@@ -67,13 +99,19 @@ final managerPersonProvider = FutureProvider.family<Perfiles, String>((
   ref,
   employeeId,
 ) async {
-  // Obtener todo el equipo y buscar por ID
-  final team = await ref.read(managerServiceProvider).getMyTeam();
-  try {
-    return team.firstWhere((e) => e.id == employeeId);
-  } catch (e) {
-    throw Exception('Empleado no encontrado en el equipo');
+  final managedBranches = await ref.watch(managerBranchesProvider.future);
+  final profile = await ref.read(staffServiceProvider).getProfile(employeeId);
+
+  final branchOk =
+      profile.sucursalId != null &&
+      managedBranches.any((b) => b.id == profile.sucursalId);
+  if (!branchOk) throw Exception('Empleado no pertenece a tus sucursales');
+
+  if (profile.rol != RolUsuario.employee) {
+    throw Exception('Solo puedes ver empleados de tu equipo');
   }
+
+  return profile;
 });
 
 /// Provider para obtener historial de asistencia de un empleado específico.
@@ -327,8 +365,15 @@ final managerHoursBankControllerProvider =
 // NOTIFICACIONES DEL MANAGER
 // ============================================================================
 
-final managerNotificationsProvider = FutureProvider<List<Map<String, dynamic>>>((ref) async {
-  return ref.read(managerServiceProvider).getMyNotifications();
+final managerNotificationsProvider = FutureProvider<List<Map<String, dynamic>>>(
+  (ref) async {
+    return ref.read(managerServiceProvider).getMyNotifications();
+  },
+);
+
+final managerUnreadNotificationsCountProvider = FutureProvider<int>((ref) async {
+  final list = await ref.watch(managerNotificationsProvider.future);
+  return list.where((n) => n['leido'] != true).length;
 });
 
 class ManagerNotificationController extends AsyncNotifier<void> {
@@ -338,8 +383,27 @@ class ManagerNotificationController extends AsyncNotifier<void> {
   Future<void> markRead(String notificationId) async {
     state = const AsyncValue.loading();
     state = await AsyncValue.guard(
-      () => ref.read(managerServiceProvider).markNotificationAsRead(notificationId),
+      () => ref
+          .read(managerServiceProvider)
+          .markNotificationAsRead(notificationId),
     );
+    if (!state.hasError) {
+      ref.invalidate(managerNotificationsProvider);
+    }
+  }
+
+  Future<void> markAllRead() async {
+    state = const AsyncValue.loading();
+    state = await AsyncValue.guard(() async {
+      final list = await ref.read(managerNotificationsProvider.future);
+      final unread = list.where((n) => n['leido'] != true).toList();
+      for (final item in unread) {
+        final id = item['id']?.toString();
+        if (id == null || id.isEmpty) continue;
+        await ref.read(managerServiceProvider).markNotificationAsRead(id);
+      }
+    });
+
     if (!state.hasError) {
       ref.invalidate(managerNotificationsProvider);
     }
@@ -348,8 +412,8 @@ class ManagerNotificationController extends AsyncNotifier<void> {
 
 final managerNotificationControllerProvider =
     AsyncNotifierProvider<ManagerNotificationController, void>(
-  ManagerNotificationController.new,
-);
+      ManagerNotificationController.new,
+    );
 
 // ============================================================================
 // PLANTILLAS / ASIGNACIONES DE HORARIOS
@@ -357,8 +421,8 @@ final managerNotificationControllerProvider =
 
 final managerScheduleTemplatesProvider =
     FutureProvider<List<PlantillasHorarios>>((ref) async {
-  return ref.read(managerServiceProvider).getScheduleTemplates();
-});
+      return ref.read(managerServiceProvider).getScheduleTemplates();
+    });
 
 class ManagerScheduleController extends AsyncNotifier<void> {
   @override
@@ -372,8 +436,29 @@ class ManagerScheduleController extends AsyncNotifier<void> {
   }) async {
     state = const AsyncValue.loading();
     state = await AsyncValue.guard(
-      () => ref.read(managerServiceProvider).assignSchedule(
+      () => ref
+          .read(managerServiceProvider)
+          .assignSchedule(
             employeeId: employeeId,
+            templateId: templateId,
+            startDate: startDate,
+            endDate: endDate,
+          ),
+    );
+  }
+
+  Future<void> assignScheduleBulk({
+    required List<String> employeeIds,
+    required String templateId,
+    required DateTime startDate,
+    DateTime? endDate,
+  }) async {
+    state = const AsyncValue.loading();
+    state = await AsyncValue.guard(
+      () => ref
+          .read(managerServiceProvider)
+          .assignScheduleBulk(
+            employeeIds: employeeIds,
             templateId: templateId,
             startDate: startDate,
             endDate: endDate,
@@ -389,7 +474,9 @@ class ManagerScheduleController extends AsyncNotifier<void> {
   }) async {
     state = const AsyncValue.loading();
     state = await AsyncValue.guard(
-      () => ref.read(managerServiceProvider).updateSchedule(
+      () => ref
+          .read(managerServiceProvider)
+          .updateSchedule(
             assignmentId: assignmentId,
             templateId: templateId,
             startDate: startDate,
@@ -401,21 +488,63 @@ class ManagerScheduleController extends AsyncNotifier<void> {
 
 final managerScheduleControllerProvider =
     AsyncNotifierProvider<ManagerScheduleController, void>(
-  ManagerScheduleController.new,
-);
+      ManagerScheduleController.new,
+    );
 
 // ============================================================================
 // ASIGNACIONES DE HORARIO (LISTADOS)
 // ============================================================================
 
-final managerTeamSchedulesProvider =
-    FutureProvider.family.autoDispose<List<Map<String, dynamic>>, String?>(
-        (ref, employeeId) async {
-  return ref.read(managerServiceProvider).getTeamSchedules(employeeId: employeeId);
-});
+final managerTeamSchedulesProvider = FutureProvider.family
+    .autoDispose<List<Map<String, dynamic>>, String?>((ref, employeeId) async {
+      return ref
+          .read(managerServiceProvider)
+          .getTeamSchedules(employeeId: employeeId);
+    });
 
-final managerEmployeeActiveScheduleProvider =
-    FutureProvider.family.autoDispose<Map<String, dynamic>?, String>(
-        (ref, employeeId) async {
-  return ref.read(managerServiceProvider).getEmployeeActiveSchedule(employeeId);
-});
+final managerEmployeeActiveScheduleProvider = FutureProvider.family
+    .autoDispose<Map<String, dynamic>?, String>((ref, employeeId) async {
+      return ref
+          .read(managerServiceProvider)
+          .getEmployeeActiveSchedule(employeeId);
+    });
+
+// ============================================================================
+// ALERTAS DE CUMPLIMIENTO (Manager)
+// ============================================================================
+
+final managerComplianceAlertsProvider = FutureProvider.autoDispose
+    .family<List<AlertasCumplimiento>, bool>((ref, pendingOnly) async {
+      return ref
+          .read(managerServiceProvider)
+          .getTeamComplianceAlerts(pendingOnly: pendingOnly);
+    });
+
+class ManagerComplianceAlertController extends AsyncNotifier<void> {
+  @override
+  FutureOr<void> build() => null;
+
+  Future<void> updateStatus({
+    required String alertId,
+    required String status,
+  }) async {
+    state = const AsyncValue.loading();
+    state = await AsyncValue.guard(
+      () => ref
+          .read(managerServiceProvider)
+          .updateComplianceAlertStatus(alertId: alertId, status: status),
+    );
+
+    if (!state.hasError) {
+      ref
+        ..invalidate(managerComplianceAlertsProvider(true))
+        ..invalidate(managerComplianceAlertsProvider(false))
+        ..invalidate(managerHomeSummaryProvider);
+    }
+  }
+}
+
+final managerComplianceAlertControllerProvider =
+    AsyncNotifierProvider<ManagerComplianceAlertController, void>(
+      ManagerComplianceAlertController.new,
+    );

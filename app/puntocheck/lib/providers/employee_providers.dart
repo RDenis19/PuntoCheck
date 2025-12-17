@@ -7,6 +7,7 @@ import '../models/registros_asistencia.dart';
 import '../models/solicitudes_permisos.dart';
 import '../models/sucursales.dart';
 import '../models/enums.dart';
+import '../services/attendance_service.dart';
 import '../services/employee_service.dart';
 import 'auth_providers.dart';
 
@@ -121,8 +122,6 @@ class EmployeeAttendanceController extends AsyncNotifier<void> {
     required bool estaDentroGeocerca,
     File? evidenciaPhoto,
     String? notas,
-    required String deviceId,
-    required String deviceModel,
     double? precisionMetros,
     bool esMockLocation = false,
   }) async {
@@ -133,20 +132,50 @@ class EmployeeAttendanceController extends AsyncNotifier<void> {
           ? await svc.uploadEvidence(evidenciaPhoto)
           : 'qr_verified_no_photo';
 
-      await svc.registerAttendanceFull(
-        tipoRegistro: tipoRegistro,
-        evidenciaFotoUrl: photoUrl,
-        latitud: latitud,
-        longitud: longitud,
-        sucursalId: sucursalId,
-        estaDentroGeocerca: estaDentroGeocerca,
-        notas: notas,
-        deviceId: deviceId,
-        deviceModel: deviceModel,
-        isQr: isQr,
-        precisionMetros: precisionMetros,
-        esMockLocation: esMockLocation,
-      );
+      if (!isQr) {
+        try {
+          await AttendanceService.instance.performCheckIn(
+            lat: latitud,
+            long: longitud,
+            photoPath: photoUrl,
+            type: tipoRegistro,
+            sucursalId: sucursalId,
+          );
+        } catch (e) {
+          // Fallback si el RPC no existe en el backend (entornos antiguos).
+          final msg = e.toString();
+          final isMissingRpc = msg.contains('PGRST202') ||
+              msg.contains('Could not find the function') ||
+              msg.contains('realizar_checkin');
+          if (!isMissingRpc) rethrow;
+
+          await svc.registerAttendanceFull(
+            tipoRegistro: tipoRegistro,
+            evidenciaFotoUrl: photoUrl,
+            latitud: latitud,
+            longitud: longitud,
+            sucursalId: sucursalId,
+            estaDentroGeocerca: estaDentroGeocerca,
+            notas: notas,
+            isQr: false,
+            precisionMetros: precisionMetros,
+            esMockLocation: esMockLocation,
+          );
+        }
+      } else {
+        await svc.registerAttendanceFull(
+          tipoRegistro: tipoRegistro,
+          evidenciaFotoUrl: photoUrl,
+          latitud: latitud,
+          longitud: longitud,
+          sucursalId: sucursalId,
+          estaDentroGeocerca: true,
+          notas: notas,
+          isQr: true,
+          precisionMetros: precisionMetros,
+          esMockLocation: esMockLocation,
+        );
+      }
     });
 
     if (!state.hasError) {

@@ -79,8 +79,9 @@ class EmployeeService {
             '''
               id, perfil_id, organizacion_id, plantilla_id, fecha_inicio, fecha_fin,
               plantillas_horarios (
-                id, organizacion_id, nombre, hora_entrada, hora_salida,
-                tiempo_descanso_minutos, dias_laborales, es_rotativo, eliminado, creado_en
+                id, organizacion_id, nombre, dias_laborales, tolerancia_entrada_minutos,
+                es_rotativo, eliminado, creado_en,
+                turnos_jornada (id, plantilla_id, nombre_turno, hora_inicio, hora_fin, orden, es_dia_siguiente, creado_en)
               )
             ''',
           )
@@ -173,15 +174,26 @@ class EmployeeService {
   }
 
   Future<List<Sucursales>> getMyBranches() async {
-    final orgId = await _requireOrgId();
+    final profile = await getMyProfile();
+    final orgId = profile.organizacionId;
+    if (orgId == null || orgId.isEmpty) {
+      throw Exception('El usuario no tiene organización asignada');
+    }
 
     try {
-      final response = await supabase
+      var query = supabase
           .from('sucursales')
           .select()
           .eq('organizacion_id', orgId)
-          .eq('eliminado', false)
-          .order('nombre', ascending: true);
+          .eq('eliminado', false);
+
+      // Si el empleado tiene una sucursal asignada, devolvemos solo esa por UX
+      // y para reducir errores de marcación en sucursales ajenas.
+      if (profile.sucursalId != null && profile.sucursalId!.isNotEmpty) {
+        query = query.eq('id', profile.sucursalId!);
+      }
+
+      final response = await query.order('nombre', ascending: true);
 
       return (response as List)
           .map((json) => Sucursales.fromJson(json))
@@ -194,6 +206,10 @@ class EmployeeService {
   }
 
   Future<Map<String, String>> validateQr(String scannedData) async {
+    final profile = await getMyProfile();
+    final myOrgId = profile.organizacionId;
+    final mySucursalId = profile.sucursalId;
+
     final parsed = _parseQrPayload(scannedData);
     final token = parsed['token'];
     final sucursalHint = parsed['sucursal_id'];
@@ -222,6 +238,25 @@ class EmployeeService {
         throw Exception('QR inválido o expirado');
       }
 
+      final qrOrgId = response['organizacion_id'] as String?;
+      final qrSucursalId = response['sucursal_id'] as String?;
+
+      if (myOrgId != null &&
+          myOrgId.isNotEmpty &&
+          qrOrgId != null &&
+          qrOrgId.isNotEmpty &&
+          qrOrgId != myOrgId) {
+        throw Exception('Este QR no pertenece a tu organizacion.');
+      }
+
+      if (mySucursalId != null &&
+          mySucursalId.isNotEmpty &&
+          qrSucursalId != null &&
+          qrSucursalId.isNotEmpty &&
+          qrSucursalId != mySucursalId) {
+        throw Exception('Este QR no pertenece a tu sucursal.');
+      }
+
       return {
         'sucursal_id': response['sucursal_id'] as String,
         'organizacion_id': response['organizacion_id'] as String,
@@ -243,6 +278,12 @@ class EmployeeService {
     final userId = supabase.auth.currentUser?.id;
     if (userId == null) throw Exception('Usuario no autenticado');
     return StorageService.instance.uploadLegalDoc(file, userId);
+  }
+
+  Future<String> uploadProfilePhoto(File file) async {
+    final userId = supabase.auth.currentUser?.id;
+    if (userId == null) throw Exception('Usuario no autenticado');
+    return StorageService.instance.uploadProfilePhoto(file, userId);
   }
 
   Future<void> createPermissionRequest({
@@ -331,13 +372,11 @@ class EmployeeService {
   Future<void> registerAttendanceFull({
     required String tipoRegistro,
     required String evidenciaFotoUrl,
-    required double latitud,
-    required double longitud,
+    double? latitud,
+    double? longitud,
     String? sucursalId,
     required bool estaDentroGeocerca,
     String? notas,
-    required String deviceId,
-    required String deviceModel,
     required bool isQr,
     double? precisionMetros,
     bool esMockLocation = false,
@@ -346,26 +385,27 @@ class EmployeeService {
     if (userId == null) throw Exception('Usuario no autenticado');
     final orgId = await _requireOrgId();
 
-    final payload = {
+    final payload = <String, dynamic>{
       'perfil_id': userId,
       'organizacion_id': orgId,
       'sucursal_id': sucursalId,
       'tipo_registro': tipoRegistro,
       'fecha_hora_marcacion': DateTime.now().toUtc().toIso8601String(),
-      'ubicacion_gps': {
-        'type': 'Point',
-        'coordinates': [longitud, latitud],
-      },
       'precision_metros': precisionMetros,
       'esta_dentro_geocerca': estaDentroGeocerca,
       'es_mock_location': esMockLocation,
       'evidencia_foto_url': evidenciaFotoUrl,
-      'device_id': deviceId,
-      'device_model': deviceModel,
       'origen': isQr ? OrigenMarcacion.qrFijo.value : OrigenMarcacion.gpsMovil.value,
       'notas': notas,
       'eliminado': false,
     };
+
+    if (latitud != null && longitud != null) {
+      payload['ubicacion_gps'] = {
+        'type': 'Point',
+        'coordinates': [longitud, latitud],
+      };
+    }
 
     try {
       await supabase.from('registros_asistencia').insert(payload);

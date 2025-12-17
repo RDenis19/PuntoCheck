@@ -1,10 +1,14 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:puntocheck/routes/app_router.dart';
-import 'package:puntocheck/services/employee_service.dart';
-import 'package:puntocheck/utils/theme/app_colors.dart';
+import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:puntocheck/presentation/shared/widgets/section_card.dart';
+import 'package:puntocheck/providers/auth_providers.dart';
 import 'package:puntocheck/providers/employee_providers.dart';
+import 'package:puntocheck/routes/app_router.dart';
+import 'package:puntocheck/utils/theme/app_colors.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class EmployeeProfileView extends ConsumerStatefulWidget {
@@ -15,17 +19,13 @@ class EmployeeProfileView extends ConsumerStatefulWidget {
 }
 
 class _EmployeeProfileViewState extends ConsumerState<EmployeeProfileView> {
-  bool _isEditing = false;
-  bool _isLoading = false;
-
   final _formKey = GlobalKey<FormState>();
-  late TextEditingController _phoneController;
+  final _phoneController = TextEditingController();
+  final _picker = ImagePicker();
 
-  @override
-  void initState() {
-    super.initState();
-    _phoneController = TextEditingController();
-  }
+  bool _isEditing = false;
+  bool _isSaving = false;
+  File? _newPhotoFile;
 
   @override
   void dispose() {
@@ -33,76 +33,133 @@ class _EmployeeProfileViewState extends ConsumerState<EmployeeProfileView> {
     super.dispose();
   }
 
-  void _initControllers(String? phone) {
-    if (_phoneController.text.isEmpty && phone != null) {
-      _phoneController.text = phone;
-    }
+  Future<void> _pickProfilePhoto() async {
+    final source = await showModalBottomSheet<ImageSource>(
+      context: context,
+      showDragHandle: true,
+      backgroundColor: Colors.white,
+      builder: (_) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.photo_library_outlined),
+              title: const Text('Galería'),
+              onTap: () => Navigator.pop(context, ImageSource.gallery),
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_camera_outlined),
+              title: const Text('Cámara'),
+              onTap: () => Navigator.pop(context, ImageSource.camera),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (source == null) return;
+
+    final picked = await _picker.pickImage(
+      source: source,
+      imageQuality: 80,
+      maxWidth: 1024,
+    );
+    if (picked == null) return;
+    if (!mounted) return;
+
+    setState(() => _newPhotoFile = File(picked.path));
+  }
+
+  Future<void> _startEditing(String? phone) async {
+    setState(() {
+      _isEditing = true;
+      _newPhotoFile = null;
+      _phoneController.text = phone ?? '';
+    });
+  }
+
+  void _cancelEditing(String? phone) {
+    setState(() {
+      _isEditing = false;
+      _isSaving = false;
+      _newPhotoFile = null;
+      _phoneController.text = phone ?? '';
+    });
   }
 
   Future<void> _saveChanges() async {
     if (!_formKey.currentState!.validate()) return;
 
-    setState(() => _isLoading = true);
+    setState(() => _isSaving = true);
     try {
-      await EmployeeService.instance.updateProfile(
-        telefono: _phoneController.text.trim(),
+      final svc = ref.read(employeeServiceProvider);
+      String? photoUrl;
+      if (_newPhotoFile != null) {
+        photoUrl = await svc.uploadProfilePhoto(_newPhotoFile!);
+      }
+
+      final phone = _phoneController.text.trim();
+      await svc.updateProfile(
+        telefono: phone.isEmpty ? null : phone,
+        fotoPerfilUrl: photoUrl,
       );
 
       ref.invalidate(employeeProfileProvider);
-      setState(() => _isEditing = false);
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Perfil actualizado correctamente'),
-            backgroundColor: AppColors.successGreen,
-          ),
-        );
-      }
+      if (!mounted) return;
+      setState(() {
+        _isEditing = false;
+        _newPhotoFile = null;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Perfil actualizado correctamente'),
+          backgroundColor: AppColors.successGreen,
+        ),
+      );
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: $e'),
-            backgroundColor: AppColors.errorRed,
-          ),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
+      if (!mounted) return;
+      setState(() => _isSaving = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(e.toString().replaceFirst('Exception: ', '')),
+          backgroundColor: AppColors.errorRed,
+        ),
+      );
     }
+  }
+
+  Future<void> _signOut() async {
+    await ref.read(authControllerProvider.notifier).signOut();
+    if (!mounted) return;
+    context.go(AppRoutes.login);
   }
 
   @override
   Widget build(BuildContext context) {
     final profileAsync = ref.watch(employeeProfileProvider);
+    final branchesAsync = ref.watch(employeeBranchesProvider);
 
     return Scaffold(
-      backgroundColor: Colors.grey[50],
+      backgroundColor: AppColors.neutral100,
       appBar: AppBar(
-        title: const Text('Mi Perfil'),
+        title: const Text('Mi perfil'),
         backgroundColor: Colors.white,
-        elevation: 0,
+        elevation: 0.5,
         foregroundColor: AppColors.neutral900,
         actions: [
-          if (!_isEditing)
-            IconButton(
-              icon: const Icon(Icons.edit_outlined),
-              tooltip: 'Editar perfil',
-              onPressed: () {
-                setState(() => _isEditing = true);
-              },
-            )
-          else
-            IconButton(
-              icon: const Icon(Icons.close),
-              tooltip: 'Cancelar',
-              onPressed: () {
-                setState(() => _isEditing = false);
-                ref.invalidate(employeeProfileProvider); // Reset controllers implicitly via rebuild
-                _phoneController.clear();
-              },
-            ),
+          profileAsync.maybeWhen(
+            data: (profile) => _isEditing
+                ? IconButton(
+                    tooltip: 'Cancelar',
+                    icon: const Icon(Icons.close),
+                    onPressed: _isSaving ? null : () => _cancelEditing(profile.telefono),
+                  )
+                : IconButton(
+                    tooltip: 'Editar',
+                    icon: const Icon(Icons.edit_outlined),
+                    onPressed: () => _startEditing(profile.telefono),
+                  ),
+            orElse: () => const SizedBox.shrink(),
+          ),
         ],
       ),
       body: profileAsync.when(
@@ -111,7 +168,18 @@ class _EmployeeProfileViewState extends ConsumerState<EmployeeProfileView> {
         ),
         error: (e, _) => Center(child: Text('Error: $e')),
         data: (profile) {
-          if (!_isEditing) _initControllers(profile.telefono);
+          final branchName = branchesAsync.maybeWhen(
+            data: (branches) {
+              if (profile.sucursalId == null) return null;
+              final match = branches.where((b) => b.id == profile.sucursalId).toList();
+              return match.isEmpty ? null : match.first.nombre;
+            },
+            orElse: () => null,
+          );
+
+          if (!_isEditing && _phoneController.text.isEmpty) {
+            _phoneController.text = profile.telefono ?? '';
+          }
 
           return SingleChildScrollView(
             padding: const EdgeInsets.all(16),
@@ -119,21 +187,26 @@ class _EmployeeProfileViewState extends ConsumerState<EmployeeProfileView> {
               key: _formKey,
               child: Column(
                 children: [
-                   // Avatar y Nombre
                   Center(
                     child: Stack(
                       children: [
                         CircleAvatar(
-                          radius: 50,
-                          backgroundColor: AppColors.primaryRed.withValues(alpha: 0.1),
-                          backgroundImage: profile.fotoPerfilUrl != null
-                              ? NetworkImage(profile.fotoPerfilUrl!)
-                              : null,
-                          child: profile.fotoPerfilUrl == null
+                          radius: 52,
+                          backgroundColor: AppColors.primaryRed.withValues(alpha: 0.08),
+                          backgroundImage: _newPhotoFile != null
+                              ? FileImage(_newPhotoFile!)
+                              : (profile.fotoPerfilUrl != null && profile.fotoPerfilUrl!.isNotEmpty
+                                  ? NetworkImage(profile.fotoPerfilUrl!)
+                                  : null) as ImageProvider<Object>?,
+                          child: (_newPhotoFile == null) &&
+                                  (profile.fotoPerfilUrl == null || profile.fotoPerfilUrl!.isEmpty)
                               ? Text(
-                                  profile.nombres[0].toUpperCase(),
+                                  profile.nombres.isNotEmpty
+                                      ? profile.nombres[0].toUpperCase()
+                                      : '?',
                                   style: const TextStyle(
                                     fontSize: 40,
+                                    fontWeight: FontWeight.w900,
                                     color: AppColors.primaryRed,
                                   ),
                                 )
@@ -147,118 +220,129 @@ class _EmployeeProfileViewState extends ConsumerState<EmployeeProfileView> {
                               backgroundColor: AppColors.primaryRed,
                               radius: 18,
                               child: IconButton(
-                                icon: const Icon(Icons.camera_alt,
-                                    size: 18, color: Colors.white),
-                                onPressed: () {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text('Función de subir foto próximamente'),
-                                    ),
-                                  );
-                                },
+                                icon: const Icon(
+                                  Icons.camera_alt,
+                                  size: 18,
+                                  color: Colors.white,
+                                ),
+                                onPressed: _isSaving ? null : _pickProfilePhoto,
                               ),
                             ),
                           ),
                       ],
                     ),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 14),
                   Text(
                     '${profile.nombres} ${profile.apellidos}',
                     style: const TextStyle(
                       fontSize: 22,
-                      fontWeight: FontWeight.bold,
+                      fontWeight: FontWeight.w900,
                       color: AppColors.neutral900,
                     ),
                   ),
+                  const SizedBox(height: 4),
                   Text(
                     profile.cargo ?? 'Empleado',
-                    style: const TextStyle(
-                      fontSize: 16,
-                      color: AppColors.neutral600,
-                    ),
+                    style: const TextStyle(color: AppColors.neutral600),
                   ),
-                  const SizedBox(height: 32),
-
-                  // Información Personal Editable
+                  const SizedBox(height: 20),
                   SectionCard(
-                    title: 'Información Personal',
+                    title: 'Datos',
                     child: Column(
                       children: [
-                        _buildReadOnlyField(
-                          'Cédula',
-                          profile.cedula ?? 'No registrada',
-                          Icons.badge_outlined,
+                        _readOnlyRow(
+                          label: 'Cédula',
+                          value: profile.cedula ?? 'No registrada',
+                          icon: Icons.badge_outlined,
                         ),
-                        const Divider(),
-                        _buildEditableField(
-                          controller: _phoneController,
+                        const Divider(height: 24),
+                        _editableRow(
                           label: 'Teléfono',
                           icon: Icons.phone_outlined,
                           enabled: _isEditing,
-                          validator: (v) {
-                            if (v == null || v.isEmpty) return 'Requerido';
-                            if (v.length < 7) return 'Teléfono inválido';
-                            return null;
-                          },
+                          child: TextFormField(
+                            controller: _phoneController,
+                            enabled: _isEditing && !_isSaving,
+                            keyboardType: TextInputType.phone,
+                            decoration: const InputDecoration(
+                              hintText: 'Opcional',
+                              border: InputBorder.none,
+                            ),
+                            validator: (v) {
+                              final value = v?.trim() ?? '';
+                              if (value.isEmpty) return null;
+                              if (value.length < 7) return 'Teléfono inválido';
+                              return null;
+                            },
+                          ),
                         ),
-                        const Divider(),
-                        _buildReadOnlyField(
-                          'Email',
-                          Supabase.instance.client.auth.currentUser?.email ?? '',
-                          Icons.email_outlined,
+                        const Divider(height: 24),
+                        _readOnlyRow(
+                          label: 'Email',
+                          value: Supabase.instance.client.auth.currentUser?.email ?? '',
+                          icon: Icons.email_outlined,
+                        ),
+                        const Divider(height: 24),
+                        _readOnlyRow(
+                          label: 'Sucursal',
+                          value: branchName ?? (profile.sucursalId ?? 'No asignada'),
+                          icon: Icons.store_mall_directory_outlined,
+                        ),
+                        const Divider(height: 24),
+                        _readOnlyRow(
+                          label: 'Organización',
+                          value: profile.organizacionId ?? 'No asignada',
+                          icon: Icons.apartment_outlined,
                         ),
                       ],
                     ),
                   ),
-
-                  const SizedBox(height: 24),
-
+                  const SizedBox(height: 16),
                   if (_isEditing)
                     SizedBox(
                       width: double.infinity,
                       height: 50,
                       child: ElevatedButton(
-                        onPressed: _isLoading ? null : _saveChanges,
+                        onPressed: _isSaving ? null : _saveChanges,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.primaryRed,
+                          foregroundColor: Colors.white,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
                         ),
-                        child: _isLoading
-                            ? const CircularProgressIndicator(color: Colors.white)
+                        child: _isSaving
+                            ? const SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              )
                             : const Text(
-                                'Guardar Cambios',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
-                                ),
+                                'Guardar cambios',
+                                style: TextStyle(fontWeight: FontWeight.w800),
                               ),
                       ),
-                    ),
-
-                  if (!_isEditing) ...[
-                    const SizedBox(height: 24),
+                    )
+                  else
                     SizedBox(
                       width: double.infinity,
                       child: OutlinedButton(
-                        onPressed: () async {
-                           await Supabase.instance.client.auth.signOut();
-                          if (context.mounted) {
-                            Navigator.of(context).pushReplacementNamed(AppRoutes.login);
-                          }
-                        },
+                        onPressed: _signOut,
                         style: OutlinedButton.styleFrom(
                           foregroundColor: AppColors.errorRed,
                           side: const BorderSide(color: AppColors.errorRed),
-                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
                         ),
-                        child: const Text('Cerrar Sesión'),
+                        child: const Text('Cerrar sesión'),
                       ),
                     ),
-                  ],
+                  const SizedBox(height: 10),
+                  if (_isEditing)
+                    const Text(
+                      'Solo puedes actualizar tu teléfono y foto de perfil.',
+                      style: TextStyle(color: AppColors.neutral600),
+                    ),
                 ],
               ),
             ),
@@ -268,62 +352,62 @@ class _EmployeeProfileViewState extends ConsumerState<EmployeeProfileView> {
     );
   }
 
-  Widget _buildReadOnlyField(String label, String value, IconData icon) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 12),
-      child: Row(
-        children: [
-          Icon(icon, color: AppColors.neutral500, size: 22),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: AppColors.neutral500,
-                  ),
+  Widget _readOnlyRow({
+    required String label,
+    required String value,
+    required IconData icon,
+  }) {
+    return Row(
+      children: [
+        Icon(icon, color: AppColors.neutral600),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.neutral700,
                 ),
-                Text(
-                  value,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    color: AppColors.neutral900,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
-            ),
+              ),
+              const SizedBox(height: 2),
+              Text(value, style: const TextStyle(color: AppColors.neutral900)),
+            ],
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
-  Widget _buildEditableField({
-    required TextEditingController controller,
+  Widget _editableRow({
     required String label,
     required IconData icon,
-    bool enabled = true,
-    String? Function(String?)? validator,
+    required bool enabled,
+    required Widget child,
   }) {
-    if (!enabled) {
-      return _buildReadOnlyField(label, controller.text, icon);
-    }
-
-    return TextFormField(
-      controller: controller,
-      decoration: InputDecoration(
-        labelText: label,
-        prefixIcon: Icon(icon, color: AppColors.neutral500),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, color: enabled ? AppColors.primaryRed : AppColors.neutral600),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.neutral700,
+                ),
+              ),
+              child,
+            ],
+          ),
         ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-      ),
-      validator: validator,
+      ],
     );
   }
 }

@@ -5,7 +5,7 @@ import '../models/notificacion.dart';
 import '../models/auditoria_log.dart';
 import '../models/enums.dart';
 import 'supabase_client.dart';
-import 'package:postgrest/postgrest.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class ComplianceService {
   ComplianceService._();
@@ -86,7 +86,8 @@ class ComplianceService {
           .eq('id', requestId)
           .select('id');
 
-      if (result is List && result.isEmpty) {
+      final rows = List<Map<String, dynamic>>.from(result as List);
+      if (rows.isEmpty) {
         throw Exception(
           'No se pudo resolver la solicitud. Verifica permisos o si aún está disponible.',
         );

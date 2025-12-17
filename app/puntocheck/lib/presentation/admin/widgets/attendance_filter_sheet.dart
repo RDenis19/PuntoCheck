@@ -1,51 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:puntocheck/presentation/admin/widgets/branch_selector.dart';
 import 'package:puntocheck/presentation/admin/widgets/employee_selector.dart';
+import 'package:puntocheck/presentation/shared/models/attendance_filters.dart';
 import 'package:puntocheck/utils/theme/app_colors.dart';
-
-/// Modelo de filtros de asistencia
-class AttendanceFilters {
-  final DateTime? startDate;
-  final DateTime? endDate;
-  final String? employeeId;
-  final String? branchId;
-  final List<String>? types; // entrada, salida, inicio_break, fin_break
-  final bool? insideGeofence; // true, false, null = todos
-
-  const AttendanceFilters({
-    this.startDate,
-    this.endDate,
-    this.employeeId,
-    this.branchId,
-    this.types,
-    this.insideGeofence,
-  });
-
-  AttendanceFilters copyWith({
-    DateTime? startDate,
-    DateTime? endDate,
-    String? employeeId,
-    String? branchId,
-    List<String>? types,
-    bool? insideGeofence,
-  }) {
-    return AttendanceFilters(
-      startDate: startDate ?? this.startDate,
-      endDate: endDate ?? this.endDate,
-      employeeId: employeeId ?? this.employeeId,
-      branchId: branchId ?? this.branchId,
-      types: types ?? this.types,
-      insideGeofence: insideGeofence ?? this.insideGeofence,
-    );
-  }
-
-  bool get hasActiveFilters {
-    return employeeId != null ||
-        branchId != null ||
-        (types != null && types!.isNotEmpty) ||
-        insideGeofence != null;
-  }
-}
 
 /// Bottom sheet para filtros avanzados de asistencia
 class AttendanceFilterSheet extends StatefulWidget {
@@ -283,7 +240,8 @@ class _AttendanceFilterSheetState extends State<AttendanceFilterSheet> {
                           child: _GeofenceOption(
                             label: 'Fuera',
                             isSelected: _insideGeofence == false,
-                            onTap: () => setState(() => _insideGeofence = false),
+                            onTap: () =>
+                                setState(() => _insideGeofence = false),
                           ),
                         ),
                       ],
@@ -391,17 +349,16 @@ class _DateField extends StatelessWidget {
           children: [
             Text(
               label,
-              style: const TextStyle(
-                fontSize: 12,
-                color: AppColors.neutral600,
-              ),
+              style: const TextStyle(fontSize: 12, color: AppColors.neutral600),
             ),
             const SizedBox(height: 4),
             Text(
               date != null ? _formatDate(date!) : 'Seleccionar',
               style: TextStyle(
                 fontWeight: date != null ? FontWeight.w700 : FontWeight.w500,
-                color: date != null ? AppColors.neutral900 : AppColors.neutral500,
+                color: date != null
+                    ? AppColors.neutral900
+                    : AppColors.neutral500,
               ),
             ),
           ],

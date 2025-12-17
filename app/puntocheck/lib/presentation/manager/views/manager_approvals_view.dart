@@ -1,17 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:puntocheck/models/enums.dart';
+import 'package:puntocheck/models/solicitudes_permisos.dart';
 import 'package:puntocheck/presentation/manager/widgets/manager_permission_card.dart';
 import 'package:puntocheck/presentation/shared/widgets/empty_state.dart';
 import 'package:puntocheck/providers/manager_providers.dart';
 import 'package:puntocheck/utils/theme/app_colors.dart';
 
-/// Vista de aprobaciones de permisos del equipo del Manager (Fase 3).
-/// 
-/// Permite al manager:
-/// - Ver permisos de su equipo (pendientes o todos)
-/// - Aprobar permisos pendientes
-/// - Rechazar permisos pendientes con comentario
+/// Vista para revisar y resolver solicitudes de permisos del equipo del Manager.
 class ManagerApprovalsView extends ConsumerStatefulWidget {
   const ManagerApprovalsView({super.key});
 
@@ -25,12 +21,13 @@ class _ManagerApprovalsViewState extends ConsumerState<ManagerApprovalsView> {
 
   @override
   Widget build(BuildContext context) {
-    final permissionsAsync =
-        ref.watch(managerTeamPermissionsProvider(_showOnlyPending));
+    final permissionsAsync = ref.watch(
+      managerTeamPermissionsProvider(_showOnlyPending),
+    );
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Aprobar Permisos'),
+        title: const Text('Permisos'),
         backgroundColor: Colors.white,
         foregroundColor: AppColors.neutral900,
         elevation: 0.5,
@@ -38,16 +35,13 @@ class _ManagerApprovalsViewState extends ConsumerState<ManagerApprovalsView> {
           IconButton(
             icon: const Icon(Icons.refresh_rounded),
             tooltip: 'Actualizar',
-            onPressed: () {
-              ref.invalidate(managerTeamPermissionsProvider);
-            },
+            onPressed: () => ref.invalidate(managerTeamPermissionsProvider),
           ),
         ],
       ),
       body: SafeArea(
         child: Column(
           children: [
-            // Segmented control: Pendientes / Todos
             Container(
               padding: const EdgeInsets.all(16),
               color: Colors.white,
@@ -71,13 +65,10 @@ class _ManagerApprovalsViewState extends ConsumerState<ManagerApprovalsView> {
                 ],
               ),
             ),
-
-            // Lista de permisos
             Expanded(
               child: RefreshIndicator(
-                onRefresh: () async {
-                  ref.invalidate(managerTeamPermissionsProvider);
-                },
+                onRefresh: () async =>
+                    ref.invalidate(managerTeamPermissionsProvider),
                 color: AppColors.primaryRed,
                 child: permissionsAsync.when(
                   data: (permissions) {
@@ -85,10 +76,10 @@ class _ManagerApprovalsViewState extends ConsumerState<ManagerApprovalsView> {
                       return EmptyState(
                         icon: Icons.assignment_turned_in_outlined,
                         title: _showOnlyPending
-                            ? 'Sin permisos pendientes'
+                            ? 'Sin pendientes'
                             : 'Sin permisos',
                         message: _showOnlyPending
-                            ? 'No hay solicitudes de permisos pendientes por aprobar'
+                            ? 'No hay solicitudes pendientes por revisar'
                             : 'No hay solicitudes de permisos del equipo',
                       );
                     }
@@ -98,22 +89,21 @@ class _ManagerApprovalsViewState extends ConsumerState<ManagerApprovalsView> {
                       itemCount: permissions.length,
                       itemBuilder: (context, index) {
                         final permission = permissions[index];
-                        final employeeProfile = ref
-                            .watch(managerPersonProvider(permission.solicitanteId))
-                            .valueOrNull;
-
-                        final employeeName = employeeProfile != null
-                            ? '${employeeProfile.nombres} ${employeeProfile.apellidos}'
-                            : 'Cargando...';
+                        final isPending =
+                            permission.estado == EstadoAprobacion.pendiente;
+                        final isCritical = _isCritical(permission);
 
                         return ManagerPermissionCard(
                           permission: permission,
-                          employeeName: employeeName,
-                          // onTap removido - usar navegación default del card
-                          onApprove: permission.estado == EstadoAprobacion.pendiente
-                              ? () => _handleApprove(context, permission.id)
+                          employeeName: permission.solicitanteNombreCompleto,
+                          onApprove: isPending
+                              ? () => _handleApproveOrEscalate(
+                                  context,
+                                  permissionId: permission.id,
+                                  isCritical: isCritical,
+                                )
                               : null,
-                          onReject: permission.estado == EstadoAprobacion.pendiente
+                          onReject: isPending
                               ? () => _handleReject(context, permission.id)
                               : null,
                         );
@@ -125,42 +115,11 @@ class _ManagerApprovalsViewState extends ConsumerState<ManagerApprovalsView> {
                       color: AppColors.primaryRed,
                     ),
                   ),
-                  error: (error, _) => Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(24),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(
-                            Icons.error_outline,
-                            size: 48,
-                            color: AppColors.errorRed,
-                          ),
-                          const SizedBox(height: 16),
-                          const Text(
-                            'Error cargando permisos',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            '$error',
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(color: AppColors.neutral700),
-                          ),
-                          const SizedBox(height: 16),
-                          OutlinedButton.icon(
-                            onPressed: () {
-                              ref.invalidate(managerTeamPermissionsProvider);
-                            },
-                            icon: const Icon(Icons.refresh),
-                            label: const Text('Reintentar'),
-                          ),
-                        ],
-                      ),
-                    ),
+                  error: (error, _) => _ErrorState(
+                    title: 'Error cargando permisos',
+                    message: '$error',
+                    onRetry: () =>
+                        ref.invalidate(managerTeamPermissionsProvider),
                   ),
                 ),
               ),
@@ -171,16 +130,32 @@ class _ManagerApprovalsViewState extends ConsumerState<ManagerApprovalsView> {
     );
   }
 
-  Future<void> _handleApprove(BuildContext context, String requestId) async {
+  bool _isCritical(SolicitudesPermisos permission) {
+    // Regla simple (no rompe nada): permisos largos o de alto impacto.
+    // En vez de aprobar "final", el manager pre-aprueba (aprobado_manager)
+    // para que el Org Admin haga la aprobación final (aprobado_rrhh).
+    final dias = permission.diasTotales;
+    final tipo = permission.tipo;
+    return dias >= 3 ||
+        tipo == TipoPermiso.vacaciones ||
+        tipo == TipoPermiso.maternidadPaternidad;
+  }
+
+  Future<void> _handleApproveOrEscalate(
+    BuildContext context, {
+    required String permissionId,
+    required bool isCritical,
+  }) async {
     final controller = ref.read(managerPermissionControllerProvider.notifier);
 
-    // Mostrar diálogo de confirmación
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => _ApprovalDialog(
-        title: '¿Aprobar permiso?',
-        message: '¿EstásSeguro que deseas aprobar esta solicitud de permiso?',
-        confirmLabel: 'Aprobar',
+        title: isCritical ? '¿Escalar a Org Admin?' : '¿Aprobar permiso?',
+        message: isCritical
+            ? 'Esta solicitud parece crítica (por duración o tipo). Se marcará como aprobada por Manager para que el Org Admin haga la aprobación final.'
+            : '¿Estás seguro que deseas aprobar esta solicitud?',
+        confirmLabel: isCritical ? 'Escalar' : 'Aprobar',
         confirmColor: AppColors.successGreen,
         onConfirm: () => Navigator.pop(context, true),
       ),
@@ -190,81 +165,118 @@ class _ManagerApprovalsViewState extends ConsumerState<ManagerApprovalsView> {
 
     try {
       await controller.approve(
-        requestId: requestId,
-        comment: 'Aprobado por el manager',
+        requestId: permissionId,
+        comment: isCritical
+            ? 'Escalado por el manager: requiere aprobación final del Org Admin'
+            : 'Aprobado por el manager',
       );
 
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Permiso aprobado exitosamente'),
-            backgroundColor: AppColors.successGreen,
-            behavior: SnackBarBehavior.floating,
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            isCritical ? 'Solicitud escalada al Org Admin' : 'Permiso aprobado',
           ),
-        );
-      }
-
-      // Invalidar provider para refrescar lista
+          backgroundColor: AppColors.successGreen,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
       ref.invalidate(managerTeamPermissionsProvider);
     } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error al aprobar: $e'),
-            backgroundColor: AppColors.errorRed,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      }
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: $e'),
+          backgroundColor: AppColors.errorRed,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
     }
   }
 
   Future<void> _handleReject(BuildContext context, String requestId) async {
     final controller = ref.read(managerPermissionControllerProvider.notifier);
 
-    // Mostrar diálogo para ingresar motivo de rechazo
     final comment = await showDialog<String>(
       context: context,
-      builder: (context) => _RejectDialog(),
+      builder: (context) => const _RejectDialog(),
     );
 
-    if (comment == null || comment.trim().isEmpty) return;
+    final trimmed = comment?.trim();
+    if (trimmed == null || trimmed.isEmpty) return;
 
     try {
-      await controller.reject(
-        requestId: requestId,
-        comment: comment,
+      await controller.reject(requestId: requestId, comment: trimmed);
+
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Permiso rechazado'),
+          backgroundColor: AppColors.warningOrange,
+          behavior: SnackBarBehavior.floating,
+        ),
       );
-
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Permiso rechazado'),
-            backgroundColor: AppColors.warningOrange,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      }
-
-      // Invalidar provider para refrescar lista
       ref.invalidate(managerTeamPermissionsProvider);
     } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error al rechazar: $e'),
-            backgroundColor: AppColors.errorRed,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      }
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: $e'),
+          backgroundColor: AppColors.errorRed,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
     }
   }
 }
 
-// ============================================================================
-// Widgets auxiliares
-// ============================================================================
+class _ErrorState extends StatelessWidget {
+  final String title;
+  final String message;
+  final VoidCallback onRetry;
+
+  const _ErrorState({
+    required this.title,
+    required this.message,
+    required this.onRetry,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              Icons.error_outline,
+              size: 48,
+              color: AppColors.errorRed,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              title,
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: AppColors.neutral700),
+            ),
+            const SizedBox(height: 16),
+            OutlinedButton.icon(
+              onPressed: onRetry,
+              icon: const Icon(Icons.refresh),
+              label: const Text('Reintentar'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
 
 class _TabButton extends StatelessWidget {
   final String label;
@@ -284,9 +296,7 @@ class _TabButton extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 12),
         decoration: BoxDecoration(
-          color: isSelected
-              ? AppColors.primaryRed
-              : Colors.white,
+          color: isSelected ? AppColors.primaryRed : Colors.white,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: isSelected ? AppColors.primaryRed : AppColors.neutral300,
@@ -335,10 +345,7 @@ class _ApprovalDialog extends StatelessWidget {
   Widget build(BuildContext context) {
     return AlertDialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      title: Text(
-        title,
-        style: const TextStyle(fontWeight: FontWeight.w800),
-      ),
+      title: Text(title, style: const TextStyle(fontWeight: FontWeight.w800)),
       content: Text(message),
       actions: [
         TextButton(
@@ -359,6 +366,8 @@ class _ApprovalDialog extends StatelessWidget {
 }
 
 class _RejectDialog extends StatefulWidget {
+  const _RejectDialog();
+
   @override
   State<_RejectDialog> createState() => _RejectDialogState();
 }
@@ -404,9 +413,7 @@ class _RejectDialogState extends State<_RejectDialog> {
           child: const Text('Cancelar'),
         ),
         ElevatedButton(
-          onPressed: () {
-            Navigator.pop(context, _controller.text);
-          },
+          onPressed: () => Navigator.pop(context, _controller.text),
           style: ElevatedButton.styleFrom(
             backgroundColor: AppColors.errorRed,
             foregroundColor: Colors.white,

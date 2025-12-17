@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:puntocheck/providers/app_providers.dart';
 import 'package:puntocheck/presentation/login/views/device_setup_view.dart';
 import 'package:puntocheck/presentation/shared/widgets/primary_button.dart';
 import 'package:puntocheck/presentation/shared/widgets/text_field_icon.dart';
+import 'package:puntocheck/routes/app_router.dart';
 import 'package:puntocheck/utils/device_identity.dart';
 import 'package:puntocheck/utils/theme/app_colors.dart';
-import 'package:go_router/go_router.dart';
-import 'package:puntocheck/routes/app_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class LoginView extends ConsumerStatefulWidget {
@@ -36,7 +36,6 @@ class _LoginViewState extends ConsumerState<LoginView> {
     setState(() => _loadingDeviceId = true);
     try {
       if (!mounted) return;
-      // Inicializa/garantiza que exista un Device ID antes de abrir la pantalla.
       await getDeviceIdentity();
       if (!mounted) return;
       await Navigator.of(
@@ -52,30 +51,48 @@ class _LoginViewState extends ConsumerState<LoginView> {
     final password = _passwordController.text;
 
     if (email.isEmpty || password.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Ingresa email y contrasena')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Ingresa email y contraseña')));
       return;
     }
 
-    try {
-      await ref.read(authControllerProvider.notifier).signIn(email, password);
-    } catch (e, st) {
-      // ignore: avoid_print
-      print('LOGIN signIn error: $e\n$st');
-    }
-
+    await ref.read(authControllerProvider.notifier).signIn(email, password);
     if (!mounted) return;
 
     final state = ref.read(authControllerProvider);
     if (state.hasError) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(state.error.toString())));
+      final message = _friendlyErrorMessage(state.error);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message)),
+      );
       return;
     }
 
     await _redirectByRole();
+  }
+
+  String _friendlyErrorMessage(Object? error) {
+    if (error == null) return 'Ocurrió un error. Intenta nuevamente.';
+
+    final raw = error.toString();
+    final lower = raw.toLowerCase();
+
+    if (lower.contains('failed host lookup') ||
+        lower.contains('no address associated with hostname') ||
+        lower.contains('dns')) {
+      return 'No se pudo conectar (DNS). Revisa tu Internet y vuelve a intentar.';
+    }
+
+    if (lower.contains('socketexception') ||
+        lower.contains('clientexception') ||
+        lower.contains('timed out') ||
+        lower.contains('network is unreachable')) {
+      return 'No se pudo conectar a Internet. Revisa tu conexión y vuelve a intentar.';
+    }
+
+    if (raw.startsWith('Exception: ')) return raw.substring('Exception: '.length);
+    return raw;
   }
 
   Future<void> _redirectByRole() async {
@@ -86,9 +103,7 @@ class _LoginViewState extends ConsumerState<LoginView> {
       final role = profile?.rol;
       if (role == null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('No se encontrケ un rol para este usuario'),
-          ),
+          const SnackBar(content: Text('No se encontró un rol para este usuario')),
         );
         context.go(AppRoutes.splash);
         return;
@@ -107,7 +122,6 @@ class _LoginViewState extends ConsumerState<LoginView> {
 
   @override
   Widget build(BuildContext context) {
-    // Escucha cambios de auth durante el build (uso permitido) para redirigir si ya hay sesion.
     ref.listen<AsyncValue<AuthState>>(authStateProvider, (prev, next) {
       final session = next.asData?.value.session;
       if (session != null && !_hasNavigated) {
@@ -146,21 +160,21 @@ class _LoginViewState extends ConsumerState<LoginView> {
               ),
               const SizedBox(height: 8),
               const Text(
-                'Inicia sesion para continuar',
+                'Inicia sesión para continuar',
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 16, color: Colors.grey),
               ),
               const SizedBox(height: 48),
               TextFieldIcon(
                 controller: _emailController,
-                hintText: 'Correo electronico',
+                hintText: 'Correo electrónico',
                 prefixIcon: Icons.email_outlined,
                 keyboardType: TextInputType.emailAddress,
               ),
               const SizedBox(height: 16),
               TextFieldIcon(
                 controller: _passwordController,
-                hintText: 'Contrasena',
+                hintText: 'Contraseña',
                 prefixIcon: Icons.lock_outline,
                 obscure: _obscurePassword,
                 suffix: IconButton(
@@ -168,16 +182,14 @@ class _LoginViewState extends ConsumerState<LoginView> {
                     _obscurePassword ? Icons.visibility_off : Icons.visibility,
                     color: Colors.grey,
                   ),
-                  onPressed: () {
-                    setState(() {
-                      _obscurePassword = !_obscurePassword;
-                    });
-                  },
+                  onPressed: () => setState(
+                    () => _obscurePassword = !_obscurePassword,
+                  ),
                 ),
               ),
               const SizedBox(height: 24),
               PrimaryButton(
-                text: 'Iniciar Sesion',
+                text: 'Iniciar sesión',
                 isLoading: isLoading,
                 onPressed: _onLogin,
               ),
@@ -201,3 +213,4 @@ class _LoginViewState extends ConsumerState<LoginView> {
     );
   }
 }
+

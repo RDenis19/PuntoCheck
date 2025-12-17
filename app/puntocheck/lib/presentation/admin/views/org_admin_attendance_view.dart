@@ -5,6 +5,7 @@ import 'package:puntocheck/presentation/admin/widgets/attendance_filter_sheet.da
 import 'package:puntocheck/presentation/admin/widgets/attendance_record_card.dart';
 import 'package:puntocheck/presentation/admin/widgets/attendance_stats_section.dart';
 import 'package:puntocheck/presentation/admin/widgets/empty_state.dart';
+import 'package:puntocheck/presentation/shared/models/attendance_filters.dart';
 import 'package:puntocheck/providers/app_providers.dart';
 import 'package:puntocheck/utils/theme/app_colors.dart';
 
@@ -24,8 +25,11 @@ class _OrgAdminAttendanceViewState
   @override
   Widget build(BuildContext context) {
     final now = DateTime.now();
-    final startOfDay =
-        DateTime(_selectedDate.year, _selectedDate.month, _selectedDate.day);
+    final startOfDay = DateTime(
+      _selectedDate.year,
+      _selectedDate.month,
+      _selectedDate.day,
+    );
     final endOfDay = startOfDay.add(const Duration(hours: 23, minutes: 59));
 
     // Aplicar filtros
@@ -62,8 +66,10 @@ class _OrgAdminAttendanceViewState
         // Filtrar por geocerca
         if (_filters.insideGeofence != null) {
           filtered = filtered
-              .where((r) =>
-                  (r.estaDentroGeocerca ?? true) == _filters.insideGeofence)
+              .where(
+                (r) =>
+                    (r.estaDentroGeocerca ?? true) == _filters.insideGeofence,
+              )
               .toList();
         }
 
@@ -116,13 +122,15 @@ class _OrgAdminAttendanceViewState
         child: RefreshIndicator(
           onRefresh: () async {
             ref.invalidate(orgAdminAttendanceProvider);
-            await ref.read(orgAdminAttendanceProvider(
-              OrgAdminAttendanceFilter(
-                startDate: startOfDay,
-                endDate: endOfDay,
-                limit: 200,
-              ),
-            ).future);
+            await ref.read(
+              orgAdminAttendanceProvider(
+                OrgAdminAttendanceFilter(
+                  startDate: startOfDay,
+                  endDate: endOfDay,
+                  limit: 200,
+                ),
+              ).future,
+            );
           },
           child: attendanceAsync.when(
             data: (records) {
@@ -136,10 +144,10 @@ class _OrgAdminAttendanceViewState
                   subtitle: _filters.hasActiveFilters
                       ? 'No hay registros que coincidan con los filtros'
                       : _selectedDate.day == now.day &&
-                              _selectedDate.month == now.month &&
-                              _selectedDate.year == now.year
-                          ? 'No hay marcas de asistencia hoy'
-                          : 'No hay marcas de asistencia en esta fecha',
+                            _selectedDate.month == now.month &&
+                            _selectedDate.year == now.year
+                      ? 'No hay marcas de asistencia hoy'
+                      : 'No hay marcas de asistencia en esta fecha',
                   primaryLabel: _filters.hasActiveFilters
                       ? 'Limpiar filtros'
                       : 'Cambiar fecha',
@@ -220,27 +228,22 @@ class _OrgAdminAttendanceViewState
                   SliverPadding(
                     padding: const EdgeInsets.fromLTRB(16, 0, 16, 80),
                     sliver: SliverList(
-                      delegate: SliverChildBuilderDelegate(
-                        (context, index) {
-                          final record = filteredRecords[index];
-                          return AttendanceRecordCard(
-                            record: record,
-                            onTap: () {
-                              // TODO: Abrir detalle
-                            },
-                          );
-                        },
-                        childCount: filteredRecords.length,
-                      ),
+                      delegate: SliverChildBuilderDelegate((context, index) {
+                        final record = filteredRecords[index];
+                        return AttendanceRecordCard(
+                          record: record,
+                          onTap: () {
+                            // TODO: Abrir detalle
+                          },
+                        );
+                      }, childCount: filteredRecords.length),
                     ),
                   ),
                 ],
               );
             },
             loading: () => const Center(
-              child: CircularProgressIndicator(
-                color: AppColors.primaryRed,
-              ),
+              child: CircularProgressIndicator(color: AppColors.primaryRed),
             ),
             error: (error, _) => Center(
               child: Padding(
@@ -308,9 +311,7 @@ class _OrgAdminAttendanceViewState
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.light(
-              primary: AppColors.primaryRed,
-            ),
+            colorScheme: const ColorScheme.light(primary: AppColors.primaryRed),
           ),
           child: child!,
         );
@@ -365,7 +366,8 @@ class _DateSelector extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final now = DateTime.now();
-    final isToday = selectedDate.day == now.day &&
+    final isToday =
+        selectedDate.day == now.day &&
         selectedDate.month == now.month &&
         selectedDate.year == now.year;
 
@@ -464,7 +466,7 @@ class _DateSelector extends StatelessWidget {
       'Septiembre',
       'Octubre',
       'Noviembre',
-      'Diciembre'
+      'Diciembre',
     ];
     const days = [
       'Lunes',
@@ -473,7 +475,7 @@ class _DateSelector extends StatelessWidget {
       'Jueves',
       'Viernes',
       'Sábado',
-      'Domingo'
+      'Domingo',
     ];
     return '${days[date.weekday - 1]}, ${date.day} de ${months[date.month - 1]} de ${date.year}';
   }

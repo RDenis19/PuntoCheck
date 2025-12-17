@@ -4,6 +4,8 @@ class SolicitudesPermisos {
   final String id;
   final String organizacionId;
   final String solicitanteId;
+  final String? solicitanteNombres;
+  final String? solicitanteApellidos;
   final TipoPermiso tipo;
   final DateTime fechaInicio;
   final DateTime fechaFin;
@@ -21,6 +23,8 @@ class SolicitudesPermisos {
     required this.id,
     required this.organizacionId,
     required this.solicitanteId,
+    this.solicitanteNombres,
+    this.solicitanteApellidos,
     required this.tipo,
     required this.fechaInicio,
     required this.fechaFin,
@@ -35,11 +39,30 @@ class SolicitudesPermisos {
     this.actualizadoEn,
   });
 
+  String get solicitanteNombreCompleto {
+    final nombres = (solicitanteNombres ?? '').trim();
+    final apellidos = (solicitanteApellidos ?? '').trim();
+    final full = '$nombres $apellidos'.trim();
+    if (full.isNotEmpty) return full;
+    return 'ID: ${solicitanteId.substring(0, 8)}';
+  }
+
   factory SolicitudesPermisos.fromJson(Map<String, dynamic> json) {
+    String? solicitanteNombres;
+    String? solicitanteApellidos;
+    final perfil = json['solicitante'] ?? json['perfiles'];
+    if (perfil is Map) {
+      final map = Map<String, dynamic>.from(perfil);
+      solicitanteNombres = map['nombres']?.toString();
+      solicitanteApellidos = map['apellidos']?.toString();
+    }
+
     return SolicitudesPermisos(
       id: json['id'],
       organizacionId: json['organizacion_id'],
       solicitanteId: json['solicitante_id'],
+      solicitanteNombres: solicitanteNombres,
+      solicitanteApellidos: solicitanteApellidos,
       tipo: TipoPermiso.fromString(json['tipo']),
       fechaInicio: DateTime.parse(json['fecha_inicio']),
       fechaFin: DateTime.parse(json['fecha_fin']),

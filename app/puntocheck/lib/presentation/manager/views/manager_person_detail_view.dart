@@ -3,16 +3,17 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:puntocheck/models/perfiles.dart';
 import 'package:puntocheck/models/registros_asistencia.dart';
+import 'package:puntocheck/providers/core_providers.dart';
 import 'package:puntocheck/providers/manager_providers.dart';
 import 'package:puntocheck/utils/theme/app_colors.dart';
 import '../widgets/manager_assign_schedule_sheet.dart';
 
 /// Vista de detalle de empleado para Manager (solo lectura).
-/// 
+///
 /// Muestra información completa del empleado:
 /// - Datos personales
 /// - Historial de asistencia
-/// 
+///
 /// **Sin opciones de edición** (el Manager solo visualiza)
 class ManagerPersonDetailView extends ConsumerStatefulWidget {
   final String userId;
@@ -26,11 +27,104 @@ class ManagerPersonDetailView extends ConsumerStatefulWidget {
 
 class _ManagerPersonDetailViewState
     extends ConsumerState<ManagerPersonDetailView> {
+  Future<void> _editEmployeeBasics(Perfiles perfil) async {
+    final telefonoCtrl = TextEditingController(text: perfil.telefono ?? '');
+    final cargoCtrl = TextEditingController(text: perfil.cargo ?? '');
+    var saving = false;
+
+    Future<void> submit(StateSetter setModalState) async {
+      final telefono = telefonoCtrl.text.trim();
+      final cargo = cargoCtrl.text.trim();
+
+      setModalState(() => saving = true);
+      try {
+        await ref.read(staffServiceProvider).updateProfile(perfil.id, {
+          'telefono': telefono.isEmpty ? null : telefono,
+          'cargo': cargo.isEmpty ? null : cargo,
+        });
+
+        ref
+          ..invalidate(managerPersonProvider(perfil.id))
+          ..invalidate(managerTeamProvider);
+
+        if (mounted) {
+          Navigator.pop(context);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Datos actualizados'),
+              backgroundColor: AppColors.successGreen,
+            ),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('No se pudo actualizar: $e'),
+              backgroundColor: AppColors.errorRed,
+            ),
+          );
+        }
+      } finally {
+        setModalState(() => saving = false);
+      }
+    }
+
+    await showDialog<void>(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return AlertDialog(
+              title: const Text('Editar cargo y teléfono'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: telefonoCtrl,
+                    keyboardType: TextInputType.phone,
+                    decoration: const InputDecoration(labelText: 'Teléfono'),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: cargoCtrl,
+                    decoration: const InputDecoration(labelText: 'Cargo'),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: saving ? null : () => Navigator.pop(context),
+                  child: const Text('Cancelar'),
+                ),
+                ElevatedButton(
+                  onPressed: saving ? null : () => submit(setModalState),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primaryRed,
+                    foregroundColor: Colors.white,
+                  ),
+                  child: saving
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Text('Guardar'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final perfilAsync = ref.watch(managerPersonProvider(widget.userId));
-    final attendanceAsync =
-        ref.watch(managerPersonAttendanceProvider(widget.userId));
+    final attendanceAsync = ref.watch(
+      managerPersonAttendanceProvider(widget.userId),
+    );
 
     return Scaffold(
       backgroundColor: AppColors.neutral100,
@@ -40,6 +134,17 @@ class _ManagerPersonDetailViewState
         foregroundColor: AppColors.primaryRed,
         elevation: 0,
         iconTheme: const IconThemeData(color: AppColors.primaryRed),
+        actions: [
+          perfilAsync.when(
+            data: (perfil) => IconButton(
+              tooltip: 'Editar cargo/teléfono',
+              onPressed: () => _editEmployeeBasics(perfil),
+              icon: const Icon(Icons.edit_outlined),
+            ),
+            loading: () => const SizedBox.shrink(),
+            error: (_, __) => const SizedBox.shrink(),
+          ),
+        ],
       ),
       body: RefreshIndicator(
         color: AppColors.primaryRed,
@@ -55,7 +160,9 @@ class _ManagerPersonDetailViewState
           data: (perfil) => _DetailContent(
             perfil: perfil,
             attendanceAsync: attendanceAsync,
-            scheduleAsync: ref.watch(managerEmployeeActiveScheduleProvider(widget.userId)),
+            scheduleAsync: ref.watch(
+              managerEmployeeActiveScheduleProvider(widget.userId),
+            ),
           ),
           loading: () => const Center(child: CircularProgressIndicator()),
           error: (e, _) => _ErrorView(message: 'Error cargando empleado: $e'),
@@ -93,9 +200,7 @@ class _DetailContent extends StatelessWidget {
           title: 'Información Personal',
           icon: Icons.person_outline,
           initiallyExpanded: false,
-          children: [
-            _PersonalInfoContent(perfil: perfil),
-          ],
+          children: [_PersonalInfoContent(perfil: perfil)],
         ),
         const SizedBox(height: 12),
 
@@ -118,9 +223,7 @@ class _DetailContent extends StatelessWidget {
           title: 'Historial de Asistencia',
           icon: Icons.history_rounded,
           initiallyExpanded: false,
-          children: [
-             _AttendanceContent(attendanceAsync: attendanceAsync),
-          ],
+          children: [_AttendanceContent(attendanceAsync: attendanceAsync)],
         ),
       ],
     );
@@ -138,9 +241,10 @@ class _HeaderSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final initials = '${perfil.nombres.isNotEmpty ? perfil.nombres[0] : ''}'
-            '${perfil.apellidos.isNotEmpty ? perfil.apellidos[0] : ''}'
-        .toUpperCase();
+    final initials =
+        '${perfil.nombres.isNotEmpty ? perfil.nombres[0] : ''}'
+                '${perfil.apellidos.isNotEmpty ? perfil.apellidos[0] : ''}'
+            .toUpperCase();
     final active = perfil.activo != false;
 
     return Container(
@@ -175,7 +279,8 @@ class _HeaderSection extends StatelessWidget {
             child: CircleAvatar(
               radius: 42,
               backgroundColor: Colors.white,
-              child: perfil.fotoPerfilUrl != null &&
+              child:
+                  perfil.fotoPerfilUrl != null &&
                       perfil.fotoPerfilUrl!.isNotEmpty
                   ? ClipOval(
                       child: Image.network(
@@ -200,9 +305,9 @@ class _HeaderSection extends StatelessWidget {
           Text(
             perfil.nombreCompleto,
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                ),
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+            ),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 8),
@@ -387,8 +492,8 @@ class _ScheduleContent extends ConsumerWidget {
       children: [
         scheduleAsync.when(
           data: (schedule) {
-             if (schedule == null) {
-               return Container(
+            if (schedule == null) {
+              return Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   color: AppColors.neutral100,
@@ -401,67 +506,91 @@ class _ScheduleContent extends ConsumerWidget {
                     SizedBox(width: 12),
                     Expanded(
                       child: Text(
-                        'Sin horario activo asignado', 
+                        'Sin horario activo asignado',
                         style: TextStyle(color: AppColors.neutral600),
                       ),
                     ),
                   ],
                 ),
-               );
-             }
+              );
+            }
 
-             final template = schedule['plantillas_horarios'];
-             return Column(
-               children: [
-                 const Divider(),
-                 Row(
-                   children: [
-                     Container(
-                       padding: const EdgeInsets.all(10),
-                       decoration: BoxDecoration(
-                         color: AppColors.primaryRed.withValues(alpha: 0.1),
-                         borderRadius: BorderRadius.circular(12),
-                       ),
-                       child: const Icon(Icons.access_time_filled, color: AppColors.primaryRed),
-                     ),
-                     const SizedBox(width: 16),
-                     Column(
-                       crossAxisAlignment: CrossAxisAlignment.start,
-                       children: [
-                         Text(
-                           template['nombre'] ?? 'Horario Personalizado',
-                           style: const TextStyle(
-                             fontWeight: FontWeight.bold,
-                             fontSize: 16,
-                             color: AppColors.neutral900,
-                           ),
-                         ),
-                         Text(
-                           '${template['hora_entrada']} - ${template['hora_salida']}',
-                           style: const TextStyle(
-                             color: AppColors.neutral600,
-                             fontWeight: FontWeight.w500,
-                           ),
-                         ),
-                       ],
-                     )
-                   ],
-                 ),
-                 const SizedBox(height: 16),
-                 _InfoItem(
-                   icon: Icons.calendar_view_week,
-                   iconColor: AppColors.neutral600,
-                   label: 'Días Laborales',
-                   value: (template['dias_laborales'] as List?)?.join(', ') ?? 'No especificado',
-                 ),
-               ],
-             );
+            final template = Map<String, dynamic>.from(
+              schedule['plantillas_horarios'] as Map,
+            );
+            final turnos =
+                (template['turnos_jornada'] as List?)?.cast<dynamic>() ??
+                const [];
+            final dias =
+                (template['dias_laborales'] as List?)?.cast<dynamic>() ??
+                const [];
+            final tolerancia = template['tolerancia_entrada_minutos'] ?? 10;
+            return Column(
+              children: [
+                const Divider(),
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: AppColors.primaryRed.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(
+                        Icons.access_time_filled,
+                        color: AppColors.primaryRed,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          template['nombre'] ?? 'Horario Personalizado',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                            color: AppColors.neutral900,
+                          ),
+                        ),
+                        Text(
+                          _formatTurnos(turnos),
+                          style: const TextStyle(
+                            color: AppColors.neutral600,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                _InfoItem(
+                  icon: Icons.calendar_view_week,
+                  iconColor: AppColors.neutral600,
+                  label: 'Días Laborales',
+                  value: _formatDias(dias),
+                ),
+                const SizedBox(height: 8),
+                _InfoItem(
+                  icon: Icons.timer_outlined,
+                  iconColor: AppColors.neutral600,
+                  label: 'Tolerancia de entrada',
+                  value: '${tolerancia} min',
+                ),
+              ],
+            );
           },
-          loading: () => const Center(child: Padding(
-            padding: EdgeInsets.all(16.0),
-            child: CircularProgressIndicator(),
-          )),
-          error: (e, _) => Text('Error al cargar horario: $e', style: const TextStyle(color: AppColors.errorRed)),
+          loading: () => const Center(
+            child: Padding(
+              padding: EdgeInsets.all(16.0),
+              child: CircularProgressIndicator(),
+            ),
+          ),
+          error: (e, _) => Text(
+            'Error al cargar horario: $e',
+            style: const TextStyle(color: AppColors.errorRed),
+          ),
         ),
         const SizedBox(height: 16),
         SizedBox(
@@ -475,7 +604,9 @@ class _ScheduleContent extends ConsumerWidget {
                 builder: (context) => ManagerAssignScheduleSheet(
                   preselectedEmployeeId: employeeId,
                   onAssigned: () {
-                    ref.invalidate(managerEmployeeActiveScheduleProvider(employeeId));
+                    ref.invalidate(
+                      managerEmployeeActiveScheduleProvider(employeeId),
+                    );
                   },
                 ),
               );
@@ -485,12 +616,54 @@ class _ScheduleContent extends ConsumerWidget {
             style: OutlinedButton.styleFrom(
               foregroundColor: AppColors.primaryRed,
               side: const BorderSide(color: AppColors.primaryRed),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
             ),
           ),
         ),
       ],
     );
+  }
+
+  static String _formatDias(List<dynamic> dias) {
+    if (dias.isEmpty) return 'No especificado';
+    const names = ['', 'Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab', 'Dom'];
+    final mapped = dias
+        .map((e) => int.tryParse(e.toString()))
+        .whereType<int>()
+        .where((d) => d >= 1 && d <= 7)
+        .map((d) => names[d])
+        .where((s) => s.isNotEmpty)
+        .toList();
+    return mapped.isEmpty ? 'No especificado' : mapped.join(', ');
+  }
+
+  static String _formatTurnos(List<dynamic> turnos) {
+    if (turnos.isEmpty) return '--';
+    final sorted = [...turnos]
+      ..sort((a, b) {
+        final ma = (a as Map?) ?? const {};
+        final mb = (b as Map?) ?? const {};
+        final oa = int.tryParse(ma['orden']?.toString() ?? '') ?? 0;
+        final ob = int.tryParse(mb['orden']?.toString() ?? '') ?? 0;
+        return oa.compareTo(ob);
+      });
+
+    return sorted
+        .map((t) {
+          final m = (t as Map?) ?? const {};
+          final start = _formatTime(m['hora_inicio']?.toString());
+          final end = _formatTime(m['hora_fin']?.toString());
+          final nextDay = (m['es_dia_siguiente'] == true) ? ' (+1)' : '';
+          return '$start-$end$nextDay';
+        })
+        .join(', ');
+  }
+
+  static String _formatTime(String? time) {
+    if (time == null || time.isEmpty) return '--';
+    return time.length >= 5 ? time.substring(0, 5) : time;
   }
 }
 
@@ -515,16 +688,18 @@ class _AttendanceContent extends StatelessWidget {
         }
         return Column(
           children: [
-             const Divider(),
-             const SizedBox(height: 8),
-             ...logs.map((log) => _AttendanceCard(log: log)),
+            const Divider(),
+            const SizedBox(height: 8),
+            ...logs.map((log) => _AttendanceCard(log: log)),
           ],
         );
       },
-      loading: () => const Center(child: Padding(
-        padding: EdgeInsets.all(32),
-        child: CircularProgressIndicator(),
-      )),
+      loading: () => const Center(
+        child: Padding(
+          padding: EdgeInsets.all(32),
+          child: CircularProgressIndicator(),
+        ),
+      ),
       error: (e, _) => _ErrorView(message: 'Error cargando asistencia'),
     );
   }
@@ -567,17 +742,17 @@ class _InfoItem extends StatelessWidget {
               Text(
                 label,
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: AppColors.neutral600,
-                      fontWeight: FontWeight.w500,
-                    ),
+                  color: AppColors.neutral600,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
               const SizedBox(height: 4),
               Text(
                 value,
                 style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      color: AppColors.neutral900,
-                      fontWeight: FontWeight.w600,
-                    ),
+                  color: AppColors.neutral900,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ],
           ),
@@ -609,10 +784,7 @@ class _AttendanceCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: color.withValues(alpha: 0.2),
-          width: 1.5,
-        ),
+        border: Border.all(color: color.withValues(alpha: 0.2), width: 1.5),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.04),
@@ -639,16 +811,16 @@ class _AttendanceCard extends StatelessWidget {
                 Text(
                   _labelForType(tipo),
                   style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.neutral900,
-                      ),
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.neutral900,
+                  ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   formatter.format(log.fechaHoraMarcacion.toLocal()),
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: AppColors.neutral700,
-                      ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodySmall?.copyWith(color: AppColors.neutral700),
                 ),
               ],
             ),
@@ -751,17 +923,17 @@ class _EmptyAttendance extends StatelessWidget {
           Text(
             'Sin registros de asistencia',
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.neutral900,
-                ),
+              fontWeight: FontWeight.bold,
+              color: AppColors.neutral900,
+            ),
           ),
           const SizedBox(height: 8),
           Text(
             'Este empleado aún no ha registrado\nninguna marcación',
             textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: AppColors.neutral700,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(color: AppColors.neutral700),
           ),
         ],
       ),
@@ -807,5 +979,3 @@ class _ErrorView extends StatelessWidget {
     );
   }
 }
-
-

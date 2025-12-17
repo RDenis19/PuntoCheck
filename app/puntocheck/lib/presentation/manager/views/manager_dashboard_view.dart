@@ -2,11 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:puntocheck/presentation/admin/widgets/admin_stat_card.dart';
 import 'package:puntocheck/presentation/manager/views/manager_approvals_view.dart';
+import 'package:puntocheck/presentation/manager/views/manager_branch_view.dart';
+import 'package:puntocheck/presentation/manager/views/manager_compliance_alerts_view.dart';
 import 'package:puntocheck/presentation/manager/views/manager_hours_bank_view.dart';
-import 'package:puntocheck/presentation/manager/views/manager_notifications_view.dart';
-import 'package:puntocheck/presentation/manager/views/manager_team_view.dart';
-import 'package:puntocheck/presentation/shared/widgets/empty_state.dart';
-import 'package:puntocheck/presentation/shared/widgets/section_card.dart';
 import 'package:puntocheck/providers/manager_providers.dart';
 import 'package:puntocheck/utils/theme/app_colors.dart';
 
@@ -165,7 +163,9 @@ class _ManagerDashboardViewState extends ConsumerState<ManagerDashboardView> {
                                 Container(
                                   padding: const EdgeInsets.all(8),
                                   decoration: BoxDecoration(
-                                    color: AppColors.primaryRed.withValues(alpha: 0.1),
+                                    color: AppColors.primaryRed.withValues(
+                                      alpha: 0.1,
+                                    ),
                                     borderRadius: BorderRadius.circular(8),
                                   ),
                                   child: const Icon(
@@ -176,8 +176,9 @@ class _ManagerDashboardViewState extends ConsumerState<ManagerDashboardView> {
                                 ),
                                 const SizedBox(width: 12),
                                 Expanded(
-                                      child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Text(
                                         permission.solicitanteId,
@@ -202,7 +203,9 @@ class _ManagerDashboardViewState extends ConsumerState<ManagerDashboardView> {
                                     vertical: 4,
                                   ),
                                   decoration: BoxDecoration(
-                                    color: AppColors.warningOrange.withValues(alpha: 0.1),
+                                    color: AppColors.warningOrange.withValues(
+                                      alpha: 0.1,
+                                    ),
                                     borderRadius: BorderRadius.circular(8),
                                   ),
                                   child: Text(
@@ -221,16 +224,16 @@ class _ManagerDashboardViewState extends ConsumerState<ManagerDashboardView> {
                       }),
                       const SizedBox(height: 80),
                     ] else ...[
-                       const Padding(
-                          padding: EdgeInsets.symmetric(vertical: 24),
-                          child: Center(
-                            child: Text(
-                              'No hay solicitudes recientes',
-                              style: TextStyle(color: AppColors.neutral500),
-                            ),
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 24),
+                        child: Center(
+                          child: Text(
+                            'No hay solicitudes recientes',
+                            style: TextStyle(color: AppColors.neutral500),
                           ),
                         ),
-                        const SizedBox(height: 80),
+                      ),
+                      const SizedBox(height: 80),
                     ],
                   ],
                 ),
@@ -258,6 +261,19 @@ class _ManagerDashboardViewState extends ConsumerState<ManagerDashboardView> {
                       ),
                       const SizedBox(height: 10),
                       _QuickAction(
+                        icon: Icons.store_mall_directory_outlined,
+                        label: 'Mi sucursal',
+                        onTap: () {
+                          setState(() => _showActions = false);
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => const ManagerBranchView(),
+                            ),
+                          );
+                        },
+                      ),
+                      const SizedBox(height: 10),
+                      _QuickAction(
                         icon: Icons.access_time_rounded,
                         label: 'Banco de horas',
                         onTap: () {
@@ -265,6 +281,19 @@ class _ManagerDashboardViewState extends ConsumerState<ManagerDashboardView> {
                           Navigator.of(context).push(
                             MaterialPageRoute(
                               builder: (_) => const ManagerHoursBankView(),
+                            ),
+                          );
+                        },
+                      ),
+                      const SizedBox(height: 10),
+                      _QuickAction(
+                        icon: Icons.shield_outlined,
+                        label: 'Alertas',
+                        onTap: () {
+                          setState(() => _showActions = false);
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => const ManagerComplianceAlertsView(),
                             ),
                           );
                         },
@@ -333,124 +362,6 @@ class _QuickAction extends StatelessWidget {
                 color: AppColors.neutral900,
                 fontWeight: FontWeight.w700,
               ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// Sección de acciones rápidas para el manager.
-class _QuickActionsSection extends StatelessWidget {
-  const _QuickActionsSection();
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        _QuickActionTile(
-          icon: Icons.people_outline,
-          title: 'Ver mi equipo',
-          subtitle: 'Lista completa de empleados',
-          color: AppColors.primaryRed,
-          onTap: () {
-            // El cambio de tab lo maneja el shell, o podemos navegar directo
-            // Por simplicidad, navegamos a la vista de equipo
-            Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const ManagerTeamView()),
-            );
-          },
-        ),
-        const Divider(height: 1),
-        _QuickActionTile(
-          icon: Icons.approval_outlined,
-          title: 'Permisos pendientes',
-          subtitle: 'Revisar solicitudes',
-          color: AppColors.warningOrange,
-          onTap: () {
-             Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const ManagerApprovalsView()),
-            );
-          },
-        ),
-         const Divider(height: 1),
-        _QuickActionTile(
-          icon: Icons.notifications_active_outlined,
-          title: 'Notificaciones',
-          subtitle: 'Alertas y mensajes',
-          color: AppColors.infoBlue,
-          onTap: () {
-             Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const ManagerNotificationsView()),
-            );
-          },
-        ),
-      ],
-    );
-  }
-}
-
-/// Tile para acción rápida.
-class _QuickActionTile extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final Color color;
-  final VoidCallback onTap;
-
-  const _QuickActionTile({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.color,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Icon(icon, color: color, size: 22),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.neutral900,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    subtitle,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: AppColors.neutral600,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const Icon(
-              Icons.chevron_right,
-              color: AppColors.neutral400,
-              size: 20,
             ),
           ],
         ),

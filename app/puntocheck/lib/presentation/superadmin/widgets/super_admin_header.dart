@@ -5,12 +5,14 @@ class SuperAdminHeader extends StatelessWidget {
   final String userName;
   final String roleLabel;
   final String? organizationName;
+  final Widget? trailing;
 
   const SuperAdminHeader({
     super.key,
     required this.userName,
     required this.roleLabel,
     this.organizationName,
+    this.trailing,
   });
 
   @override
@@ -90,11 +92,12 @@ class SuperAdminHeader extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 8),
-          Icon(
-            Icons.admin_panel_settings_rounded,
-            color: colorScheme.onPrimary,
-            size: 28,
-          ),
+          trailing ??
+              Icon(
+                Icons.admin_panel_settings_rounded,
+                color: colorScheme.onPrimary,
+                size: 28,
+              ),
         ],
       ),
     );

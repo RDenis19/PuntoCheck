@@ -76,4 +76,33 @@ class StorageService {
       return '';
     }
   }
+
+  /// Sube una foto de perfil y retorna una URL firmada de larga duración.
+  ///
+  /// Nota: este proyecto guarda URLs (no paths) en `perfiles.foto_perfil_url`.
+  Future<String> uploadProfilePhoto(File file, String userId) async {
+    try {
+      final size = await file.length();
+      if (size > _maxFileBytes) {
+        throw Exception('La imagen supera 5MB. Reduce calidad antes de subir.');
+      }
+
+      final fileExt = file.path.split('.').last;
+      final fileName = 'profile_${DateTime.now().millisecondsSinceEpoch}.$fileExt';
+      final path = '$userId/$fileName';
+
+      await supabase.storage.from('evidencias').upload(
+            path,
+            file,
+            fileOptions: const FileOptions(cacheControl: '3600', upsert: true),
+          );
+
+      // 365 días.
+      return await supabase.storage
+          .from('evidencias')
+          .createSignedUrl(path, 60 * 60 * 24 * 365);
+    } catch (e) {
+      throw Exception('Error subiendo foto de perfil: $e');
+    }
+  }
 }
