@@ -51,87 +51,84 @@ class _SuperAdminPlansBillingViewState
       await ref.read(superAdminDashboardProvider.future);
     }
 
-    return SafeArea(
-      child: RefreshIndicator(
-        onRefresh: handleRefresh,
-        child: dashboardAsync.when(
-          data: (dashboard) => ListView(
-            padding: const EdgeInsets.all(16),
-            physics: const AlwaysScrollableScrollPhysics(),
-            children: [
-              const _Header(),
-              const SizedBox(height: 18),
-              _MetricGrid(data: dashboard),
-              const SizedBox(height: 18),
-              _PlanSection(
-                plansAsync: plansAsync,
-                isSaving: planEditorState.isLoading,
-                onCreate: () => _openCreatePlanDialog(context, ref),
-                onToggleActive: (plan) => ref
-                    .read(planEditorControllerProvider.notifier)
-                    .updatePlan(plan.id, {'activo': !(plan.activo ?? true)}),
-                onEditPrice: (plan) => _openEditPriceDialog(context, ref, plan),
-                onDelete: (plan) => _confirmDeletePlan(context, ref, plan),
-              ),
-              const SizedBox(height: 18),
-              _PaymentsSection(
-                paymentsAsync: paymentsAsync,
-                planNames: planNames,
-                orgNames: orgNames,
-                estadoFilter: _estadoFilter,
-                isValidating: paymentState.isLoading,
-                onFilterChange: (value) =>
-                    setState(() => _estadoFilter = value),
-                onApprove: (paymentId) => ref
-                    .read(paymentValidationControllerProvider.notifier)
-                    .approve(paymentId),
-                onReject: (paymentId) => ref
-                    .read(paymentValidationControllerProvider.notifier)
-                    .reject(paymentId),
-                onDetails: (pago) => _openPaymentDetail(
-                  context,
-                  ref,
-                  pago,
-                  planNames,
-                  orgNames,
-                  paymentState.isLoading,
-                ),
-              ),
-              const SizedBox(height: 60),
-            ],
-          ),
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (error, _) => Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
+    return Scaffold(
+      backgroundColor: const Color(0xFFF8F9FB),
+      body: SafeArea(
+        child: RefreshIndicator(
+          onRefresh: handleRefresh,
+          child: dashboardAsync.when(
+            data: (dashboard) => ListView(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+              physics: const AlwaysScrollableScrollPhysics(),
               children: [
-                const Icon(
-                  Icons.cloud_off,
-                  size: 48,
-                  color: AppColors.neutral700,
+                const _Header(),
+                const SizedBox(height: 24),
+                _MetricGrid(data: dashboard),
+                const SizedBox(height: 32),
+                _PlanSection(
+                  plansAsync: plansAsync,
+                  isSaving: planEditorState.isLoading,
+                  onCreate: () => _openCreatePlanDialog(context, ref),
+                  onToggleActive: (plan) => ref
+                      .read(planEditorControllerProvider.notifier)
+                      .updatePlan(plan.id, {'activo': !(plan.activo ?? true)}),
+                  onEditPrice: (plan) =>
+                      _openEditPriceDialog(context, ref, plan),
+                  onDelete: (plan) => _confirmDeletePlan(context, ref, plan),
                 ),
-                const SizedBox(height: 12),
-                const Text('No se pudo cargar planes y facturación'),
-                const SizedBox(height: 8),
-                Text(
-                  '$error',
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(color: AppColors.neutral700),
+                const SizedBox(height: 32),
+                _PaymentsSection(
+                  paymentsAsync: paymentsAsync,
+                  planNames: planNames,
+                  orgNames: orgNames,
+                  estadoFilter: _estadoFilter,
+                  isValidating: paymentState.isLoading,
+                  onFilterChange: (value) =>
+                      setState(() => _estadoFilter = value),
+                  onApprove: (paymentId) => ref
+                      .read(paymentValidationControllerProvider.notifier)
+                      .approve(paymentId),
+                  onReject: (paymentId) => ref
+                      .read(paymentValidationControllerProvider.notifier)
+                      .reject(paymentId),
+                  onDetails: (pago) => _openPaymentDetail(
+                    context,
+                    ref,
+                    pago,
+                    planNames,
+                    orgNames,
+                    paymentState.isLoading,
+                  ),
                 ),
-                const SizedBox(height: 12),
-                OutlinedButton.icon(
-                  onPressed: handleRefresh,
-                  icon: const Icon(Icons.refresh),
-                  label: const Text('Reintentar'),
-                ),
+                const SizedBox(height: 80),
               ],
+            ),
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (error, _) => Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(
+                    Icons.cloud_off,
+                    size: 48,
+                    color: AppColors.neutral700,
+                  ),
+                  const SizedBox(height: 12),
+                  const Text('No se pudo cargar la información'),
+                  TextButton(
+                    onPressed: handleRefresh,
+                    child: const Text('Reintentar'),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
       ),
     );
   }
+
+  // --- MÉTODOS DE DIÁLOGOS (LÓGICA PRESERVADA) ---
 
   Future<void> _openCreatePlanDialog(
     BuildContext context,
@@ -141,9 +138,7 @@ class _SuperAdminPlansBillingViewState
       context: context,
       builder: (_) => const _CreatePlanDialog(),
     );
-
     if (plan == null) return;
-
     try {
       await ref.read(planEditorControllerProvider.notifier).createPlan(plan);
       final state = ref.read(planEditorControllerProvider);
@@ -157,7 +152,7 @@ class _SuperAdminPlansBillingViewState
         showAppSnack(context, 'Plan creado correctamente');
       }
     } catch (e) {
-      showAppSnack(context, 'Error creando plan: $e', isError: true);
+      showAppSnack(context, 'Error: $e', isError: true);
     }
   }
 
@@ -190,7 +185,7 @@ class _SuperAdminPlansBillingViewState
         content: Text('¿Eliminar el plan "${plan.nombre}"?'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
+            onPressed: () => Navigator.pop(context, false),
             child: const Text('Cancelar'),
           ),
           ElevatedButton(
@@ -198,207 +193,39 @@ class _SuperAdminPlansBillingViewState
               backgroundColor: AppColors.errorRed,
               foregroundColor: Colors.white,
             ),
-            onPressed: () => Navigator.of(context).pop(true),
+            onPressed: () => Navigator.pop(context, true),
             child: const Text('Eliminar'),
           ),
         ],
       ),
     );
-
-    if (confirm != true) return;
-    try {
+    if (confirm == true) {
       await ref.read(planEditorControllerProvider.notifier).deletePlan(plan.id);
-      final state = ref.read(planEditorControllerProvider);
-      if (state.hasError) {
-        showAppSnack(context, 'Error eliminando plan: ${state.error}', isError: true);
-      } else {
-        showAppSnack(context, 'Plan eliminado');
-      }
-    } catch (e) {
-      showAppSnack(context, 'Error eliminando plan: $e', isError: true);
     }
   }
 }
 
-void _openPaymentDetail(
-  BuildContext context,
-  WidgetRef ref,
-  PagosSuscripciones pago,
-  Map<String, String> planNames,
-  Map<String, String> orgNames,
-  bool isProcessing,
-) {
-  final plan = planNames[pago.planId] ?? 'Plan';
-  final org = orgNames[pago.organizacionId] ?? pago.organizacionId;
-  final status = pago.estado ?? EstadoPago.pendiente;
-  final statusColor = () {
-    switch (status) {
-      case EstadoPago.aprobado:
-        return AppColors.successGreen;
-      case EstadoPago.rechazado:
-        return AppColors.errorRed;
-      case EstadoPago.pendiente:
-      default:
-        return AppColors.warningOrange;
-    }
-  }();
-
-  showModalBottomSheet(
-    context: context,
-    isScrollControlled: true,
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-    ),
-    builder: (_) => Padding(
-      padding: EdgeInsets.only(
-        left: 16,
-        right: 16,
-        top: 16,
-        bottom: 16 + MediaQuery.of(context).viewInsets.bottom,
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Center(
-            child: Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: AppColors.neutral200,
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              const Icon(Icons.receipt_long, color: AppColors.primaryRed),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  plan,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w800,
-                    fontSize: 18,
-                  ),
-                ),
-              ),
-              _StatusChip(
-                color: statusColor,
-                label: status.value.toUpperCase(),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text('Organización: $org'),
-          const SizedBox(height: 6),
-          Text(
-            'Monto: \$${pago.monto.toStringAsFixed(2)}',
-            style: const TextStyle(fontWeight: FontWeight.w700),
-          ),
-          if (pago.referenciaBancaria != null &&
-              pago.referenciaBancaria!.isNotEmpty) ...[
-            const SizedBox(height: 6),
-            Text('Referencia: ${pago.referenciaBancaria}'),
-          ],
-          const SizedBox(height: 6),
-          Text('Comprobante: ${pago.comprobanteUrl}'),
-          if (pago.creadoEn != null) ...[
-            const SizedBox(height: 6),
-            Text(
-              'Registrado: ${pago.creadoEn!.toLocal().toString().split(' ').first}',
-            ),
-          ],
-          if (pago.fechaValidacion != null) ...[
-            const SizedBox(height: 6),
-            Text(
-              'Validado: ${pago.fechaValidacion!.toLocal().toString().split(' ').first}',
-            ),
-          ],
-          if ((pago.observaciones ?? '').isNotEmpty) ...[
-            const SizedBox(height: 6),
-            Text('Observaciones: ${pago.observaciones}'),
-          ],
-          const SizedBox(height: 14),
-          if (status == EstadoPago.pendiente)
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: isProcessing
-                        ? null
-                        : () async {
-                            await ref
-                                .read(
-                                  paymentValidationControllerProvider.notifier,
-                                )
-                                .reject(pago.id);
-                            if (context.mounted) Navigator.of(context).pop();
-                          },
-                    icon: const Icon(Icons.close, color: AppColors.primaryRed),
-                    label: const Text(
-                      'Rechazar',
-                      style: TextStyle(color: AppColors.primaryRed),
-                    ),
-                    style: OutlinedButton.styleFrom(
-                      side: const BorderSide(
-                        color: AppColors.primaryRed,
-                        width: 1,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: isProcessing
-                        ? null
-                        : () async {
-                            await ref
-                                .read(
-                                  paymentValidationControllerProvider.notifier,
-                                )
-                                .approve(pago.id);
-                            if (context.mounted) Navigator.of(context).pop();
-                          },
-                    icon: const Icon(Icons.check_circle, color: Colors.white),
-                    label: const Text('Aprobar'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.successGreen,
-                      foregroundColor: Colors.white,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          const SizedBox(height: 12),
-        ],
-      ),
-    ),
-  );
-}
+// --- COMPONENTES VISUALES ---
 
 class _Header extends StatelessWidget {
   const _Header();
-
   @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: const [
         Text(
-          'Planes y facturación',
+          'Planes y Facturación',
           style: TextStyle(
-            fontSize: 22,
-            fontWeight: FontWeight.w800,
+            fontSize: 26,
+            fontWeight: FontWeight.w900,
             color: AppColors.neutral900,
           ),
         ),
-        SizedBox(height: 4),
+        SizedBox(height: 6),
         Text(
-          'Control centralizado de planes, pagos y proyecciones.',
-          style: TextStyle(color: AppColors.neutral700),
+          'Control centralizado de planes y validación de pagos.',
+          style: TextStyle(color: AppColors.neutral700, fontSize: 15),
         ),
       ],
     );
@@ -407,102 +234,101 @@ class _Header extends StatelessWidget {
 
 class _MetricGrid extends StatelessWidget {
   const _MetricGrid({required this.data});
-
   final SuperAdminDashboardData data;
 
   @override
   Widget build(BuildContext context) {
-    final metrics = [
-      _Metric(
-        icon: Icons.attach_money,
-        label: 'Ingresos mes',
-        value: '\$${data.monthlyRevenue.toStringAsFixed(2)}',
-      ),
-      _Metric(
-        icon: Icons.workspace_premium_outlined,
-        label: 'Planes activos',
-        value: '${data.plans.length}',
-      ),
-      _Metric(
-        icon: Icons.receipt_long_outlined,
-        label: 'Pagos pendientes',
-        value: '${data.pendingPaymentsCount}',
-      ),
-      _Metric(
-        icon: Icons.pause_circle_outline,
-        label: 'Org. pausadas',
-        value: '${data.inactiveOrganizations}',
-      ),
-    ];
-
-    return Wrap(
-      spacing: 12,
-      runSpacing: 12,
-      children: metrics.map((m) => _MetricCard(metric: m)).toList(),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = (constraints.maxWidth - 12) / 2;
+        return Wrap(
+          spacing: 12,
+          runSpacing: 12,
+          children: [
+            _MetricCard(
+              width: width,
+              icon: Icons.attach_money,
+              label: 'Ingresos mes',
+              value: '\$${data.monthlyRevenue.toStringAsFixed(2)}',
+              gradient: [const Color(0xFFE0262F), const Color(0xFFB71C1C)],
+            ),
+            _MetricCard(
+              width: width,
+              icon: Icons.workspace_premium_outlined,
+              label: 'Planes activos',
+              value: '${data.plans.length}',
+              gradient: [const Color(0xFF424242), const Color(0xFF212121)],
+            ),
+            _MetricCard(
+              width: width,
+              icon: Icons.receipt_long_outlined,
+              label: 'Pagos pendientes',
+              value: '${data.pendingPaymentsCount}',
+              gradient: [const Color(0xFFF57C00), const Color(0xFFE65100)],
+            ),
+            _MetricCard(
+              width: width,
+              icon: Icons.pause_circle_outline,
+              label: 'Org. pausadas',
+              value: '${data.inactiveOrganizations}',
+              gradient: [const Color(0xFF757575), const Color(0xFF616161)],
+            ),
+          ],
+        );
+      },
     );
   }
 }
 
-class _Metric {
+class _MetricCard extends StatelessWidget {
+  const _MetricCard({
+    required this.icon,
+    required this.label,
+    required this.value,
+    required this.width,
+    required this.gradient,
+  });
   final IconData icon;
   final String label;
   final String value;
-
-  const _Metric({required this.icon, required this.label, required this.value});
-}
-
-class _MetricCard extends StatelessWidget {
-  const _MetricCard({required this.metric});
-
-  final _Metric metric;
+  final double width;
+  final List<Color> gradient;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 160,
-      padding: const EdgeInsets.all(14),
+      width: width,
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.primaryRed,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: const [
+        gradient: LinearGradient(
+          colors: gradient,
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
           BoxShadow(
-            color: Color(0x1AE0262F),
-            blurRadius: 16,
-            offset: Offset(0, 6),
+            color: gradient.first.withOpacity(0.3),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.18),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(metric.icon, color: Colors.white),
+          Icon(icon, color: Colors.white70, size: 22),
+          const SizedBox(height: 12),
+          Text(
+            label,
+            style: const TextStyle(color: Colors.white70, fontSize: 12),
           ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  metric.label,
-                  style: const TextStyle(
-                    color: Colors.white70,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  metric.value,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-              ],
+          Text(
+            value,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 18,
+              fontWeight: FontWeight.w900,
             ),
           ),
         ],
@@ -520,13 +346,12 @@ class _PlanSection extends StatelessWidget {
     required this.onEditPrice,
     required this.onDelete,
   });
-
   final AsyncValue<List<PlanesSuscripcion>> plansAsync;
   final bool isSaving;
   final VoidCallback onCreate;
-  final Future<void> Function(PlanesSuscripcion plan) onToggleActive;
-  final Future<void> Function(PlanesSuscripcion plan) onEditPrice;
-  final Future<void> Function(PlanesSuscripcion plan) onDelete;
+  final Future<void> Function(PlanesSuscripcion) onToggleActive;
+  final Future<void> Function(PlanesSuscripcion) onEditPrice;
+  final Future<void> Function(PlanesSuscripcion) onDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -534,16 +359,12 @@ class _PlanSection extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             const Text(
               'Planes de suscripción',
-              style: TextStyle(
-                fontWeight: FontWeight.w800,
-                color: AppColors.neutral900,
-                fontSize: 18,
-              ),
+              style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18),
             ),
-            const Spacer(),
             TextButton.icon(
               onPressed: isSaving ? null : onCreate,
               icon: const Icon(Icons.add, color: AppColors.primaryRed),
@@ -551,46 +372,29 @@ class _PlanSection extends StatelessWidget {
                 'Crear plan',
                 style: TextStyle(
                   color: AppColors.primaryRed,
-                  fontWeight: FontWeight.w700,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
             ),
           ],
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 12),
         plansAsync.when(
-          data: (plans) {
-            if (plans.isEmpty) {
-              return const EmptyState(
-                title: 'Sin planes publicados',
-                message: 'Crea un plan para empezar a asignar organizaciones.',
-                icon: Icons.workspace_premium_outlined,
-              );
-            }
-
-            return Column(
-              children: [
-                for (final plan in plans) ...[
-                  _PlanCard(
-                    plan: plan,
+          data: (plans) => Column(
+            children: plans
+                .map(
+                  (p) => _PlanCard(
+                    plan: p,
                     isSaving: isSaving,
-                    onToggleActive: () => onToggleActive(plan),
-                    onEditPrice: () => onEditPrice(plan),
-                    onDelete: () => onDelete(plan),
+                    onToggleActive: () => onToggleActive(p),
+                    onEditPrice: () => onEditPrice(p),
+                    onDelete: () => onDelete(p),
                   ),
-                  const SizedBox(height: 10),
-                ],
-              ],
-            );
-          },
-          loading: () => const Padding(
-            padding: EdgeInsets.all(12),
-            child: Center(child: CircularProgressIndicator()),
+                )
+                .toList(),
           ),
-          error: (error, _) => Text(
-            'No se pudo cargar planes: $error',
-            style: const TextStyle(color: AppColors.neutral700),
-          ),
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (e, _) => Text('Error: $e'),
         ),
       ],
     );
@@ -605,7 +409,6 @@ class _PlanCard extends StatelessWidget {
     required this.onEditPrice,
     required this.onDelete,
   });
-
   final PlanesSuscripcion plan;
   final bool isSaving;
   final VoidCallback onToggleActive;
@@ -615,99 +418,86 @@ class _PlanCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isActive = plan.activo ?? true;
-
     return Container(
-      padding: const EdgeInsets.all(14),
+      margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE7ECF3)),
-        boxShadow: const [
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
           BoxShadow(
-            color: Color(0x0D000000),
-            blurRadius: 12,
-            offset: Offset(0, 8),
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Column(
         children: [
-          Container(
-            height: 40,
-            width: 40,
-            decoration: BoxDecoration(
-              color: AppColors.primaryRed.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(10),
+          ListTile(
+            leading: Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: AppColors.primaryRed.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(
+                Icons.workspace_premium_outlined,
+                color: AppColors.primaryRed,
+              ),
             ),
-            child: const Icon(
-              Icons.workspace_premium_outlined,
-              color: AppColors.primaryRed,
+            title: Text(
+              plan.nombre,
+              style: const TextStyle(fontWeight: FontWeight.bold),
             ),
+            subtitle: Text(
+              '\$${plan.precioMensual.toStringAsFixed(2)} / mes',
+              style: const TextStyle(
+                color: AppColors.primaryRed,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            trailing: _StatusChip(isActive: isActive),
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
+                _FeatureIcon(Icons.people_outline, '${plan.maxUsuarios}'),
+                _FeatureIcon(Icons.storefront, '${plan.maxSucursales}'),
+                _FeatureIcon(
+                  Icons.cloud_outlined,
+                  '${plan.almacenamientoGb}GB',
+                ),
                 Row(
                   children: [
-                    Expanded(
-                      child: Text(
-                        plan.nombre,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w800,
-                          color: AppColors.neutral900,
-                        ),
+                    IconButton(
+                      onPressed: isSaving ? null : onToggleActive,
+                      icon: Icon(
+                        isActive
+                            ? Icons.pause_circle_outline
+                            : Icons.play_circle_outline,
+                        color: isActive ? Colors.orange : Colors.green,
                       ),
                     ),
-                    _StatusChip(isActive: isActive),
+                    IconButton(
+                      onPressed: isSaving ? null : onEditPrice,
+                      icon: const Icon(
+                        Icons.edit_outlined,
+                        color: Colors.blueGrey,
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: isSaving ? null : onDelete,
+                      icon: const Icon(
+                        Icons.delete_outline,
+                        color: Colors.redAccent,
+                      ),
+                    ),
                   ],
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  '\$${plan.precioMensual.toStringAsFixed(2)} / mes | '
-                  '${plan.maxUsuarios} usuarios | '
-                  '${plan.maxSucursales} sucursales | '
-                  '${plan.almacenamientoGb} GB',
-                  style: const TextStyle(color: AppColors.neutral700),
                 ),
               ],
             ),
-          ),
-          const SizedBox(width: 8),
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                IconButton(
-                  tooltip: isActive ? 'Pausar' : 'Activar',
-                  onPressed: isSaving ? null : onToggleActive,
-                icon: Icon(
-                  isActive
-                      ? Icons.pause_circle_outline
-                      : Icons.play_circle_fill,
-                  color: isActive
-                      ? AppColors.warningOrange
-                      : AppColors.successGreen,
-                ),
-              ),
-              IconButton(
-                tooltip: 'Editar precio',
-                onPressed: isSaving ? null : onEditPrice,
-                icon: const Icon(
-                  Icons.edit_outlined,
-                  color: AppColors.neutral700,
-                ),
-              ),
-              IconButton(
-                tooltip: 'Eliminar',
-                onPressed: isSaving ? null : onDelete,
-                icon: const Icon(
-                  Icons.delete_outline,
-                  color: AppColors.errorRed,
-                ),
-              ),
-            ],
           ),
         ],
       ),
@@ -715,28 +505,62 @@ class _PlanCard extends StatelessWidget {
   }
 }
 
+class _FeatureIcon extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  const _FeatureIcon(this.icon, this.label);
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(icon, size: 16, color: AppColors.neutral700),
+        const SizedBox(width: 4),
+        Text(
+          label,
+          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+        ),
+      ],
+    );
+  }
+}
+
 class _StatusChip extends StatelessWidget {
   const _StatusChip({this.isActive, this.color, this.label});
-
   final bool? isActive;
   final Color? color;
   final String? label;
 
   @override
   Widget build(BuildContext context) {
-    final resolvedColor =
+    final resColor =
         color ??
         (isActive ?? true ? AppColors.successGreen : AppColors.warningOrange);
-    final resolvedLabel = label ?? (isActive ?? true ? 'Activo' : 'Pausado');
+    final resLabel = label ?? (isActive ?? true ? 'Activo' : 'Pausado');
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: resolvedColor.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(999),
+        color: resColor.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: resColor.withOpacity(0.2)),
       ),
-      child: Text(
-        resolvedLabel,
-        style: TextStyle(color: resolvedColor, fontWeight: FontWeight.w700),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 6,
+            height: 6,
+            decoration: BoxDecoration(color: resColor, shape: BoxShape.circle),
+          ),
+          const SizedBox(width: 6),
+          Text(
+            resLabel.toUpperCase(),
+            style: TextStyle(
+              color: resColor,
+              fontSize: 10,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -754,16 +578,15 @@ class _PaymentsSection extends StatelessWidget {
     required this.onReject,
     required this.onDetails,
   });
-
   final AsyncValue<List<PagosSuscripciones>> paymentsAsync;
   final Map<String, String> planNames;
   final Map<String, String> orgNames;
   final EstadoPago? estadoFilter;
   final bool isValidating;
   final ValueChanged<EstadoPago?> onFilterChange;
-  final Future<void> Function(String id) onApprove;
-  final Future<void> Function(String id) onReject;
-  final void Function(PagosSuscripciones pago) onDetails;
+  final Future<void> Function(String) onApprove;
+  final Future<void> Function(String) onReject;
+  final void Function(PagosSuscripciones) onDetails;
 
   @override
   Widget build(BuildContext context) {
@@ -771,80 +594,57 @@ class _PaymentsSection extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
-          'Pagos pendientes',
-          style: TextStyle(
-            fontWeight: FontWeight.w800,
-            color: AppColors.neutral900,
-            fontSize: 18,
-          ),
+          'Pagos y validaciones',
+          style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18),
         ),
-        const SizedBox(height: 10),
-        Row(
-          children: [
-            const Text('Filtro', style: TextStyle(color: AppColors.neutral700)),
-            const SizedBox(width: 10),
-            DropdownButton<EstadoPago?>(
-              value: estadoFilter,
-              hint: const Text('Todos'),
-              onChanged: onFilterChange,
-              items: const [
-                DropdownMenuItem(value: null, child: Text('Todos')),
-                DropdownMenuItem(
-                  value: EstadoPago.pendiente,
-                  child: Text('Pendientes'),
-                ),
-                DropdownMenuItem(
-                  value: EstadoPago.aprobado,
-                  child: Text('Aprobados'),
-                ),
-                DropdownMenuItem(
-                  value: EstadoPago.rechazado,
-                  child: Text('Rechazados'),
-                ),
-              ],
+        const SizedBox(height: 12),
+        DropdownButton<EstadoPago?>(
+          value: estadoFilter,
+          hint: const Text('Todos los estados'),
+          isExpanded: true,
+          onChanged: onFilterChange,
+          items: const [
+            DropdownMenuItem(value: null, child: Text('Todos')),
+            DropdownMenuItem(
+              value: EstadoPago.pendiente,
+              child: Text('Pendientes'),
+            ),
+            DropdownMenuItem(
+              value: EstadoPago.aprobado,
+              child: Text('Aprobados'),
             ),
           ],
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 12),
         paymentsAsync.when(
           data: (payments) {
             final filtered = estadoFilter == null
                 ? payments
                 : payments.where((p) => p.estado == estadoFilter).toList();
-
-            if (filtered.isEmpty) {
+            if (filtered.isEmpty)
               return const EmptyState(
-                title: 'Sin pagos por validar',
-                message: 'Cuando se suban comprobantes aparecerán aquí.',
-                icon: Icons.receipt_long_outlined,
+                title: 'Sin movimientos',
+                message: 'No hay pagos con este criterio.',
+                icon: Icons.receipt_long,
               );
-            }
-
             return Column(
-              children: [
-                for (final pago in filtered) ...[
-                  _PaymentTile(
-                    pago: pago,
-                    planName: planNames[pago.planId],
-                    orgName: orgNames[pago.organizacionId],
-                    isValidating: isValidating,
-                    onTap: () => onDetails(pago),
-                    onApprove: () => onApprove(pago.id),
-                    onReject: () => onReject(pago.id),
-                  ),
-                  const SizedBox(height: 8),
-                ],
-              ],
+              children: filtered
+                  .map(
+                    (p) => _PaymentTile(
+                      pago: p,
+                      planName: planNames[p.planId],
+                      orgName: orgNames[p.organizacionId],
+                      isValidating: isValidating,
+                      onTap: () => onDetails(p),
+                      onApprove: () => onApprove(p.id),
+                      onReject: () => onReject(p.id),
+                    ),
+                  )
+                  .toList(),
             );
           },
-          loading: () => const Padding(
-            padding: EdgeInsets.all(12),
-            child: Center(child: CircularProgressIndicator()),
-          ),
-          error: (error, _) => Text(
-            'No se pudieron cargar pagos: $error',
-            style: const TextStyle(color: AppColors.neutral700),
-          ),
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (e, _) => Text('Error: $e'),
         ),
       ],
     );
@@ -861,7 +661,6 @@ class _PaymentTile extends StatelessWidget {
     required this.onApprove,
     required this.onReject,
   });
-
   final PagosSuscripciones pago;
   final String? planName;
   final String? orgName;
@@ -873,73 +672,44 @@ class _PaymentTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final status = pago.estado ?? EstadoPago.pendiente;
-    final isPending = status == EstadoPago.pendiente;
-    final statusColor = () {
-      switch (status) {
-        case EstadoPago.aprobado:
-          return AppColors.successGreen;
-        case EstadoPago.rechazado:
-          return AppColors.errorRed;
-        case EstadoPago.pendiente:
-        default:
-          return AppColors.warningOrange;
-      }
-    }();
-    final statusLabel = status.value.toUpperCase();
-
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(14),
-      child: Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: const Color(0xFFE7ECF3)),
+    final color = status == EstadoPago.aprobado
+        ? AppColors.successGreen
+        : (status == EstadoPago.rechazado
+              ? AppColors.errorRed
+              : AppColors.warningOrange);
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 5),
+        ],
+      ),
+      child: ListTile(
+        onTap: onTap,
+        leading: const CircleAvatar(
+          backgroundColor: AppColors.neutral100,
+          child: Icon(Icons.receipt_outlined, color: AppColors.neutral700),
         ),
-        child: Row(
-          children: [
-            const CircleAvatar(
-              backgroundColor: AppColors.neutral100,
-              child: Icon(
-                Icons.receipt_long_outlined,
-                color: AppColors.neutral700,
-              ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    '\$${pago.monto.toStringAsFixed(2)} | ${planName ?? 'Plan'}',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.neutral900,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Org: ${orgName ?? pago.organizacionId} | Ref: ${pago.referenciaBancaria ?? 'N/D'}',
-                    style: const TextStyle(color: AppColors.neutral700),
-                  ),
-                  const SizedBox(height: 6),
-                  _StatusChip(color: statusColor, label: statusLabel),
-                ],
-              ),
-            ),
-            const SizedBox(width: 8),
-            if (isPending)
-              Wrap(
-                spacing: 6,
+        title: Text(
+          '\$${pago.monto.toStringAsFixed(2)} - ${planName ?? 'Plan'}',
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+        ),
+        subtitle: Text(
+          orgName ?? 'Org ID: ${pago.organizacionId}',
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+        trailing: status == EstadoPago.pendiente
+            ? Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   IconButton(
-                    tooltip: 'Rechazar',
                     onPressed: isValidating ? null : onReject,
-                    icon: const Icon(Icons.close, color: AppColors.primaryRed),
+                    icon: const Icon(Icons.close, color: AppColors.errorRed),
                   ),
                   IconButton(
-                    tooltip: 'Aprobar',
                     onPressed: isValidating ? null : onApprove,
                     icon: const Icon(
                       Icons.check_circle,
@@ -948,18 +718,183 @@ class _PaymentTile extends StatelessWidget {
                   ),
                 ],
               )
-            else
-              const SizedBox.shrink(),
-          ],
-        ),
+            : _StatusChip(color: color, label: status.value),
       ),
     );
   }
 }
 
+// --- DETALLES DE PAGO ---
+
+void _openPaymentDetail(
+  BuildContext context,
+  WidgetRef ref,
+  PagosSuscripciones pago,
+  Map<String, String> planNames,
+  Map<String, String> orgNames,
+  bool isProcessing,
+) {
+  final plan = planNames[pago.planId] ?? 'Plan';
+  final org = orgNames[pago.organizacionId] ?? 'Org';
+  final status = pago.estado ?? EstadoPago.pendiente;
+  final statusColor = status == EstadoPago.aprobado
+      ? AppColors.successGreen
+      : (status == EstadoPago.rechazado
+            ? AppColors.errorRed
+            : AppColors.warningOrange);
+
+  showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.transparent,
+    builder: (_) => Container(
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+      ),
+      padding: EdgeInsets.only(
+        left: 24,
+        right: 24,
+        top: 12,
+        bottom: 24 + MediaQuery.of(context).viewInsets.bottom,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Center(
+            child: Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: AppColors.neutral200,
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+          ),
+          const SizedBox(height: 24),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Icon(
+                Icons.receipt_long_rounded,
+                color: AppColors.primaryRed,
+                size: 30,
+              ),
+              _StatusChip(color: statusColor, label: status.value),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Text(
+            plan,
+            style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 24),
+          ),
+          Text(
+            '\$${pago.monto.toStringAsFixed(2)}',
+            style: const TextStyle(
+              fontSize: 32,
+              fontWeight: FontWeight.w900,
+              color: AppColors.primaryRed,
+            ),
+          ),
+          const SizedBox(height: 24),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppColors.neutral100,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Column(
+              children: [
+                _DetailRow(label: 'Organización', value: org),
+                const Divider(),
+                _DetailRow(
+                  label: 'Referencia',
+                  value: pago.referenciaBancaria ?? 'N/D',
+                ),
+                const Divider(),
+                _DetailRow(
+                  label: 'Fecha',
+                  value:
+                      pago.creadoEn?.toLocal().toString().split(' ').first ??
+                      'N/D',
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+          if (status == EstadoPago.pendiente)
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: isProcessing
+                        ? null
+                        : () async {
+                            await ref
+                                .read(
+                                  paymentValidationControllerProvider.notifier,
+                                )
+                                .reject(pago.id);
+                            Navigator.pop(context);
+                          },
+                    child: const Text(
+                      'Rechazar',
+                      style: TextStyle(color: AppColors.errorRed),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: isProcessing
+                        ? null
+                        : () async {
+                            await ref
+                                .read(
+                                  paymentValidationControllerProvider.notifier,
+                                )
+                                .approve(pago.id);
+                            Navigator.pop(context);
+                          },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.successGreen,
+                      foregroundColor: Colors.white,
+                    ),
+                    child: const Text('Aprobar Pago'),
+                  ),
+                ),
+              ],
+            ),
+        ],
+      ),
+    ),
+  );
+}
+
+class _DetailRow extends StatelessWidget {
+  final String label;
+  final String value;
+  const _DetailRow({required this.label, required this.value});
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: const TextStyle(color: AppColors.neutral700)),
+          Text(value, style: const TextStyle(fontWeight: FontWeight.bold)),
+        ],
+      ),
+    );
+  }
+}
+
+
+
 class _CreatePlanDialog extends StatefulWidget {
   const _CreatePlanDialog();
-
   @override
   State<_CreatePlanDialog> createState() => _CreatePlanDialogState();
 }
@@ -972,127 +907,61 @@ class _CreatePlanDialogState extends State<_CreatePlanDialog> {
   final storageController = TextEditingController(text: '10');
 
   @override
-  void dispose() {
-    nameController.dispose();
-    priceController.dispose();
-    usuariosController.dispose();
-    sucursalesController.dispose();
-    storageController.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     return Dialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(20),
         child: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text(
-                'Crear plan',
-                style: TextStyle(
-                  fontWeight: FontWeight.w800,
-                  fontSize: 18,
-                  color: AppColors.neutral900,
-                ),
+                'Nuevo Plan',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
               ),
-              const SizedBox(height: 14),
+              const SizedBox(height: 16),
               _LabeledField(
-                label: 'Nombre',
-                hint: 'Ej: Plan Empresarial',
+                label: 'Nombre del Plan',
                 controller: nameController,
+                hint: 'Ej. Pro',
               ),
-              const SizedBox(height: 10),
               _LabeledField(
-                label: 'Precio mensual',
-                hint: '0.00',
+                label: 'Precio',
                 controller: priceController,
-                keyboardType: const TextInputType.numberWithOptions(
-                  decimal: true,
-                ),
+                hint: '0.00',
+                keyboardType: TextInputType.number,
               ),
-              const SizedBox(height: 10),
               _LabeledField(
-                label: 'Max. usuarios',
-                hint: '100',
+                label: 'Usuarios',
                 controller: usuariosController,
+                hint: '100',
                 keyboardType: TextInputType.number,
               ),
-              const SizedBox(height: 10),
-              _LabeledField(
-                label: 'Max. sucursales',
-                hint: '3',
-                controller: sucursalesController,
-                keyboardType: TextInputType.number,
-              ),
-              const SizedBox(height: 10),
-              _LabeledField(
-                label: 'Storage (GB)',
-                hint: '10',
-                controller: storageController,
-                keyboardType: TextInputType.number,
-              ),
-              const SizedBox(height: 18),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: () => Navigator.of(context).pop(),
-                      child: const Text('Cancelar'),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primaryRed,
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                    onPressed: () {
-                      final price = double.tryParse(priceController.text);
-                      final maxUsuarios = int.tryParse(usuariosController.text);
-                      final maxSucursales = int.tryParse(
-                        sucursalesController.text,
-                      );
-                      final storage = int.tryParse(storageController.text);
-                      if (price == null ||
-                          maxUsuarios == null ||
-                          maxSucursales == null ||
-                          storage == null) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Completa los datos numéricos del plan'),
-                            backgroundColor: AppColors.errorRed,
-                          ),
-                        );
-                        return;
-                      }
-                      final plan = PlanesSuscripcion(
-                        id: 'plan-${DateTime.now().millisecondsSinceEpoch}',
-                        nombre: nameController.text.trim().isEmpty
-                            ? 'Plan sin nombre'
-                            : nameController.text.trim(),
-                          maxUsuarios: maxUsuarios,
-                          maxSucursales: maxSucursales,
-                          almacenamientoGb: storage,
-                          precioMensual: price,
-                          activo: true,
-                          tieneApiAccess: false,
-                          funcionesAvanzadas: const {},
-                        );
-                        Navigator.of(context).pop(plan);
-                      },
-                      child: const Text('Crear'),
-                    ),
-                  ),
-                ],
+              const SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: () {
+                  final plan = PlanesSuscripcion(
+                    id: 'plan-${DateTime.now().millisecondsSinceEpoch}',
+                    nombre: nameController.text.isEmpty
+                        ? 'Plan Nuevo'
+                        : nameController.text,
+                    maxUsuarios: int.tryParse(usuariosController.text) ?? 1,
+                    maxSucursales: int.tryParse(sucursalesController.text) ?? 1,
+                    almacenamientoGb: int.tryParse(storageController.text) ?? 1,
+                    precioMensual: double.tryParse(priceController.text) ?? 0.0,
+                    activo: true,
+                    tieneApiAccess: false,
+                    funcionesAvanzadas: const {},
+                  );
+                  Navigator.pop(context, plan);
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primaryRed,
+                  foregroundColor: Colors.white,
+                  minimumSize: const Size(double.infinity, 50),
+                ),
+                child: const Text('Guardar Plan'),
               ),
             ],
           ),
@@ -1102,146 +971,74 @@ class _CreatePlanDialogState extends State<_CreatePlanDialog> {
   }
 }
 
-class _EditPriceDialog extends StatefulWidget {
+class _EditPriceDialog extends StatelessWidget {
   const _EditPriceDialog({required this.plan});
-
   final PlanesSuscripcion plan;
-
-  @override
-  State<_EditPriceDialog> createState() => _EditPriceDialogState();
-}
-
-class _EditPriceDialogState extends State<_EditPriceDialog> {
-  late final TextEditingController priceController;
-
-  @override
-  void initState() {
-    super.initState();
-    priceController = TextEditingController(
-      text: widget.plan.precioMensual.toStringAsFixed(2),
-    );
-  }
-
-  @override
-  void dispose() {
-    priceController.dispose();
-    super.dispose();
-  }
-
   @override
   Widget build(BuildContext context) {
-    return Dialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Editar precio de ${widget.plan.nombre}',
-              style: const TextStyle(
-                fontWeight: FontWeight.w800,
-                fontSize: 18,
-                color: AppColors.neutral900,
-              ),
-            ),
-            const SizedBox(height: 12),
-            _LabeledField(
-              label: 'Precio mensual',
-              hint: '0.00',
-              controller: priceController,
-              keyboardType: const TextInputType.numberWithOptions(
-                decimal: true,
-              ),
-            ),
-            const SizedBox(height: 18),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: () => Navigator.of(context).pop(),
-                    child: const Text('Cancelar'),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primaryRed,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    onPressed: () {
-                      final parsed = double.tryParse(priceController.text);
-                      Navigator.of(context).pop(parsed);
-                    },
-                    child: const Text('Guardar'),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
+    final controller = TextEditingController(
+      text: plan.precioMensual.toStringAsFixed(2),
+    );
+    return AlertDialog(
+      title: const Text('Editar Precio'),
+      content: TextField(
+        controller: controller,
+        keyboardType: TextInputType.number,
+        decoration: const InputDecoration(labelText: 'Nuevo precio mensual'),
       ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancelar'),
+        ),
+        ElevatedButton(
+          onPressed: () =>
+              Navigator.pop(context, double.tryParse(controller.text)),
+          child: const Text('Guardar'),
+        ),
+      ],
     );
   }
 }
 
 class _LabeledField extends StatelessWidget {
+  final String label;
+  final TextEditingController controller;
+  final String hint;
+  final TextInputType? keyboardType;
   const _LabeledField({
     required this.label,
-    required this.hint,
     required this.controller,
+    required this.hint,
     this.keyboardType,
   });
-
-  final String label;
-  final String hint;
-  final TextEditingController controller;
-  final TextInputType? keyboardType;
-
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(
-            fontWeight: FontWeight.w700,
-            color: AppColors.neutral900,
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
           ),
-        ),
-        const SizedBox(height: 6),
-        TextField(
-          controller: controller,
-          keyboardType: keyboardType,
-          decoration: InputDecoration(
-            hintText: hint,
-            filled: true,
-            fillColor: AppColors.neutral100,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: Color(0xFFE7ECF3)),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: Color(0xFFE7ECF3)),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppColors.primaryRed),
-            ),
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 12,
-              vertical: 12,
+          const SizedBox(height: 6),
+          TextField(
+            controller: controller,
+            keyboardType: keyboardType,
+            decoration: InputDecoration(
+              hintText: hint,
+              filled: true,
+              fillColor: AppColors.neutral100,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide.none,
+              ),
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }

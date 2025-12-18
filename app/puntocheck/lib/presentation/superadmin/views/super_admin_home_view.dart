@@ -20,38 +20,36 @@ class SuperAdminHomeView extends ConsumerWidget {
     return SafeArea(
       child: dashboardAsync.when(
         data: (data) {
-          final planNames = {for (final plan in data.plans) plan.id: plan.nombre};
+          final planNames = {
+            for (final plan in data.plans) plan.id: plan.nombre,
+          };
+
           return RefreshIndicator(
             onRefresh: () => ref.refresh(superAdminDashboardProvider.future),
             child: ListView(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.fromLTRB(16, 20, 16, 16),
               children: [
-                const _SectionHeader(),
+                const _SectionTitle('Resumen general'),
                 const SizedBox(height: 12),
                 _BillingCard(monthlyRevenue: data.monthlyRevenue),
+
+                const SizedBox(height: 20),
+                const _SectionTitle('Información de organizaciones'),
                 const SizedBox(height: 12),
-                const Text(
-                  'Informaciónn de organizaciones',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w800,
-                    fontSize: 16,
-                    color: AppColors.neutral900,
-                  ),
-                ),
-                const SizedBox(height: 10),
                 _StatusGrid(
                   total: data.totalOrganizations,
                   active: data.activeOrganizations,
                   trial: data.trialOrganizations,
                 ),
-                const SizedBox(height: 18),
+
+                const SizedBox(height: 24),
                 _RecentOrgsSection(
                   data: data,
                   planNames: planNames,
-                  onTapOrg: (orgId) => context.push(
-                    '${AppRoutes.superAdminHome}/org/$orgId',
-                  ),
+                  onTapOrg: (orgId) =>
+                      context.push('${AppRoutes.superAdminHome}/org/$orgId'),
                 ),
+
                 if (onOpenOrganizations != null) ...[
                   const SizedBox(height: 8),
                   TextButton.icon(
@@ -66,7 +64,7 @@ class SuperAdminHomeView extends ConsumerWidget {
         },
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, _) => _ErrorState(
-          message: '$error',
+          message: error.toString(),
           onRetry: () => ref.refresh(superAdminDashboardProvider),
         ),
       ),
@@ -74,31 +72,31 @@ class SuperAdminHomeView extends ConsumerWidget {
   }
 }
 
-class _SectionHeader extends StatelessWidget {
-  const _SectionHeader();
+/* -------------------------------------------------------------------------- */
+/*                               SECTION TITLE                                 */
+/* -------------------------------------------------------------------------- */
+
+class _SectionTitle extends StatelessWidget {
+  const _SectionTitle(this.text);
+
+  final String text;
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: const [
-        Text(
-          'Resumen general',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w800,
-            color: AppColors.neutral900,
-          ),
-        ),
-        SizedBox(height: 4),
-        Text(
-          'Vision rapida de organizaciones, ingresos y estados de suscripcion.',
-          style: TextStyle(color: AppColors.neutral700),
-        ),
-      ],
+    return Text(
+      text,
+      style: const TextStyle(
+        fontSize: 18,
+        fontWeight: FontWeight.w800,
+        color: AppColors.neutral900,
+      ),
     );
   }
 }
+
+/* -------------------------------------------------------------------------- */
+/*                               BILLING CARD                                  */
+/* -------------------------------------------------------------------------- */
 
 class _BillingCard extends StatelessWidget {
   const _BillingCard({required this.monthlyRevenue});
@@ -108,30 +106,34 @@ class _BillingCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: const Color(0xFFEFF3FB)),
+        borderRadius: BorderRadius.circular(20),
         boxShadow: const [
           BoxShadow(
-            color: Color(0x1A000000),
-            blurRadius: 18,
-            offset: Offset(0, 10),
+            color: Color(0x14000000),
+            blurRadius: 14,
+            offset: Offset(0, 8),
           ),
         ],
       ),
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(10),
+            height: 50,
+            width: 50,
             decoration: BoxDecoration(
               color: AppColors.primaryRed.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(16),
             ),
-            child: const Icon(Icons.attach_money, color: AppColors.primaryRed),
+            child: const Icon(
+              Icons.attach_money,
+              color: AppColors.primaryRed,
+              size: 26,
+            ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 14),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -140,15 +142,15 @@ class _BillingCard extends StatelessWidget {
                   'Ingresos del mes',
                   style: TextStyle(
                     fontWeight: FontWeight.w700,
-                    color: AppColors.neutral900,
+                    color: AppColors.neutral700,
                   ),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 6),
                 Text(
                   '\$${monthlyRevenue.toStringAsFixed(2)}',
                   style: const TextStyle(
                     fontSize: 26,
-                    fontWeight: FontWeight.w800,
+                    fontWeight: FontWeight.w900,
                     color: AppColors.neutral900,
                   ),
                 ),
@@ -158,8 +160,8 @@ class _BillingCard extends StatelessWidget {
           const Text(
             'USD',
             style: TextStyle(
-              color: AppColors.neutral700,
               fontWeight: FontWeight.w700,
+              color: AppColors.neutral600,
             ),
           ),
         ],
@@ -167,6 +169,10 @@ class _BillingCard extends StatelessWidget {
     );
   }
 }
+
+/* -------------------------------------------------------------------------- */
+/*                               STATUS GRID                                   */
+/* -------------------------------------------------------------------------- */
 
 class _StatusGrid extends StatelessWidget {
   const _StatusGrid({
@@ -181,102 +187,92 @@ class _StatusGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GridView.count(
-      crossAxisCount: 3,
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      mainAxisSpacing: 14,
-      crossAxisSpacing: 14,
-      childAspectRatio: 0.7,
-      children: [
-        _MiniCard(
-          label: 'Total',
-          value: total,
-          icon: Icons.apartment_rounded,
-        ),
-        _MiniCard(
-          label: 'Activas',
-          value: active,
-          icon: Icons.verified_outlined,
-        ),
-        _MiniCard(
-          label: 'Prueba',
-          value: trial,
-          icon: Icons.timer_outlined,
-        ),
-      ],
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final itemWidth = (constraints.maxWidth - 24) / 3;
+
+        return Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            _StatCard(
+              label: 'Total',
+              value: total,
+              color: AppColors.primaryRed,
+              icon: Icons.apartment_rounded,
+              width: itemWidth,
+            ),
+            _StatCard(
+              label: 'Activas',
+              value: active,
+              color: Colors.green,
+              icon: Icons.verified_outlined,
+              width: itemWidth,
+            ),
+            _StatCard(
+              label: 'Prueba',
+              value: trial,
+              color: Colors.orange,
+              icon: Icons.timer_outlined,
+              width: itemWidth,
+            ),
+          ],
+        );
+      },
     );
   }
 }
 
-class _MiniCard extends StatelessWidget {
-  const _MiniCard({
+class _StatCard extends StatelessWidget {
+  const _StatCard({
     required this.label,
     required this.value,
+    required this.color,
     required this.icon,
+    required this.width,
   });
 
   final String label;
   final int value;
+  final Color color;
   final IconData icon;
+  final double width;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+      width: width,
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            AppColors.primaryRed,
-            AppColors.primaryRedDark.withValues(alpha: 0.92),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x1A000000),
-            blurRadius: 12,
-            offset: Offset(0, 6),
-          ),
-        ],
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: color.withValues(alpha: 0.25)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Align(
-            alignment: Alignment.centerLeft,
-            child: Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.16),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(icon, color: Colors.white, size: 18),
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: color,
+              borderRadius: BorderRadius.circular(12),
             ),
+            child: Icon(icon, size: 18, color: Colors.white),
           ),
           const SizedBox(height: 12),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: Text(
-              value.toString(),
-              style: const TextStyle(
-                fontWeight: FontWeight.w900,
-                fontSize: 20,
-                color: Colors.white,
-              ),
+          Text(
+            value.toString(),
+            style: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.w900,
+              color: AppColors.neutral900,
             ),
           ),
           const SizedBox(height: 4),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: Text(
-              label,
-              style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.9),
-                fontWeight: FontWeight.w700,
-              ),
+          Text(
+            label,
+            style: TextStyle(
+              fontWeight: FontWeight.w700,
+              color: AppColors.neutral700,
             ),
           ),
         ],
@@ -284,6 +280,10 @@ class _MiniCard extends StatelessWidget {
     );
   }
 }
+
+/* -------------------------------------------------------------------------- */
+/*                           RECENT ORGANIZATIONS                               */
+/* -------------------------------------------------------------------------- */
 
 class _RecentOrgsSection extends StatelessWidget {
   const _RecentOrgsSection({
@@ -301,7 +301,7 @@ class _RecentOrgsSection extends StatelessWidget {
     if (data.recentOrganizations.isEmpty) {
       return const EmptyState(
         title: 'Sin organizaciones registradas',
-        message: 'Cuando existan cuentas nuevas se listaran aqui.',
+        message: 'Cuando existan cuentas nuevas se listarán aquí.',
         icon: Icons.business_outlined,
       );
     }
@@ -309,19 +309,7 @@ class _RecentOrgsSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Organizaciones recientes',
-          style: TextStyle(
-            fontWeight: FontWeight.w800,
-            color: AppColors.neutral900,
-            fontSize: 18,
-          ),
-        ),
-        const SizedBox(height: 4),
-        const Text(
-          'Ultimas empresas registradas o actualizadas en la plataforma.',
-          style: TextStyle(color: AppColors.neutral700),
-        ),
+        const _SectionTitle('Organizaciones recientes'),
         const SizedBox(height: 12),
         for (final org in data.recentOrganizations.take(3)) ...[
           OrganizationCard(
@@ -335,6 +323,10 @@ class _RecentOrgsSection extends StatelessWidget {
     );
   }
 }
+
+/* -------------------------------------------------------------------------- */
+/*                                   ERROR                                     */
+/* -------------------------------------------------------------------------- */
 
 class _ErrorState extends StatelessWidget {
   const _ErrorState({required this.message, required this.onRetry});
@@ -352,14 +344,17 @@ class _ErrorState extends StatelessWidget {
           children: [
             const Icon(Icons.cloud_off, size: 48, color: AppColors.neutral700),
             const SizedBox(height: 12),
-            const Text('No se pudo cargar el dashboard'),
+            const Text(
+              'No se pudo cargar el dashboard',
+              style: TextStyle(fontWeight: FontWeight.w700),
+            ),
             const SizedBox(height: 8),
             Text(
               message,
               textAlign: TextAlign.center,
               style: const TextStyle(color: AppColors.neutral700),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 14),
             OutlinedButton.icon(
               onPressed: onRetry,
               icon: const Icon(Icons.refresh),
@@ -371,10 +366,3 @@ class _ErrorState extends StatelessWidget {
     );
   }
 }
-
-
-
-
-
-
-

@@ -5,7 +5,6 @@ import 'package:puntocheck/presentation/shared/widgets/app_snackbar.dart';
 import 'package:puntocheck/providers/app_providers.dart';
 import 'package:puntocheck/utils/theme/app_colors.dart';
 
-/// Formulario para crear organización y asignar admin.
 class SuperAdminCreateOrgView extends ConsumerStatefulWidget {
   const SuperAdminCreateOrgView({super.key});
 
@@ -76,89 +75,165 @@ class _SuperAdminCreateOrgViewState
     }
 
     return Scaffold(
+      backgroundColor: const Color(
+        0xFFF8F9FB,
+      ), // Fondo neutro suave como en las capturas
       appBar: AppBar(
-        title: const Text('Crear organización'),
+        backgroundColor: Colors.white,
+        elevation: 0,
+        centerTitle: true,
+        title: const Text(
+          'Crear organización',
+          style: TextStyle(
+            color: AppColors.neutral900,
+            fontWeight: FontWeight.w800,
+            fontSize: 18,
+          ),
+        ),
         leading: IconButton(
-          icon: const Icon(Icons.close),
+          icon: const Icon(Icons.close, color: AppColors.neutral700),
           onPressed: () => Navigator.of(context).pop(),
         ),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Form(
-          key: _formKey,
-          child: ListView(
-            children: [
-              _LabeledField(
-                label: 'RUC',
-                controller: _rucCtrl,
-                validator: (v) => v == null || v.isEmpty ? 'Ingresa RUC' : null,
-              ),
-              const SizedBox(height: 12),
-              _LabeledField(
-                label: 'Razón social',
-                controller: _nameCtrl,
-                validator: (v) =>
-                    v == null || v.isEmpty ? 'Ingresa razón social' : null,
-              ),
-              const SizedBox(height: 12),
-              _LabeledField(
-                label: 'Logo (URL opcional)',
-                controller: _logoCtrl,
-              ),
-              const SizedBox(height: 12),
-              const Text(
-                'Plan',
-                style: TextStyle(
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.neutral900,
-                ),
-              ),
-              const SizedBox(height: 6),
-              plansAsync.when(
-                data: (plans) => DropdownButtonFormField<PlanesSuscripcion>(
-                  value: _selectedPlan,
-                  items: plans
-                      .map(
-                        (p) => DropdownMenuItem(
-                          value: p,
-                          child: Text('${p.nombre} - \$${p.precioMensual}'),
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Card contenedor para agrupar los campos
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.04),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _LabeledField(
+                        label: 'RUC',
+                        controller: _rucCtrl,
+                        hintText: 'Ej: 1790012345001',
+                        keyboardType: TextInputType.number,
+                        validator: (v) =>
+                            v == null || v.isEmpty ? 'Ingresa RUC' : null,
+                      ),
+                      const SizedBox(height: 18),
+                      _LabeledField(
+                        label: 'Razón social',
+                        controller: _nameCtrl,
+                        hintText: 'Nombre oficial de la empresa',
+                        validator: (v) => v == null || v.isEmpty
+                            ? 'Ingresa razón social'
+                            : null,
+                      ),
+                      const SizedBox(height: 18),
+                      _LabeledField(
+                        label: 'Logo (URL opcional)',
+                        controller: _logoCtrl,
+                        hintText: 'https://imagen.com/logo.png',
+                        keyboardType: TextInputType.url,
+                      ),
+                      const SizedBox(height: 18),
+                      const Text(
+                        'Plan de suscripción',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.neutral900,
+                          fontSize: 14,
                         ),
-                      )
-                      .toList(),
-                  onChanged: isSaving
-                      ? null
-                      : (p) => setState(() => _selectedPlan = p),
-                  decoration: const InputDecoration(
-                    border: OutlineInputBorder(),
-                    filled: true,
-                    fillColor: AppColors.neutral100,
+                      ),
+                      const SizedBox(height: 8),
+                      plansAsync.when(
+                        data: (plans) =>
+                            DropdownButtonFormField<PlanesSuscripcion>(
+                              value: _selectedPlan,
+                              icon: const Icon(
+                                Icons.keyboard_arrow_down,
+                                color: AppColors.neutral700,
+                              ),
+                              items: plans
+                                  .map(
+                                    (p) => DropdownMenuItem(
+                                      value: p,
+                                      child: Text(
+                                        '${p.nombre} - \$${p.precioMensual}',
+                                        style: const TextStyle(fontSize: 14),
+                                      ),
+                                    ),
+                                  )
+                                  .toList(),
+                              onChanged: isSaving
+                                  ? null
+                                  : (p) => setState(() => _selectedPlan = p),
+                              decoration: _inputDecoration(
+                                hint: 'Selecciona un plan',
+                              ),
+                              validator: (v) =>
+                                  v == null ? 'Selecciona un plan' : null,
+                              dropdownColor: Colors.white,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                        loading: () => const LinearProgressIndicator(
+                          backgroundColor: AppColors.neutral100,
+                          color: AppColors.primaryRed,
+                        ),
+                        error: (e, _) => Text(
+                          'Error cargando planes',
+                          style: TextStyle(
+                            color: AppColors.errorRed,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                  validator: (v) => v == null ? 'Selecciona un plan' : null,
                 ),
-                loading: () => const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 8),
-                  child: LinearProgressIndicator(),
-                ),
-                error: (e, _) => Text(
-                  'Error cargando planes: $e',
-                  style: const TextStyle(color: AppColors.errorRed),
-                ),
-              ),
-              const SizedBox(height: 24),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primaryRed,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+                const SizedBox(height: 32),
+                // Botón principal
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primaryRed,
+                    foregroundColor: Colors.white,
+                    disabledBackgroundColor: AppColors.primaryRed.withOpacity(
+                      0.5,
+                    ),
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
                   ),
+                  onPressed: isSaving ? null : onSubmit,
+                  child: isSaving
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
+                          ),
+                        )
+                      : const Text(
+                          'Crear organización',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
                 ),
-                onPressed: isSaving ? null : onSubmit,
-                child: Text(isSaving ? 'Guardando...' : 'Crear organización'),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -170,12 +245,16 @@ class _LabeledField extends StatelessWidget {
   const _LabeledField({
     required this.label,
     required this.controller,
+    this.hintText,
     this.validator,
+    this.keyboardType,
   });
 
   final String label;
+  final String? hintText;
   final TextEditingController controller;
   final String? Function(String?)? validator;
+  final TextInputType? keyboardType;
 
   @override
   Widget build(BuildContext context) {
@@ -185,32 +264,53 @@ class _LabeledField extends StatelessWidget {
         Text(
           label,
           style: const TextStyle(
-            fontWeight: FontWeight.w700,
+            fontWeight: FontWeight.w800,
             color: AppColors.neutral900,
+            fontSize: 14,
           ),
         ),
-        const SizedBox(height: 6),
+        const SizedBox(height: 8),
         TextFormField(
           controller: controller,
           validator: validator,
-          decoration: InputDecoration(
-            filled: true,
-            fillColor: AppColors.neutral100,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: Color(0xFFE7ECF3)),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: Color(0xFFE7ECF3)),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppColors.primaryRed),
-            ),
-          ),
+          keyboardType: keyboardType,
+          style: const TextStyle(fontSize: 14),
+          decoration: _inputDecoration(hint: hintText),
         ),
       ],
     );
   }
+}
+
+// Decoración global para consistencia visual
+InputDecoration _inputDecoration({String? hint}) {
+  return InputDecoration(
+    hintText: hint,
+    hintStyle: const TextStyle(
+      color: AppColors.neutral500,
+      fontSize: 14,
+      fontWeight: FontWeight.normal,
+    ),
+    filled: true,
+    fillColor: const Color(
+      0xFFF3F5F7,
+    ), // Gris muy suave para el fondo del campo
+    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+    border: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(12),
+      borderSide: BorderSide.none,
+    ),
+    enabledBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(12),
+      borderSide: const BorderSide(color: Color(0xFFE7ECF3), width: 1),
+    ),
+    focusedBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(12),
+      borderSide: const BorderSide(color: AppColors.primaryRed, width: 1.5),
+    ),
+    errorBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(12),
+      borderSide: const BorderSide(color: AppColors.errorRed, width: 1),
+    ),
+  );
 }

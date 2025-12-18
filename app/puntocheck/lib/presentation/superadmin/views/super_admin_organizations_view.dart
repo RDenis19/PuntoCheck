@@ -36,7 +36,11 @@ class _SuperAdminOrganizationsViewState
     final dashboardAsync = ref.watch(superAdminDashboardProvider);
 
     return Scaffold(
+      backgroundColor: const Color(
+        0xFFF8F9FB,
+      ), // Fondo ligeramente gris para contraste
       floatingActionButton: FloatingActionButton(
+        elevation: 4,
         backgroundColor: AppColors.primaryRed,
         foregroundColor: Colors.white,
         onPressed: () {
@@ -44,7 +48,7 @@ class _SuperAdminOrganizationsViewState
             MaterialPageRoute(builder: (_) => const SuperAdminCreateOrgView()),
           );
         },
-        child: const Icon(Icons.add),
+        child: const Icon(Icons.add, size: 28),
       ),
       body: SafeArea(
         child: dashboardAsync.when(
@@ -70,16 +74,14 @@ class _SuperAdminOrganizationsViewState
               listContent = orgs.isEmpty
                   ? const [
                       EmptyState(
-                        title: 'Sin organizaciones registradas',
-                        message:
-                            'Cuando existan organizaciones se listarán aquí.',
-                        icon: Icons.business_outlined,
+                        title: 'Sin registros',
+                        message: 'No hay organizaciones creadas aún.',
+                        icon: Icons.business_center_outlined,
                       ),
                     ]
                   : orgs
                         .map(
-                          (org) => Padding(
-                            padding: const EdgeInsets.only(bottom: 12),
+                          (org) => _AnimatedPadding(
                             child: OrganizationCard(
                               organization: org,
                               planName: planNames[org.planId],
@@ -94,8 +96,6 @@ class _SuperAdminOrganizationsViewState
               final filtered = orgs.where((org) {
                 final estado = org.estadoSuscripcion;
                 switch (_selectedTab) {
-                  case _OrgTab.todas:
-                    return true;
                   case _OrgTab.activas:
                     return estado == EstadoSuscripcion.activo;
                   case _OrgTab.prueba:
@@ -103,24 +103,22 @@ class _SuperAdminOrganizationsViewState
                   case _OrgTab.pausa:
                     return estado == EstadoSuscripcion.vencido ||
                         estado == EstadoSuscripcion.cancelado;
-                  case _OrgTab.pagos:
-                    return false;
+                  default:
+                    return true;
                 }
               }).toList();
 
               listContent = filtered.isEmpty
                   ? [
                       const EmptyState(
-                        title: 'Sin organizaciones en esta seccion',
-                        message:
-                            'No se encontraron organizaciones con este estado.',
-                        icon: Icons.business_outlined,
+                        title: 'Sin resultados',
+                        message: 'No hay organizaciones en este estado.',
+                        icon: Icons.filter_list_off,
                       ),
                     ]
                   : filtered
                         .map(
-                          (org) => Padding(
-                            padding: const EdgeInsets.only(bottom: 12),
+                          (org) => _AnimatedPadding(
                             child: OrganizationCard(
                               organization: org,
                               planName: planNames[org.planId],
@@ -141,32 +139,41 @@ class _SuperAdminOrganizationsViewState
             return RefreshIndicator(
               onRefresh: () => ref.refresh(superAdminDashboardProvider.future),
               child: ListView(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 16,
+                ),
                 physics: const AlwaysScrollableScrollPhysics(),
                 children: [
-                  const SizedBox(height: 4),
                   const Text(
                     'Organizaciones',
                     style: TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.w800,
+                      fontSize: 28,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: -0.5,
                       color: AppColors.neutral900,
                     ),
                   ),
                   const SizedBox(height: 4),
-                  const Text(
-                    'Gestiona todas tus organizaciones en un solo lugar.',
-                    style: TextStyle(color: AppColors.neutral700),
+                  Text(
+                    'Gestión centralizada de clientes.',
+                    style: TextStyle(
+                      color: AppColors.neutral700.withOpacity(0.8),
+                      fontSize: 15,
+                    ),
                   ),
-                  const SizedBox(height: 14),
-                  _MetricCard(
-                    label: 'Pagos pendientes',
-                    value: data.pendingPaymentsCount,
-                    amount: pendingTotal,
+                  const SizedBox(height: 24),
+                  _MetricGradientCard(
+                    label: 'Pagos Pendientes',
+                    count: data.pendingPaymentsCount,
+                    total: pendingTotal,
                   ),
-                  const SizedBox(height: 14),
-                  _SearchBar(controller: _searchController),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 24),
+                  _SearchBar(
+                    controller: _searchController,
+                    onChanged: () => setState(() {}),
+                  ),
+                  const SizedBox(height: 20),
                   _TabBar(
                     selected: _selectedTab,
                     onSelected: (tab) => setState(() => _selectedTab = tab),
@@ -178,43 +185,15 @@ class _SuperAdminOrganizationsViewState
                       _OrgTab.pagos: data.pendingPaymentsCount,
                     },
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 20),
                   ...listContent,
-                  const SizedBox(height: 80),
+                  const SizedBox(height: 100),
                 ],
               ),
             );
           },
           loading: () => const Center(child: CircularProgressIndicator()),
-          error: (error, _) => Center(
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(
-                    Icons.cloud_off,
-                    size: 48,
-                    color: AppColors.neutral700,
-                  ),
-                  const SizedBox(height: 12),
-                  const Text('No se pudo cargar organizaciones'),
-                  const SizedBox(height: 8),
-                  Text(
-                    '$error',
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(color: AppColors.neutral700),
-                  ),
-                  const SizedBox(height: 12),
-                  OutlinedButton.icon(
-                    onPressed: () => ref.refresh(superAdminDashboardProvider),
-                    icon: const Icon(Icons.refresh),
-                    label: const Text('Reintentar'),
-                  ),
-                ],
-              ),
-            ),
-          ),
+          error: (error, _) => _ErrorState(error: error.toString()),
         ),
       ),
     );
@@ -225,19 +204,18 @@ class _SuperAdminOrganizationsViewState
     required Map<String, String> planNames,
   }) {
     if (payments.isEmpty) {
-      return const [
-        EmptyState(
-          title: 'Sin pagos pendientes',
-          message: 'Cuando existan pagos por validar se mostraran aqui.',
-          icon: Icons.receipt_long_outlined,
+      return [
+        const EmptyState(
+          title: 'Todo al día',
+          message: 'No hay pagos por validar.',
+          icon: Icons.check_circle_outline,
         ),
       ];
     }
 
     return payments
         .map(
-          (pago) => Padding(
-            padding: const EdgeInsets.only(bottom: 12),
+          (pago) => _AnimatedPadding(
             child: _PaymentCard(pago: pago, planName: planNames[pago.planId]),
           ),
         )
@@ -245,44 +223,50 @@ class _SuperAdminOrganizationsViewState
   }
 }
 
-class _MetricCard extends StatelessWidget {
-  const _MetricCard({
+class _MetricGradientCard extends StatelessWidget {
+  const _MetricGradientCard({
     required this.label,
-    required this.value,
-    required this.amount,
+    required this.count,
+    required this.total,
   });
-
   final String label;
-  final int value;
-  final double amount;
+  final int count;
+  final double total;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: AppColors.primaryRed,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.primaryRedDark),
-        boxShadow: const [
+        gradient: const LinearGradient(
+          colors: [Color(0xFFE0262F), Color(0xFFB71C1C)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
           BoxShadow(
-            color: Color(0x26000000),
-            blurRadius: 12,
-            offset: Offset(0, 8),
+            color: AppColors.primaryRed.withOpacity(0.3),
+            blurRadius: 15,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(10),
+            padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.18),
-              borderRadius: BorderRadius.circular(12),
+              color: Colors.white.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(16),
             ),
-            child: const Icon(Icons.receipt_long_outlined, color: Colors.white),
+            child: const Icon(
+              Icons.account_balance_wallet_outlined,
+              color: Colors.white,
+              size: 28,
+            ),
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -290,21 +274,24 @@ class _MetricCard extends StatelessWidget {
                 Text(
                   label,
                   style: const TextStyle(
-                    fontWeight: FontWeight.w800,
                     color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  '$value pagos | \$${amount.toStringAsFixed(2)}',
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w700,
-                    color: Colors.white70,
+                  '$count por validar • \$${total.toStringAsFixed(2)}',
+                  style: TextStyle(
+                    color: Colors.white.withOpacity(0.9),
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
               ],
             ),
           ),
+          const Icon(Icons.arrow_forward_ios, color: Colors.white, size: 16),
         ],
       ),
     );
@@ -312,37 +299,41 @@ class _MetricCard extends StatelessWidget {
 }
 
 class _SearchBar extends StatelessWidget {
-  const _SearchBar({required this.controller});
-
+  const _SearchBar({required this.controller, required this.onChanged});
   final TextEditingController controller;
+  final VoidCallback onChanged;
 
   @override
   Widget build(BuildContext context) {
-    return TextField(
-      controller: controller,
-      decoration: InputDecoration(
-        hintText: 'Buscar organizacion...',
-        prefixIcon: const Icon(Icons.search),
-        filled: true,
-        fillColor: Colors.white,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(color: Color(0xFFE7ECF3)),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(color: Color(0xFFE7ECF3)),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(color: AppColors.primaryRed),
-        ),
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 14,
-          vertical: 12,
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: TextField(
+        controller: controller,
+        onChanged: (_) => onChanged(),
+        decoration: InputDecoration(
+          hintText: 'Buscar por nombre o RUC...',
+          hintStyle: TextStyle(color: AppColors.neutral700.withOpacity(0.5)),
+          prefixIcon: const Icon(
+            Icons.search_rounded,
+            color: AppColors.primaryRed,
+          ),
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.symmetric(
+            vertical: 15,
+            horizontal: 20,
+          ),
         ),
       ),
-      onChanged: (_) => (context as Element).markNeedsBuild(),
     );
   }
 }
@@ -353,74 +344,82 @@ class _TabBar extends StatelessWidget {
     required this.onSelected,
     required this.counts,
   });
-
   final _OrgTab selected;
-  final void Function(_OrgTab tab) onSelected;
+  final void Function(_OrgTab) onSelected;
   final Map<_OrgTab, int> counts;
 
   @override
   Widget build(BuildContext context) {
-    Widget chip({required _OrgTab tab, required String label}) {
-      final isSelected = tab == selected;
-      return Padding(
-        padding: const EdgeInsets.only(right: 8),
-        child: ChoiceChip(
-          label: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(label),
-              const SizedBox(width: 6),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                decoration: BoxDecoration(
-                  color: isSelected
-                      ? Colors.white.withValues(alpha: 0.18)
-                      : null,
-                  borderRadius: BorderRadius.circular(999),
-                ),
-                child: Text(
-                  '${counts[tab] ?? 0}',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w700,
-                    color: isSelected
-                        ? Colors.white
-                        : AppColors.neutral700.withValues(alpha: 0.8),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          selected: isSelected,
-          onSelected: (_) => onSelected(tab),
-          selectedColor: AppColors.neutral900,
-          backgroundColor: Colors.white,
-          labelStyle: TextStyle(
-            color: isSelected ? Colors.white : AppColors.neutral900,
-            fontWeight: FontWeight.w700,
-          ),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-            side: BorderSide(
-              color: isSelected
-                  ? AppColors.neutral900
-                  : const Color(0xFFE7ECF3),
-            ),
-          ),
-          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-        ),
-      );
-    }
-
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
+      physics: const BouncingScrollPhysics(),
       child: Row(
-        children: [
-          chip(tab: _OrgTab.todas, label: 'Todas'),
-          chip(tab: _OrgTab.activas, label: 'Activas'),
-          chip(tab: _OrgTab.prueba, label: 'En prueba'),
-          chip(tab: _OrgTab.pausa, label: 'En pausa'),
-          chip(tab: _OrgTab.pagos, label: 'Pagos pendientes'),
-        ],
+        children: _OrgTab.values.map((tab) {
+          final isSelected = selected == tab;
+          final String label =
+              tab.name[0].toUpperCase() + tab.name.substring(1);
+          return Padding(
+            padding: const EdgeInsets.only(right: 10),
+            child: GestureDetector(
+              onTap: () => onSelected(tab),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 250),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 10,
+                ),
+                decoration: BoxDecoration(
+                  color: isSelected ? AppColors.neutral900 : Colors.white,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: isSelected
+                        ? AppColors.neutral900
+                        : const Color(0xFFE7ECF3),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Text(
+                      label == 'Todas'
+                          ? 'Todas'
+                          : label == 'Pausa'
+                          ? 'En pausa'
+                          : label,
+                      style: TextStyle(
+                        color: isSelected ? Colors.white : AppColors.neutral900,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: isSelected
+                            ? Colors.white.withOpacity(0.2)
+                            : AppColors.neutral100,
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        '${counts[tab] ?? 0}',
+                        style: TextStyle(
+                          color: isSelected
+                              ? Colors.white
+                              : AppColors.neutral700,
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        }).toList(),
       ),
     );
   }
@@ -428,65 +427,94 @@ class _TabBar extends StatelessWidget {
 
 class _PaymentCard extends StatelessWidget {
   const _PaymentCard({required this.pago, required this.planName});
-
   final PagosSuscripciones pago;
   final String? planName;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.primaryRed,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.primaryRedDark),
-        boxShadow: const [
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: [
           BoxShadow(
-            color: Color(0x26000000),
-            blurRadius: 14,
-            offset: Offset(0, 10),
+            color: Colors.black.withOpacity(0.02),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
       child: Row(
         children: [
-          Container(
-            height: 44,
-            width: 44,
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.18),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: const Icon(Icons.receipt_long, color: Colors.white),
-          ),
-          const SizedBox(width: 12),
+          const Icon(Icons.receipt_long_rounded, color: AppColors.primaryRed),
+          const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  '\$${pago.monto.toStringAsFixed(2)} | ${planName ?? 'Plan'}',
+                  '\$${pago.monto.toStringAsFixed(2)} • ${planName ?? "Plan"}',
                   style: const TextStyle(
-                    fontWeight: FontWeight.w800,
-                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
                   ),
                 ),
-                const SizedBox(height: 4),
                 Text(
-                  'Org: ${pago.organizacionId} | Ref: ${pago.referenciaBancaria ?? 'Sin referencia'}',
-                  style: const TextStyle(color: Colors.white70),
-                ),
-                if (pago.creadoEn != null) ...[
-                  const SizedBox(height: 4),
-                  Text(
-                    'Fecha: ${pago.creadoEn!.toLocal().toString().split(' ').first}',
-                    style: const TextStyle(color: Colors.white70),
+                  'ID Org: ${pago.organizacionId}',
+                  style: TextStyle(
+                    color: AppColors.neutral700.withOpacity(0.7),
+                    fontSize: 13,
                   ),
-                ],
+                ),
               ],
             ),
           ),
-          const Icon(Icons.chevron_right),
+          const Icon(Icons.chevron_right, color: AppColors.neutral100),
+        ],
+      ),
+    );
+  }
+}
+
+class _AnimatedPadding extends StatelessWidget {
+  const _AnimatedPadding({required this.child});
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(padding: const EdgeInsets.only(bottom: 14), child: child);
+  }
+}
+
+class _ErrorState extends StatelessWidget {
+  const _ErrorState({required this.error});
+  final String error;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.error_outline, size: 48, color: AppColors.errorRed),
+          const SizedBox(height: 16),
+          Text(
+            'Error al cargar datos',
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: AppColors.neutral900,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 40),
+            child: Text(
+              error,
+              textAlign: TextAlign.center,
+              style: TextStyle(color: AppColors.neutral700, fontSize: 12),
+            ),
+          ),
         ],
       ),
     );
