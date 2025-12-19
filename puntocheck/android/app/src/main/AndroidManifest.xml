@@ -19,7 +19,7 @@
         android:largeHeap="true">
         <meta-data
             android:name="com.google.android.geo.API_KEY"
-            android:value="AIzaSyCGdS0MWc1ppq5ZLAOoelNeaXbA_RBM0iI" />
+            android:value="AIzaSyAANwOSBgv9eWPpdzurf4-qEYPCh1UgbGw" />
         <activity
             android:name=".MainActivity"
             android:exported="true"
