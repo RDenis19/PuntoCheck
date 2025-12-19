@@ -7,19 +7,23 @@ class StorageService {
   static final instance = StorageService._();
   static const _maxFileBytes = 5 * 1024 * 1024; // 5MB
 
-  Exception _permissionHint(String action, Object e) {
-    final msg = e.toString();
+  Exception _permissionHint({
+    required String action,
+    required String bucket,
+    required Object error,
+  }) {
+    final msg = error.toString();
     final looksLikeRls = msg.contains('row-level security') ||
         msg.contains('policy') ||
         msg.contains('permission') ||
         msg.contains('Unauthorized') ||
         msg.contains('403');
-    if (!looksLikeRls) return Exception('Error $action: $e');
+    if (!looksLikeRls) return Exception('Error $action: $error');
 
     return Exception(
-      'No tienes permisos para subir archivos al bucket. '
+      'No tienes permisos para subir archivos al bucket `$bucket`. '
       'En Supabase > Storage > Policies agrega una policy para el bucket correspondiente '
-      '(por ejemplo, bucket `evidencias`) permitiendo INSERT/SELECT a `authenticated` '
+      '(por ejemplo, bucket `$bucket`) permitiendo INSERT/SELECT a `authenticated` '
       'en la carpeta `auth.uid()`.'
       ' Detalle: $msg',
     );
@@ -65,7 +69,11 @@ class StorageService {
         return path;
       }
     } catch (e) {
-      throw _permissionHint('subiendo evidencia', e);
+      throw _permissionHint(
+        action: 'subiendo evidencia',
+        bucket: 'evidencias',
+        error: e,
+      );
     }
   }
 
@@ -90,7 +98,11 @@ class StorageService {
 
       return path;
     } catch (e) {
-      throw _permissionHint('subiendo documento', e);
+      throw _permissionHint(
+        action: 'subiendo documento',
+        bucket: 'documentos_legales',
+        error: e,
+      );
     }
   }
 
@@ -137,7 +149,11 @@ class StorageService {
           .from('evidencias')
           .createSignedUrl(path, 60 * 60 * 24 * 365);
     } catch (e) {
-      throw _permissionHint('subiendo foto de perfil', e);
+      throw _permissionHint(
+        action: 'subiendo foto de perfil',
+        bucket: 'evidencias',
+        error: e,
+      );
     }
   }
 }

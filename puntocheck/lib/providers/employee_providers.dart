@@ -1,12 +1,17 @@
 import 'dart:async';
 import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models/perfiles.dart';
 import '../models/registros_asistencia.dart';
 import '../models/solicitudes_permisos.dart';
 import '../models/sucursales.dart';
 import '../models/enums.dart';
+import '../models/banco_horas_compensatorias.dart';
+import '../models/alertas_cumplimiento.dart';
+import '../models/employee_schedule.dart';
+import '../models/organizaciones.dart';
 import '../services/attendance_service.dart';
 import '../services/employee_service.dart';
 import 'auth_providers.dart';
@@ -23,9 +28,24 @@ final employeeProfileProvider = FutureProvider<Perfiles>((ref) async {
   return profile;
 });
 
+/// Organización del employee (para mostrar nombre/branding).
+final employeeOrganizationProvider = FutureProvider<Organizaciones>((ref) async {
+  final profile = await ref.watch(employeeProfileProvider.future);
+  final orgId = profile.organizacionId;
+  if (orgId == null || orgId.isEmpty) {
+    throw Exception('No tienes organización asignada');
+  }
+  return ref.read(employeeServiceProvider).getOrganizationById(orgId);
+});
+
 /// Turno vigente para hoy (asignación + plantilla).
 final employeeScheduleProvider = FutureProvider<EmployeeSchedule?>((ref) async {
   return ref.read(employeeServiceProvider).getTodaySchedule();
+});
+
+/// Próximo horario (cuando no hay turno hoy o para previsualizar la próxima asignación).
+final employeeNextScheduleProvider = FutureProvider<EmployeeSchedule?>((ref) async {
+  return ref.read(employeeServiceProvider).getNextSchedule();
 });
 
 /// Última marcación registrada del día.
@@ -35,7 +55,19 @@ final lastAttendanceProvider = FutureProvider<RegistrosAsistencia?>((ref) async 
 
 /// Historial de asistencia del employee.
 final employeeAttendanceHistoryProvider = FutureProvider<List<RegistrosAsistencia>>((ref) async {
-  return ref.read(employeeServiceProvider).getAttendanceHistory(limit: 50);
+  return ref.read(employeeServiceProvider).getAttendanceHistory(limit: 500);
+});
+
+/// Banco de horas del employee (solo lectura).
+final employeeHoursBankProvider =
+    FutureProvider<List<BancoHorasCompensatorias>>((ref) async {
+  return ref.read(employeeServiceProvider).getMyHoursBank(limit: 200);
+});
+
+/// Alertas de cumplimiento (visión personal, solo lectura).
+final employeeComplianceAlertsProvider =
+    FutureProvider<List<AlertasCumplimiento>>((ref) async {
+  return ref.read(employeeServiceProvider).getMyComplianceAlerts(limit: 200);
 });
 
 /// Solicitudes de permisos del employee.
@@ -46,6 +78,100 @@ final employeePermissionsProvider = FutureProvider<List<SolicitudesPermisos>>((r
 /// Sucursales disponibles para validar geocerca / QR.
 final employeeBranchesProvider = FutureProvider<List<Sucursales>>((ref) async {
   return ref.read(employeeServiceProvider).getMyBranches();
+});
+
+/// Realtime listener (Supabase Realtime) para mantener Inicio actualizado.
+///
+/// Requiere que `registros_asistencia` y `notificaciones` tengan Realtime habilitado en Supabase
+/// (Database > Replication) y que RLS permita los eventos para el usuario autenticado.
+final employeeRealtimeListenerProvider = Provider.autoDispose<void>((ref) {
+  final client = Supabase.instance.client;
+  final userId = client.auth.currentUser?.id;
+  if (userId == null) return;
+
+  void invalidateAttendance() {
+    ref
+      ..invalidate(lastAttendanceProvider)
+      ..invalidate(employeeAttendanceHistoryProvider);
+  }
+
+  void invalidateNotifications() {
+    ref.invalidate(employeeNotificationsProvider);
+  }
+
+  void invalidateSchedule() {
+    ref
+      ..invalidate(employeeScheduleProvider)
+      ..invalidate(employeeNextScheduleProvider);
+  }
+
+  void invalidateHoursBank() {
+    ref.invalidate(employeeHoursBankProvider);
+  }
+
+  void invalidateComplianceAlerts() {
+    ref.invalidate(employeeComplianceAlertsProvider);
+  }
+
+  final channel = client.channel('rt_employee_$userId')
+    ..onPostgresChanges(
+      event: PostgresChangeEvent.all,
+      schema: 'public',
+      table: 'registros_asistencia',
+      filter: PostgresChangeFilter(
+        type: PostgresChangeFilterType.eq,
+        column: 'perfil_id',
+        value: userId,
+      ),
+      callback: (_) => invalidateAttendance(),
+    )
+    ..onPostgresChanges(
+      event: PostgresChangeEvent.all,
+      schema: 'public',
+      table: 'asignaciones_horarios',
+      filter: PostgresChangeFilter(
+        type: PostgresChangeFilterType.eq,
+        column: 'perfil_id',
+        value: userId,
+      ),
+      callback: (_) => invalidateSchedule(),
+    )
+    ..onPostgresChanges(
+      event: PostgresChangeEvent.all,
+      schema: 'public',
+      table: 'banco_horas',
+      filter: PostgresChangeFilter(
+        type: PostgresChangeFilterType.eq,
+        column: 'empleado_id',
+        value: userId,
+      ),
+      callback: (_) => invalidateHoursBank(),
+    )
+    ..onPostgresChanges(
+      event: PostgresChangeEvent.all,
+      schema: 'public',
+      table: 'notificaciones',
+      filter: PostgresChangeFilter(
+        type: PostgresChangeFilterType.eq,
+        column: 'usuario_destino_id',
+        value: userId,
+      ),
+      callback: (_) => invalidateNotifications(),
+    )
+    ..onPostgresChanges(
+      event: PostgresChangeEvent.all,
+      schema: 'public',
+      table: 'alertas_cumplimiento',
+      filter: PostgresChangeFilter(
+        type: PostgresChangeFilterType.eq,
+        column: 'empleado_id',
+        value: userId,
+      ),
+      callback: (_) => invalidateComplianceAlerts(),
+    )
+    ..subscribe();
+
+  ref.onDispose(() => client.removeChannel(channel));
 });
 
 /// Configuración legal de la organización (descanso/tolerancia).
@@ -64,23 +190,28 @@ class EmployeePermissionController extends AsyncNotifier<void> {
   @override
   FutureOr<void> build() => null;
 
-  Future<void> create({
+  Future<void> createRequest({
     required TipoPermiso tipo,
     required DateTime fechaInicio,
     required DateTime fechaFin,
-    required int diasTotales,
     String? motivoDetalle,
-    String? documentoUrl,
+    File? documento,
   }) async {
     state = const AsyncValue.loading();
-    state = await AsyncValue.guard(() => ref.read(employeeServiceProvider).createPermissionRequest(
-          tipo: tipo,
-          fechaInicio: fechaInicio,
-          fechaFin: fechaFin,
-          diasTotales: diasTotales,
-          motivoDetalle: motivoDetalle,
-          documentoUrl: documentoUrl,
-        ));
+    state = await AsyncValue.guard(() async {
+      final svc = ref.read(employeeServiceProvider);
+      String? docUrl;
+      if (documento != null) {
+        docUrl = await svc.uploadDocument(documento);
+      }
+      await svc.createPermissionRequest(
+        tipo: tipo,
+        fechaInicio: fechaInicio,
+        fechaFin: fechaFin,
+        motivoDetalle: motivoDetalle,
+        documentoUrl: docUrl,
+      );
+    });
     if (!state.hasError) {
       ref.invalidate(employeePermissionsProvider);
     }
@@ -105,6 +236,14 @@ class EmployeeNotificationController extends AsyncNotifier<void> {
     state = const AsyncValue.loading();
     state = await AsyncValue.guard(
       () => ref.read(employeeServiceProvider).markNotificationAsRead(notificationId),
+    );
+    if (!state.hasError) ref.invalidate(employeeNotificationsProvider);
+  }
+
+  Future<void> markAllRead() async {
+    state = const AsyncValue.loading();
+    state = await AsyncValue.guard(
+      () => ref.read(employeeServiceProvider).markAllMyNotificationsAsRead(),
     );
     if (!state.hasError) ref.invalidate(employeeNotificationsProvider);
   }

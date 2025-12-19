@@ -22,37 +22,38 @@ class AttendanceStatsCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
+        // Evita overflow en grids compactos usando scaleDown como "seguro".
         final h = constraints.maxHeight;
         final ultraDense = h > 0 && h < 92;
         final dense = !ultraDense && h > 0 && h < 105;
 
         final padding = ultraDense
-            ? 8.0
+            ? 6.0
             : dense
             ? 12.0
             : 16.0;
         final iconSize = ultraDense
-            ? 18.0
+            ? 16.0
             : dense
             ? 20.0
             : 24.0;
         final iconPadding = ultraDense
-            ? 6.0
+            ? 4.0
             : dense
             ? 8.0
             : 10.0;
         final valueFontSize = ultraDense
-            ? 18.0
+            ? 16.0
             : dense
             ? 22.0
             : 28.0;
         final gap = ultraDense
-            ? 6.0
+            ? 4.0
             : dense
             ? 8.0
             : 12.0;
         final labelFontSize = ultraDense
-            ? 11.0
+            ? 10.0
             : dense
             ? 12.0
             : 13.0;
@@ -76,63 +77,71 @@ class AttendanceStatsCard extends StatelessWidget {
               ),
             ],
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.topLeft,
+            child: SizedBox(
+              width: constraints.maxWidth,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.start,
                 children: [
-                  Container(
-                    padding: EdgeInsets.all(iconPadding),
-                    decoration: BoxDecoration(
-                      color: color.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Icon(icon, color: color, size: iconSize),
-                  ),
-                  const Spacer(),
-                  Flexible(
-                    child: FittedBox(
-                      fit: BoxFit.scaleDown,
-                      alignment: Alignment.centerRight,
-                      child: Text(
-                        value,
-                        style: TextStyle(
-                          fontSize: valueFontSize,
-                          fontWeight: FontWeight.w900,
-                          color: color,
-                          height: 1,
+                  Row(
+                    children: [
+                      Container(
+                        padding: EdgeInsets.all(iconPadding),
+                        decoration: BoxDecoration(
+                          color: color.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Icon(icon, color: color, size: iconSize),
+                      ),
+                      const Spacer(),
+                      Flexible(
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerRight,
+                          child: Text(
+                            value,
+                            style: TextStyle(
+                              fontSize: valueFontSize,
+                              fontWeight: FontWeight.w900,
+                              color: color,
+                              height: 1,
+                            ),
+                          ),
                         ),
                       ),
+                    ],
+                  ),
+                  SizedBox(height: gap),
+                  Text(
+                    label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: AppColors.neutral700,
+                      fontWeight: FontWeight.w600,
+                      fontSize: labelFontSize,
                     ),
                   ),
+                  if (!ultraDense && subtitle != null) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      subtitle!,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: AppColors.neutral500,
+                        fontSize: subtitleFontSize,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
                 ],
               ),
-              SizedBox(height: gap),
-              Text(
-                label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: AppColors.neutral700,
-                  fontWeight: FontWeight.w600,
-                  fontSize: labelFontSize,
-                ),
-              ),
-              if (!ultraDense && subtitle != null) ...[
-                const SizedBox(height: 4),
-                Text(
-                  subtitle!,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: AppColors.neutral500,
-                    fontSize: subtitleFontSize,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
-            ],
+            ),
           ),
         );
       },

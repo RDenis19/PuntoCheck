@@ -17,6 +17,7 @@ class AlertasCumplimiento {
   final String? empleadoNombres;
   final String? empleadoApellidos;
   final String? empleadoSucursalId;
+  final String? empleadoCedula;
 
   AlertasCumplimiento({
     required this.id,
@@ -33,6 +34,7 @@ class AlertasCumplimiento {
     this.empleadoNombres,
     this.empleadoApellidos,
     this.empleadoSucursalId,
+    this.empleadoCedula,
   });
 
   factory AlertasCumplimiento.fromJson(Map<String, dynamic> json) {
@@ -67,6 +69,7 @@ class AlertasCumplimiento {
       empleadoNombres: empleado?['nombres']?.toString(),
       empleadoApellidos: empleado?['apellidos']?.toString(),
       empleadoSucursalId: empleado?['sucursal_id']?.toString(),
+      empleadoCedula: empleado?['cedula']?.toString(),
     );
   }
 

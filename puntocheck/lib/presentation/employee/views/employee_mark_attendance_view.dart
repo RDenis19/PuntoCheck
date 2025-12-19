@@ -8,13 +8,13 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:puntocheck/models/employee_schedule.dart';
 import 'package:puntocheck/models/registros_asistencia.dart';
 import 'package:puntocheck/models/sucursales.dart';
 import 'package:puntocheck/models/sucursal_geo_extension.dart';
 import 'package:puntocheck/providers/employee_providers.dart';
 import 'package:puntocheck/presentation/employee/views/employee_qr_scan_view.dart';
 import 'package:puntocheck/services/attendance_helper.dart';
-import 'package:puntocheck/services/employee_service.dart';
 import 'package:puntocheck/utils/theme/app_colors.dart';
 
 class EmployeeMarkAttendanceView extends ConsumerStatefulWidget {

@@ -5,25 +5,18 @@ import 'package:crypto/crypto.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models/asignaciones_horarios.dart';
+import '../models/employee_schedule.dart';
 import '../models/enums.dart';
 import '../models/perfiles.dart';
+import '../models/banco_horas_compensatorias.dart';
+import '../models/alertas_cumplimiento.dart';
+import '../models/organizaciones.dart';
 import '../models/plantillas_horarios.dart';
 import '../models/registros_asistencia.dart';
 import '../models/solicitudes_permisos.dart';
 import '../models/sucursales.dart';
 import 'storage_service.dart';
 import 'supabase_client.dart';
-
-/// DTO sencillo para exponer la asignación y su plantilla asociada.
-class EmployeeSchedule {
-  EmployeeSchedule({
-    required this.asignacion,
-    required this.plantilla,
-  });
-
-  final AsignacionesHorarios asignacion;
-  final PlantillasHorarios plantilla;
-}
 
 /// Servicio dedicado al rol Employee.
 ///
@@ -83,9 +76,34 @@ class EmployeeService {
     }
   }
 
+  Future<Organizaciones> getOrganizationById(String orgId) async {
+    try {
+      final response = await supabase
+          .from('organizaciones')
+          .select(
+            'id, ruc, razon_social, plan_id, estado_suscripcion, fecha_fin_suscripcion, logo_url, eliminado, creado_en, actualizado_en',
+          )
+          .eq('id', orgId)
+          .maybeSingle();
+
+      if (response == null) throw Exception('No se encontró la organización');
+      return Organizaciones.fromJson(Map<String, dynamic>.from(response));
+    } on PostgrestException catch (e) {
+      throw Exception('Error cargando organización: ${e.message}');
+    } catch (e) {
+      throw Exception('Error cargando organización: $e');
+    }
+  }
+
+  Future<Organizaciones> getMyOrganization() async {
+    final orgId = await _requireOrgId();
+    return getOrganizationById(orgId);
+  }
+
   Future<EmployeeSchedule?> getTodaySchedule() async {
     final userId = supabase.auth.currentUser?.id;
     if (userId == null) throw Exception('Usuario no autenticado');
+    final orgId = await _requireOrgId();
 
     final today = DateTime.now();
     final todayStr = today.toIso8601String().split('T').first;
@@ -104,6 +122,7 @@ class EmployeeService {
             ''',
           )
           .eq('perfil_id', userId)
+          .eq('organizacion_id', orgId)
           .lte('fecha_inicio', todayStr)
           .or('fecha_fin.is.null,fecha_fin.gte.$todayStr')
           .order('fecha_inicio', ascending: false)
@@ -121,6 +140,48 @@ class EmployeeService {
       throw Exception('Error cargando turno de hoy: ${e.message}');
     } catch (e) {
       throw Exception('Error cargando turno de hoy: $e');
+    }
+  }
+
+  Future<EmployeeSchedule?> getNextSchedule({DateTime? from}) async {
+    final userId = supabase.auth.currentUser?.id;
+    if (userId == null) throw Exception('Usuario no autenticado');
+    final orgId = await _requireOrgId();
+
+    final base = (from ?? DateTime.now());
+    final baseStr = base.toIso8601String().split('T').first;
+
+    try {
+      final response = await supabase
+          .from('asignaciones_horarios')
+          .select(
+            '''
+              id, perfil_id, organizacion_id, plantilla_id, fecha_inicio, fecha_fin,
+              plantillas_horarios (
+                id, organizacion_id, nombre, dias_laborales, tolerancia_entrada_minutos,
+                es_rotativo, eliminado, creado_en,
+                turnos_jornada (id, plantilla_id, nombre_turno, hora_inicio, hora_fin, orden, es_dia_siguiente, creado_en)
+              )
+            ''',
+          )
+          .eq('perfil_id', userId)
+          .eq('organizacion_id', orgId)
+          .gt('fecha_inicio', baseStr)
+          .order('fecha_inicio', ascending: true)
+          .limit(1)
+          .maybeSingle();
+
+      if (response == null) return null;
+      if (response['plantillas_horarios'] == null) return null;
+
+      return EmployeeSchedule(
+        asignacion: AsignacionesHorarios.fromJson(response),
+        plantilla: PlantillasHorarios.fromJson(response['plantillas_horarios']),
+      );
+    } on PostgrestException catch (e) {
+      throw Exception('Error cargando próximo horario: ${e.message}');
+    } catch (e) {
+      throw Exception('Error cargando próximo horario: $e');
     }
   }
 
@@ -147,16 +208,31 @@ class EmployeeService {
     }
   }
 
-  Future<List<RegistrosAsistencia>> getAttendanceHistory({int limit = 50}) async {
+  Future<List<RegistrosAsistencia>> getAttendanceHistory({
+    int limit = 200,
+    DateTime? startDate,
+    DateTime? endDate,
+  }) async {
     final userId = supabase.auth.currentUser?.id;
     if (userId == null) throw Exception('Usuario no autenticado');
+    final orgId = await _requireOrgId();
 
     try {
-      final response = await supabase
+      var query = supabase
           .from('registros_asistencia')
-          .select()
+          .select('*, sucursales(nombre), turnos_jornada(nombre_turno,hora_inicio,hora_fin)')
           .eq('perfil_id', userId)
-          .eq('eliminado', false)
+          .eq('organizacion_id', orgId)
+          .eq('eliminado', false);
+
+      if (startDate != null) {
+        query = query.gte('fecha_hora_marcacion', startDate.toIso8601String());
+      }
+      if (endDate != null) {
+        query = query.lte('fecha_hora_marcacion', endDate.toIso8601String());
+      }
+
+      final response = await query
           .order('fecha_hora_marcacion', ascending: false)
           .limit(limit);
 
@@ -173,12 +249,14 @@ class EmployeeService {
   Future<List<SolicitudesPermisos>> getMyPermissions() async {
     final userId = supabase.auth.currentUser?.id;
     if (userId == null) throw Exception('Usuario no autenticado');
+    final orgId = await _requireOrgId();
 
     try {
       final response = await supabase
           .from('solicitudes_permisos')
           .select()
           .eq('solicitante_id', userId)
+          .eq('organizacion_id', orgId)
           .order('creado_en', ascending: false);
 
       return (response as List)
@@ -188,6 +266,58 @@ class EmployeeService {
       throw Exception('Error obteniendo permisos: ${e.message}');
     } catch (e) {
       throw Exception('Error obteniendo permisos: $e');
+    }
+  }
+
+  Future<List<BancoHorasCompensatorias>> getMyHoursBank({int limit = 200}) async {
+    final userId = supabase.auth.currentUser?.id;
+    if (userId == null) throw Exception('Usuario no autenticado');
+    final orgId = await _requireOrgId();
+
+    try {
+      final response = await supabase
+          .from('banco_horas')
+          .select()
+          .eq('empleado_id', userId)
+          .eq('organizacion_id', orgId)
+          .order('creado_en', ascending: false)
+          .limit(limit);
+
+      return (response as List)
+          .map((json) => BancoHorasCompensatorias.fromJson(
+                Map<String, dynamic>.from(json as Map),
+              ))
+          .toList();
+    } on PostgrestException catch (e) {
+      throw Exception('Error obteniendo banco de horas: ${e.message}');
+    } catch (e) {
+      throw Exception('Error obteniendo banco de horas: $e');
+    }
+  }
+
+  Future<List<AlertasCumplimiento>> getMyComplianceAlerts({int limit = 100}) async {
+    final userId = supabase.auth.currentUser?.id;
+    if (userId == null) throw Exception('Usuario no autenticado');
+    final orgId = await _requireOrgId();
+
+    try {
+      final response = await supabase
+          .from('alertas_cumplimiento')
+          .select()
+          .eq('organizacion_id', orgId)
+          .eq('empleado_id', userId)
+          .order('creado_en', ascending: false)
+          .limit(limit);
+
+      return (response as List)
+          .map((json) => AlertasCumplimiento.fromJson(
+                Map<String, dynamic>.from(json as Map),
+              ))
+          .toList();
+    } on PostgrestException catch (e) {
+      throw Exception('Error obteniendo alertas de cumplimiento: ${e.message}');
+    } catch (e) {
+      throw Exception('Error obteniendo alertas de cumplimiento: $e');
     }
   }
 
@@ -301,7 +431,6 @@ class EmployeeService {
     required TipoPermiso tipo,
     required DateTime fechaInicio,
     required DateTime fechaFin,
-    required int diasTotales,
     String? motivoDetalle,
     String? documentoUrl,
   }) async {
@@ -309,14 +438,20 @@ class EmployeeService {
     if (userId == null) throw Exception('Usuario no autenticado');
     final orgId = await _requireOrgId();
 
+    final start = DateTime(fechaInicio.year, fechaInicio.month, fechaInicio.day);
+    final end = DateTime(fechaFin.year, fechaFin.month, fechaFin.day);
+    if (end.isBefore(start)) {
+      throw Exception('La fecha fin no puede ser anterior a la fecha inicio.');
+    }
+    final diasTotales = end.difference(start).inDays + 1;
+
     try {
       await supabase.from('solicitudes_permisos').insert({
         'organizacion_id': orgId,
         'solicitante_id': userId,
         'tipo': tipo.value,
-        'fecha_inicio': DateTime(fechaInicio.year, fechaInicio.month, fechaInicio.day)
-            .toIso8601String(),
-        'fecha_fin': DateTime(fechaFin.year, fechaFin.month, fechaFin.day).toIso8601String(),
+        'fecha_inicio': start.toIso8601String().split('T').first,
+        'fecha_fin': end.toIso8601String().split('T').first,
         'dias_totales': diasTotales,
         'motivo_detalle': motivoDetalle,
         'documento_url': documentoUrl,
@@ -332,12 +467,14 @@ class EmployeeService {
   Future<List<Map<String, dynamic>>> getMyNotifications() async {
     final userId = supabase.auth.currentUser?.id;
     if (userId == null) throw Exception('Usuario no autenticado');
+    final orgId = await _requireOrgId();
 
     try {
       final response = await supabase
           .from('notificaciones')
           .select()
           .eq('usuario_destino_id', userId)
+          .eq('organizacion_id', orgId)
           .order('creado_en', ascending: false);
 
       return List<Map<String, dynamic>>.from(response as List);
@@ -358,6 +495,23 @@ class EmployeeService {
           .eq('usuario_destino_id', userId);
     } catch (e) {
       throw Exception('Error marcando notificación: $e');
+    }
+  }
+
+  Future<void> markAllMyNotificationsAsRead() async {
+    final userId = supabase.auth.currentUser?.id;
+    if (userId == null) throw Exception('Usuario no autenticado');
+    final orgId = await _requireOrgId();
+
+    try {
+      await supabase
+          .from('notificaciones')
+          .update({'leido': true})
+          .eq('usuario_destino_id', userId)
+          .eq('organizacion_id', orgId)
+          .eq('leido', false);
+    } catch (e) {
+      throw Exception('Error marcando notificaciones: $e');
     }
   }
 

@@ -1,67 +1,43 @@
 import 'package:flutter/material.dart';
+import 'package:puntocheck/presentation/superadmin/widgets/super_admin_header.dart';
 import 'package:puntocheck/utils/theme/app_colors.dart';
 
 class AuditorHeader extends StatelessWidget {
   final String userName;
   final String organizationName;
+  final int? unreadNotificationsCount;
+  final VoidCallback? onNotificationsPressed;
 
   const AuditorHeader({
     super.key,
     required this.userName,
     required this.organizationName,
+    this.unreadNotificationsCount,
+    this.onNotificationsPressed,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(20, 28, 20, 20),
-      decoration: const BoxDecoration(
-        color: AppColors.primaryRed,
-        borderRadius: BorderRadius.vertical(bottom: Radius.circular(18)),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const CircleAvatar(
-            radius: 22,
-            backgroundColor: Colors.white24,
-            child: Icon(Icons.shield_outlined, color: Colors.white),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Hola, $userName',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
-                  ),
+    final unread = unreadNotificationsCount ?? 0;
+
+    return SuperAdminHeader(
+      userName: userName,
+      roleLabel: 'Auditor',
+      organizationName: organizationName,
+      trailing: onNotificationsPressed == null
+          ? null
+          : IconButton(
+              tooltip: 'Notificaciones',
+              onPressed: onNotificationsPressed,
+              icon: Badge(
+                isLabelVisible: unread > 0,
+                label: Text(unread > 99 ? '99+' : '$unread'),
+                child: const Icon(
+                  Icons.notifications_none_outlined,
+                  color: AppColors.secondaryWhite,
                 ),
-                const SizedBox(height: 4),
-                const Text(
-                  'Auditor',
-                  style: TextStyle(
-                    color: Colors.white70,
-                    fontSize: 14,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  organizationName,
-                  style: const TextStyle(
-                    color: Colors.white70,
-                    fontSize: 12,
-                  ),
-                ),
-              ],
+              ),
             ),
-          ),
-          const Icon(Icons.notifications_none, color: Colors.white),
-        ],
-      ),
     );
   }
 }

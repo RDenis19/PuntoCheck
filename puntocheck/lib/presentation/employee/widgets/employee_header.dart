@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:puntocheck/presentation/employee/views/employee_notifications_view.dart';
 import 'package:puntocheck/presentation/superadmin/widgets/super_admin_header.dart';
 import 'package:puntocheck/providers/employee_providers.dart';
 
@@ -10,6 +11,12 @@ class EmployeeHeader extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final profileAsync = ref.watch(employeeProfileProvider);
     final branchesAsync = ref.watch(employeeBranchesProvider);
+    final notificationsAsync = ref.watch(employeeNotificationsProvider);
+
+    final unread = notificationsAsync.valueOrNull
+            ?.where((n) => n['leido'] != true)
+            .length ??
+        0;
 
     return SafeArea(
       bottom: false,
@@ -34,16 +41,48 @@ class EmployeeHeader extends ConsumerWidget {
                     ? 'Sucursal asignada: $fallbackBranchId...'
                     : 'Sucursal: Sin asignar'),
             trailing: IconButton(
-              tooltip: 'Actualizar',
+              tooltip: 'Notificaciones',
               onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const EmployeeNotificationsView()),
+                );
+              },
+              icon: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Icon(
+                    Icons.notifications_outlined,
+                    color: Theme.of(context).colorScheme.onPrimary,
+                  ),
+                  if (unread > 0)
+                    Positioned(
+                      right: -1,
+                      top: -1,
+                      child: Container(
+                        padding:
+                            const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                        child: Text(
+                          unread > 99 ? '99+' : unread.toString(),
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.primary,
+                            fontWeight: FontWeight.w900,
+                            fontSize: 10,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+              onLongPress: () {
                 ref
                   ..invalidate(employeeBranchesProvider)
-                  ..invalidate(employeeProfileProvider);
+                  ..invalidate(employeeProfileProvider)
+                  ..invalidate(employeeNotificationsProvider);
               },
-              icon: Icon(
-                Icons.refresh,
-                color: Theme.of(context).colorScheme.onPrimary,
-              ),
             ),
           );
         },

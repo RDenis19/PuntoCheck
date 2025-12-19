@@ -1,18 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:puntocheck/presentation/employee/views/employee_home_view.dart';
 import 'package:puntocheck/presentation/employee/views/employee_attendance_view.dart';
 import 'package:puntocheck/presentation/employee/views/employee_requests_view.dart';
 import 'package:puntocheck/presentation/employee/views/employee_profile_view.dart';
+import 'package:puntocheck/providers/employee_providers.dart';
 import 'package:puntocheck/utils/theme/app_colors.dart';
 
-class EmployeeShellView extends StatefulWidget {
+class EmployeeShellView extends ConsumerStatefulWidget {
   const EmployeeShellView({super.key});
 
   @override
-  State<EmployeeShellView> createState() => _EmployeeShellViewState();
+  ConsumerState<EmployeeShellView> createState() => _EmployeeShellViewState();
 }
 
-class _EmployeeShellViewState extends State<EmployeeShellView> {
+class _EmployeeShellViewState extends ConsumerState<EmployeeShellView> {
   int _currentIndex = 0;
 
   final List<Widget> _pages = const [
@@ -24,6 +26,9 @@ class _EmployeeShellViewState extends State<EmployeeShellView> {
 
   @override
   Widget build(BuildContext context) {
+    // Mantiene providers del employee actualizados en tiempo real (si Realtime está habilitado).
+    ref.watch(employeeRealtimeListenerProvider);
+
     return Scaffold(
       body: _pages[_currentIndex],
       bottomNavigationBar: Container(

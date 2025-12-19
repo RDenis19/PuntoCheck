@@ -25,7 +25,7 @@ class AttendanceStatsSection extends StatelessWidget {
         const Padding(
           padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           child: Text(
-            'Resumen de Hoy',
+            'Resumen',
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w900,

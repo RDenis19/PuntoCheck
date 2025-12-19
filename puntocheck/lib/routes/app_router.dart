@@ -7,6 +7,9 @@ import 'package:puntocheck/models/perfiles.dart';
 import 'package:puntocheck/providers/app_providers.dart';
 import 'package:puntocheck/presentation/login/views/login_view.dart';
 import 'package:puntocheck/presentation/auditor/views/auditor_shell_view.dart';
+import 'package:puntocheck/presentation/auditor/views/auditor_attendance_detail_view.dart';
+import 'package:puntocheck/presentation/auditor/views/auditor_audit_log_view.dart';
+import 'package:puntocheck/presentation/auditor/views/auditor_notifications_view.dart';
 import 'package:puntocheck/presentation/employee/views/employee_shell_view.dart';
 import 'package:puntocheck/presentation/manager/views/manager_shell_view.dart';
 import 'package:puntocheck/presentation/admin/views/org_admin_alerts_view.dart';
@@ -194,6 +197,22 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.auditorHome,
         builder: (_, __) => const AuditorShellView(),
+        routes: [
+          GoRoute(
+            path: 'asistencia/:recordId',
+            builder: (_, state) => AuditorAttendanceDetailView(
+              recordId: state.pathParameters['recordId'] ?? '',
+            ),
+          ),
+          GoRoute(
+            path: 'auditoria',
+            builder: (_, __) => const AuditorAuditLogView(),
+          ),
+          GoRoute(
+            path: 'notificaciones',
+            builder: (_, __) => const AuditorNotificationsView(),
+          ),
+        ],
       ),
       GoRoute(
         path: AppRoutes.employeeHome,

@@ -17,19 +17,35 @@ class AuditorTabNavigation extends StatelessWidget {
       currentIndex: currentIndex,
       onTap: onTap,
       selectedItemColor: AppColors.primaryRed,
-      unselectedItemColor: AppColors.neutral700,
+      unselectedItemColor: AppColors.neutral500,
+      type: BottomNavigationBarType.fixed,
+      selectedLabelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
+      unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500, fontSize: 12),
       items: const [
         BottomNavigationBarItem(
-          icon: Icon(Icons.dashboard_outlined),
-          label: 'Dashboard',
+          icon: Icon(Icons.home_outlined),
+          activeIcon: Icon(Icons.home),
+          label: 'Inicio',
         ),
         BottomNavigationBarItem(
-          icon: Icon(Icons.rule_folder_outlined),
-          label: 'Cumplimiento',
+          icon: Icon(Icons.access_time),
+          activeIcon: Icon(Icons.access_time_filled),
+          label: 'Asistencia',
         ),
         BottomNavigationBarItem(
-          icon: Icon(Icons.file_download_outlined),
-          label: 'Reportes',
+          icon: Icon(Icons.event_note_outlined),
+          activeIcon: Icon(Icons.event_note),
+          label: 'Permisos',
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.notifications_none),
+          activeIcon: Icon(Icons.notifications),
+          label: 'Alertas',
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.person_outline),
+          activeIcon: Icon(Icons.person),
+          label: 'Perfil',
         ),
       ],
     );

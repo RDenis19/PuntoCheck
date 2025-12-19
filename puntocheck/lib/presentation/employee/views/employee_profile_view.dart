@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:puntocheck/presentation/employee/views/employee_compliance_alerts_view.dart';
 import 'package:puntocheck/presentation/shared/widgets/section_card.dart';
 import 'package:puntocheck/providers/auth_providers.dart';
 import 'package:puntocheck/providers/employee_providers.dart';
@@ -137,6 +138,8 @@ class _EmployeeProfileViewState extends ConsumerState<EmployeeProfileView> {
   Widget build(BuildContext context) {
     final profileAsync = ref.watch(employeeProfileProvider);
     final branchesAsync = ref.watch(employeeBranchesProvider);
+    final complianceAsync = ref.watch(employeeComplianceAlertsProvider);
+    final orgAsync = ref.watch(employeeOrganizationProvider);
 
     return Scaffold(
       backgroundColor: AppColors.neutral100,
@@ -177,6 +180,14 @@ class _EmployeeProfileViewState extends ConsumerState<EmployeeProfileView> {
             orElse: () => null,
           );
 
+          final org = orgAsync.valueOrNull;
+          final orgName = org?.razonSocial;
+          final orgRuc = org?.ruc;
+          final orgLabel = orgName ??
+              (orgAsync.hasError
+                  ? 'Sin permisos para ver el nombre (RLS)'
+                  : _shortId(profile.organizacionId));
+
           if (!_isEditing && _phoneController.text.isEmpty) {
             _phoneController.text = profile.telefono ?? '';
           }
@@ -187,66 +198,22 @@ class _EmployeeProfileViewState extends ConsumerState<EmployeeProfileView> {
               key: _formKey,
               child: Column(
                 children: [
-                  Center(
-                    child: Stack(
-                      children: [
-                        CircleAvatar(
-                          radius: 52,
-                          backgroundColor: AppColors.primaryRed.withValues(alpha: 0.08),
-                          backgroundImage: _newPhotoFile != null
-                              ? FileImage(_newPhotoFile!)
-                              : (profile.fotoPerfilUrl != null && profile.fotoPerfilUrl!.isNotEmpty
-                                  ? NetworkImage(profile.fotoPerfilUrl!)
-                                  : null) as ImageProvider<Object>?,
-                          child: (_newPhotoFile == null) &&
-                                  (profile.fotoPerfilUrl == null || profile.fotoPerfilUrl!.isEmpty)
-                              ? Text(
-                                  profile.nombres.isNotEmpty
-                                      ? profile.nombres[0].toUpperCase()
-                                      : '?',
-                                  style: const TextStyle(
-                                    fontSize: 40,
-                                    fontWeight: FontWeight.w900,
-                                    color: AppColors.primaryRed,
-                                  ),
-                                )
-                              : null,
-                        ),
-                        if (_isEditing)
-                          Positioned(
-                            bottom: 0,
-                            right: 0,
-                            child: CircleAvatar(
-                              backgroundColor: AppColors.primaryRed,
-                              radius: 18,
-                              child: IconButton(
-                                icon: const Icon(
-                                  Icons.camera_alt,
-                                  size: 18,
-                                  color: Colors.white,
-                                ),
-                                onPressed: _isSaving ? null : _pickProfilePhoto,
-                              ),
-                            ),
-                          ),
-                      ],
-                    ),
+                  _ProfileHeaderCard(
+                    isEditing: _isEditing,
+                    isSaving: _isSaving,
+                    newPhotoFile: _newPhotoFile,
+                    fotoPerfilUrl: profile.fotoPerfilUrl,
+                    initials: profile.nombres.isNotEmpty
+                        ? profile.nombres[0].toUpperCase()
+                        : '?',
+                    fullName: '${profile.nombres} ${profile.apellidos}',
+                    role: profile.cargo ?? 'Empleado',
+                    orgName: orgLabel,
+                    branchName: branchName ?? _shortId(profile.sucursalId),
+                    onPickPhoto: _pickProfilePhoto,
+                    onRefreshOrg: () => ref.invalidate(employeeOrganizationProvider),
                   ),
                   const SizedBox(height: 14),
-                  Text(
-                    '${profile.nombres} ${profile.apellidos}',
-                    style: const TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.w900,
-                      color: AppColors.neutral900,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    profile.cargo ?? 'Empleado',
-                    style: const TextStyle(color: AppColors.neutral600),
-                  ),
-                  const SizedBox(height: 20),
                   SectionCard(
                     title: 'Datos',
                     child: Column(
@@ -280,7 +247,7 @@ class _EmployeeProfileViewState extends ConsumerState<EmployeeProfileView> {
                         const Divider(height: 24),
                         _readOnlyRow(
                           label: 'Email',
-                          value: Supabase.instance.client.auth.currentUser?.email ?? '',
+                          value: Supabase.instance.client.auth.currentUser?.email ?? '—',
                           icon: Icons.email_outlined,
                         ),
                         const Divider(height: 24),
@@ -292,10 +259,35 @@ class _EmployeeProfileViewState extends ConsumerState<EmployeeProfileView> {
                         const Divider(height: 24),
                         _readOnlyRow(
                           label: 'Organización',
-                          value: profile.organizacionId ?? 'No asignada',
+                          value: orgLabel.isEmpty ? 'No asignada' : orgLabel,
                           icon: Icons.apartment_outlined,
                         ),
+                        const Divider(height: 24),
+                        _readOnlyRow(
+                          label: 'RUC',
+                          value: orgRuc ?? '—',
+                          icon: Icons.receipt_long_outlined,
+                        ),
                       ],
+                    ),
+                  ),
+                  SectionCard(
+                    title: 'Cumplimiento',
+                    child: _ComplianceEntry(
+                      pendingCount: complianceAsync.valueOrNull
+                              ?.where((a) =>
+                                  (a.estado ?? '').trim().toLowerCase() ==
+                                  'pendiente')
+                              .length ??
+                          0,
+                      isLoading: complianceAsync.isLoading,
+                      onTap: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => const EmployeeComplianceAlertsView(),
+                          ),
+                        );
+                      },
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -408,6 +400,310 @@ class _EmployeeProfileViewState extends ConsumerState<EmployeeProfileView> {
           ),
         ),
       ],
+    );
+  }
+}
+
+String _shortId(String? id) {
+  final v = (id ?? '').trim();
+  if (v.isEmpty) return '—';
+  return v.length > 8 ? '${v.substring(0, 8)}...' : v;
+}
+
+class _ComplianceEntry extends StatelessWidget {
+  const _ComplianceEntry({
+    required this.pendingCount,
+    required this.isLoading,
+    required this.onTap,
+  });
+
+  final int pendingCount;
+  final bool isLoading;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final Color accent =
+        pendingCount > 0 ? AppColors.warningOrange : AppColors.successGreen;
+
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(16),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          child: Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: accent.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(Icons.shield_outlined, color: accent),
+              ),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Alertas de cumplimiento',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontWeight: FontWeight.w900,
+                        color: AppColors.neutral900,
+                      ),
+                    ),
+                    SizedBox(height: 2),
+                    Text(
+                      'Ver alertas que te afectan',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: AppColors.neutral600,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (isLoading) ...[
+                const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+                const SizedBox(width: 10),
+              ] else ...[
+                _TinyBadge(count: pendingCount),
+                const SizedBox(width: 10),
+              ],
+              const Icon(Icons.chevron_right, color: AppColors.neutral500),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _TinyBadge extends StatelessWidget {
+  const _TinyBadge({required this.count});
+
+  final int count;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = count > 0 ? AppColors.warningOrange : AppColors.successGreen;
+    final label = count > 0 ? '$count' : 'OK';
+    final icon = count > 0 ? Icons.warning_amber_rounded : Icons.check_rounded;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: color.withValues(alpha: 0.18)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: color),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: TextStyle(
+              fontWeight: FontWeight.w900,
+              fontSize: 12,
+              color: color,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ProfileHeaderCard extends StatelessWidget {
+  const _ProfileHeaderCard({
+    required this.isEditing,
+    required this.isSaving,
+    required this.newPhotoFile,
+    required this.fotoPerfilUrl,
+    required this.initials,
+    required this.fullName,
+    required this.role,
+    required this.orgName,
+    required this.branchName,
+    required this.onPickPhoto,
+    required this.onRefreshOrg,
+  });
+
+  final bool isEditing;
+  final bool isSaving;
+  final File? newPhotoFile;
+  final String? fotoPerfilUrl;
+  final String initials;
+  final String fullName;
+  final String role;
+  final String orgName;
+  final String branchName;
+  final VoidCallback onPickPhoto;
+  final VoidCallback onRefreshOrg;
+
+  @override
+  Widget build(BuildContext context) {
+    final ImageProvider<Object>? imageProvider = newPhotoFile != null
+        ? FileImage(newPhotoFile!) as ImageProvider<Object>
+        : ((fotoPerfilUrl != null && fotoPerfilUrl!.isNotEmpty)
+            ? NetworkImage(fotoPerfilUrl!) as ImageProvider<Object>
+            : null);
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppColors.neutral200),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Stack(
+            children: [
+              CircleAvatar(
+                radius: 42,
+                backgroundColor: AppColors.primaryRed.withValues(alpha: 0.08),
+                backgroundImage: imageProvider,
+                child: imageProvider == null
+                    ? Text(
+                        initials,
+                        style: const TextStyle(
+                          fontSize: 30,
+                          fontWeight: FontWeight.w900,
+                          color: AppColors.primaryRed,
+                        ),
+                      )
+                    : null,
+              ),
+              if (isEditing)
+                Positioned(
+                  bottom: 0,
+                  right: 0,
+                  child: CircleAvatar(
+                    backgroundColor: AppColors.primaryRed,
+                    radius: 16,
+                    child: IconButton(
+                      icon: const Icon(
+                        Icons.camera_alt,
+                        size: 16,
+                        color: Colors.white,
+                      ),
+                      onPressed: isSaving ? null : onPickPhoto,
+                      tooltip: 'Cambiar foto',
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  fullName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w900,
+                    color: AppColors.neutral900,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  role,
+                  style: const TextStyle(
+                    color: AppColors.neutral600,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    _InfoChip(
+                      icon: Icons.apartment_outlined,
+                      label: orgName,
+                      onLongPress: onRefreshOrg,
+                    ),
+                    _InfoChip(
+                      icon: Icons.store_mall_directory_outlined,
+                      label: branchName,
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _InfoChip extends StatelessWidget {
+  const _InfoChip({
+    required this.icon,
+    required this.label,
+    this.onLongPress,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback? onLongPress;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onLongPress: onLongPress,
+      borderRadius: BorderRadius.circular(999),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+        decoration: BoxDecoration(
+          color: AppColors.neutral100,
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(color: AppColors.neutral200),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 16, color: AppColors.neutral600),
+            const SizedBox(width: 6),
+            Flexible(
+              fit: FlexFit.loose,
+              child: Text(
+                label,
+                maxLines: 1,
+                softWrap: false,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.neutral700,
+                  fontSize: 12,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

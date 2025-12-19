@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:puntocheck/models/registros_asistencia.dart';
 import 'package:puntocheck/presentation/admin/widgets/attendance_filter_sheet.dart';
+import 'package:puntocheck/presentation/admin/widgets/attendance_record_detail_sheet.dart';
 import 'package:puntocheck/presentation/admin/widgets/attendance_record_card.dart';
 import 'package:puntocheck/presentation/admin/widgets/attendance_stats_section.dart';
 import 'package:puntocheck/presentation/admin/widgets/empty_state.dart';
@@ -233,7 +234,14 @@ class _OrgAdminAttendanceViewState
                         return AttendanceRecordCard(
                           record: record,
                           onTap: () {
-                            // TODO: Abrir detalle
+                            showModalBottomSheet<void>(
+                              context: context,
+                              isScrollControlled: true,
+                              backgroundColor: Colors.transparent,
+                              builder: (_) => AdminAttendanceRecordDetailSheet(
+                                record: record,
+                              ),
+                            );
                           },
                         );
                       }, childCount: filteredRecords.length),
@@ -374,16 +382,12 @@ class _DateSelector extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            AppColors.primaryRed,
-            AppColors.primaryRed.withValues(alpha: 0.8),
-          ],
-        ),
+        color: Colors.white,
         borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.neutral200, width: 1.5),
         boxShadow: [
           BoxShadow(
-            color: AppColors.primaryRed.withValues(alpha: 0.3),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
@@ -391,10 +395,21 @@ class _DateSelector extends StatelessWidget {
       ),
       child: Row(
         children: [
-          const Icon(
-            Icons.calendar_today_rounded,
-            color: Colors.white,
-            size: 24,
+          Container(
+            width: 42,
+            height: 42,
+            decoration: BoxDecoration(
+              color: AppColors.primaryRed.withValues(alpha: 0.10),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: AppColors.primaryRed.withValues(alpha: 0.18),
+              ),
+            ),
+            child: const Icon(
+              Icons.calendar_today_rounded,
+              color: AppColors.primaryRed,
+              size: 22,
+            ),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -404,7 +419,7 @@ class _DateSelector extends StatelessWidget {
                 Text(
                   isToday ? 'Hoy' : _formatDate(selectedDate),
                   style: const TextStyle(
-                    color: Colors.white,
+                    color: AppColors.neutral900,
                     fontWeight: FontWeight.w900,
                     fontSize: 18,
                   ),
@@ -412,7 +427,7 @@ class _DateSelector extends StatelessWidget {
                 Text(
                   _formatLongDate(selectedDate),
                   style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.9),
+                    color: AppColors.neutral600,
                     fontSize: 13,
                   ),
                 ),
@@ -441,7 +456,10 @@ class _DateSelector extends StatelessWidget {
                 onDateChanged(picked);
               }
             },
-            icon: const Icon(Icons.edit_calendar_rounded, color: Colors.white),
+            icon: const Icon(
+              Icons.edit_calendar_rounded,
+              color: AppColors.neutral700,
+            ),
             tooltip: 'Cambiar fecha',
           ),
         ],
