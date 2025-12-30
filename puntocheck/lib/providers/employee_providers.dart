@@ -14,6 +14,7 @@ import '../models/employee_schedule.dart';
 import '../models/organizaciones.dart';
 import '../services/attendance_service.dart';
 import '../services/employee_service.dart';
+import '../services/attendance_helper.dart';
 import 'auth_providers.dart';
 
 /// Servicio del rol employee.
@@ -286,6 +287,12 @@ class EmployeeAttendanceController extends AsyncNotifier<void> {
     Map<String, dynamic>? result;
     state = await AsyncValue.guard(() async {
       final svc = ref.read(employeeServiceProvider);
+      final now = DateTime.now();
+      final schedule = await ref.read(employeeScheduleProvider.future);
+      final turnoJornadaId = AttendanceHelper.resolveTurnoJornadaId(
+        now,
+        schedule?.plantilla,
+      );
 
       if (!_allowedEmployeeTypes.contains(tipoRegistro)) {
         throw Exception('Tipo de registro no permitido: $tipoRegistro');
@@ -325,6 +332,7 @@ class EmployeeAttendanceController extends AsyncNotifier<void> {
                 latitud: null,
                 longitud: null,
                 sucursalId: effectiveSucursalId,
+                turnoJornadaId: turnoJornadaId,
                 estaDentroGeocerca: true,
                 notas: notas ?? 'Validado por QR',
                 isQr: true,
@@ -355,6 +363,18 @@ class EmployeeAttendanceController extends AsyncNotifier<void> {
               );
           result = Map<String, dynamic>.from(rpcResult)
             ..['evidencia_foto_url'] = evidenceUrl;
+
+          // Intento best-effort: si el RPC retorna `id`, tratamos de setear el turno en el registro.
+          // En muchos entornos RLS no permite UPDATE; por eso se ignora el error.
+          final recordId = (rpcResult['id'] ?? rpcResult['registro_id'])?.toString();
+          if (turnoJornadaId != null && recordId != null && recordId.trim().isNotEmpty) {
+            try {
+              await Supabase.instance.client
+                  .from('registros_asistencia')
+                  .update({'turno_jornada_id': turnoJornadaId})
+                  .eq('id', recordId);
+            } catch (_) {}
+          }
         } else {
           // Sin GPS (p.ej. entornos limitados): insert directo.
           await svc
@@ -364,6 +384,7 @@ class EmployeeAttendanceController extends AsyncNotifier<void> {
                 latitud: null,
                 longitud: null,
                 sucursalId: effectiveSucursalId,
+                turnoJornadaId: turnoJornadaId,
                 estaDentroGeocerca: estaDentroGeocerca,
                 notas: notas,
                 isQr: isQr,
@@ -398,6 +419,7 @@ class EmployeeAttendanceController extends AsyncNotifier<void> {
               latitud: latitud,
               longitud: longitud,
               sucursalId: effectiveSucursalId,
+              turnoJornadaId: turnoJornadaId,
               estaDentroGeocerca: estaDentroGeocerca,
               notas: notas,
               isQr: isQr,

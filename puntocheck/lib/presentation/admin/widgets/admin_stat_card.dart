@@ -8,6 +8,7 @@ class AdminStatCard extends StatelessWidget {
   final String? hint;
   final IconData icon;
   final Color? color;
+  final VoidCallback? onTap;
 
   const AdminStatCard({
     super.key,
@@ -16,6 +17,7 @@ class AdminStatCard extends StatelessWidget {
     required this.icon,
     this.hint,
     this.color,
+    this.onTap,
   });
 
   @override
@@ -24,7 +26,7 @@ class AdminStatCard extends StatelessWidget {
     final accent = color ?? AppColors.primaryRed;
     final faded = accent.withValues(alpha: 0.1);
 
-    return Container(
+    final card = Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: AppColors.secondaryWhite,
@@ -83,6 +85,17 @@ class AdminStatCard extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+
+    if (onTap == null) return card;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(14),
+        onTap: onTap,
+        child: card,
       ),
     );
   }

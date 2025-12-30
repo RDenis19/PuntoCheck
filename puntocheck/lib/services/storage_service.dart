@@ -84,16 +84,28 @@ class StorageService {
       if (size > _maxFileBytes) {
         throw Exception('El archivo supera 5MB. Adjunta uno más liviano.');
       }
-      final fileExt = file.path.split('.').last;
+      final fileExt = file.path.split('.').last.toLowerCase();
       final fileName = 'doc_${DateTime.now().millisecondsSinceEpoch}.$fileExt';
       final path = '$userId/$fileName';
+
+      final contentType = switch (fileExt) {
+        'jpg' || 'jpeg' => 'image/jpeg',
+        'png' => 'image/png',
+        'webp' => 'image/webp',
+        'pdf' => 'application/pdf',
+        _ => 'application/octet-stream',
+      };
 
       await supabase.storage
           .from('documentos_legales')
           .upload(
             path,
             file,
-            fileOptions: const FileOptions(cacheControl: '3600', upsert: false),
+            fileOptions: FileOptions(
+              cacheControl: '3600',
+              upsert: false,
+              contentType: contentType,
+            ),
           );
 
       return path;

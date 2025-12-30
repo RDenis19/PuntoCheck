@@ -198,6 +198,49 @@ class AttendanceHelper {
     return ShiftRange(start: start, end: end, endsNextDay: endsNextDay);
   }
 
+  /// Determina el `turno_jornada_id` para una marcación en base a los turnos de la plantilla.
+  ///
+  /// Retorna `null` si no hay turnos o no se puede determinar un match.
+  static String? resolveTurnoJornadaId(DateTime now, PlantillasHorarios? plantilla) {
+    if (plantilla == null) return null;
+    final turnos = [...plantilla.turnos]
+      ..sort((a, b) => (a.orden ?? 0).compareTo(b.orden ?? 0));
+    if (turnos.isEmpty) return null;
+
+    DateTime? toDateTimeToday(String hhmm) {
+      final tod = _parseTimeOfDay(hhmm);
+      if (tod == null) return null;
+      return DateTime(now.year, now.month, now.day, tod.hour, tod.minute);
+    }
+
+    bool inRange(DateTime dt, DateTime start, DateTime end, {required bool crossesMidnight}) {
+      if (!crossesMidnight) {
+        return !dt.isBefore(start) && !dt.isAfter(end);
+      }
+      // Jornada cruzando medianoche: dt >= start OR dt <= end (del día siguiente).
+      return !dt.isBefore(start) || !dt.isAfter(end);
+    }
+
+    for (final t in turnos) {
+      final start = toDateTimeToday(t.horaInicio);
+      final endBase = toDateTimeToday(t.horaFin);
+      if (start == null || endBase == null) continue;
+
+      var end = endBase;
+      final crossesMidnight = (t.esDiaSiguiente == true) || end.isBefore(start);
+      if (crossesMidnight) {
+        end = end.add(const Duration(days: 1));
+      }
+
+      if (inRange(now, start, end, crossesMidnight: crossesMidnight)) {
+        return t.id;
+      }
+    }
+
+    // Fallback: si no match, usamos el primer turno (mejor que null en entornos simples).
+    return turnos.first.id;
+  }
+
   /// Calcula la hora límite para entrada (con tolerancia)
   static DateTime? computeLatestEntryTime(
     PlantillasHorarios? plantilla,

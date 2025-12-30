@@ -17,6 +17,12 @@ import 'auth_providers.dart';
 import 'core_providers.dart';
 import '../services/supabase_client.dart';
 
+/// Índice actual del `BottomNavigationBar` del Org Admin.
+///
+/// Permite que cualquier vista (por ejemplo, el dashboard) pueda redirigir a
+/// otra pestaña sin depender de `setState` en el shell.
+final orgAdminTabIndexProvider = StateProvider<int>((ref) => 0);
+
 // ============================================================================
 // Helpers
 // ============================================================================

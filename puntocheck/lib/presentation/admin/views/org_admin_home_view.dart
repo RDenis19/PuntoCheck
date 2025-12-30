@@ -20,47 +20,53 @@ class _OrgAdminHomeViewState extends ConsumerState<OrgAdminHomeView> {
   bool _showActions = false;
 
   List<_QuickActionData> get _quickActions => const [
-    _QuickActionData(
+    _QuickActionData.route(
       icon: Icons.edit,
       label: 'Editar organizacion',
       route: AppRoutes.orgAdminEditOrg,
     ),
-    _QuickActionData(
+    _QuickActionData.route(
       icon: Icons.store_mall_directory_outlined,
       label: 'Sucursales',
       route: AppRoutes.orgAdminBranches,
     ),
-    _QuickActionData(
+    _QuickActionData.route(
       icon: Icons.receipt_long,
       label: 'Pagos y suscripcion',
       route: AppRoutes.orgAdminPayments,
     ),
-    _QuickActionData(
+    _QuickActionData.route(
       icon: Icons.shield,
       label: 'Alertas',
       route: AppRoutes.orgAdminAlerts,
     ),
-    _QuickActionData(
+    _QuickActionData.route(
       icon: Icons.schedule_outlined,
       label: 'Plantillas horarios',
       route: AppRoutes.orgAdminSchedules,
     ),
-    _QuickActionData(
+    _QuickActionData.route(
       icon: Icons.assignment_ind_rounded,
       label: 'Asignaciones',
       route: AppRoutes.orgAdminScheduleAssignments,
     ),
-    _QuickActionData(
+    _QuickActionData.route(
       icon: Icons.access_time_filled,
       label: 'Banco de horas',
       route: AppRoutes.orgAdminHoursBank,
     ),
-    _QuickActionData(
+    _QuickActionData.tab(
       icon: Icons.event_note_outlined,
       label: 'Permisos',
-      route: AppRoutes.orgAdminLeaves,
+      tabIndex: 3,
     ),
   ];
+
+  void _goToTab(int index) {
+    ref.read(orgAdminTabIndexProvider.notifier).state = index;
+    if (!mounted) return;
+    context.go(AppRoutes.orgAdminHome);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -115,6 +121,7 @@ class _OrgAdminHomeViewState extends ConsumerState<OrgAdminHomeView> {
                         value: '${summary.staffActive}/${summary.staffTotal}',
                         hint: 'Activos / total',
                         icon: Icons.groups,
+                        onTap: () => _goToTab(1),
                       ),
                       AdminStatCard(
                         label: 'Asistencias hoy',
@@ -123,12 +130,14 @@ class _OrgAdminHomeViewState extends ConsumerState<OrgAdminHomeView> {
                             '${summary.geofenceIssuesToday} fuera de geocerca',
                         icon: Icons.access_time_filled,
                         color: AppColors.infoBlue,
+                        onTap: () => _goToTab(2),
                       ),
                       AdminStatCard(
                         label: 'Permisos pendientes',
                         value: '${summary.pendingPermissions}',
                         icon: Icons.assignment,
                         color: AppColors.warningOrange,
+                        onTap: () => _goToTab(3),
                       ),
                       AdminStatCard(
                         label: 'Alertas legales',
@@ -136,6 +145,7 @@ class _OrgAdminHomeViewState extends ConsumerState<OrgAdminHomeView> {
                         icon: Icons.warning_amber_rounded,
                         color: AppColors.errorRed,
                         hint: 'Revisa cumplimiento',
+                        onTap: () => context.push(AppRoutes.orgAdminAlerts),
                       ),
                     ],
                   ),
@@ -207,8 +217,7 @@ class _OrgAdminHomeViewState extends ConsumerState<OrgAdminHomeView> {
                         _QuickAction(
                           icon: _quickActions[i].icon,
                           label: _quickActions[i].label,
-                          onTap: () =>
-                              _handleQuickAction(_quickActions[i].route),
+                          onTap: () => _handleQuickAction(_quickActions[i]),
                         ),
                         if (i < _quickActions.length - 1)
                           const SizedBox(height: 10),
@@ -233,23 +242,48 @@ class _OrgAdminHomeViewState extends ConsumerState<OrgAdminHomeView> {
     );
   }
 
-  void _handleQuickAction(String route) {
+  void _handleQuickAction(_QuickActionData action) {
     setState(() => _showActions = false);
     if (!mounted) return;
-    context.push(route);
+
+    final tabIndex = action.tabIndex;
+    final route = action.route;
+
+    if (tabIndex != null) {
+      _goToTab(tabIndex);
+      return;
+    }
+
+    if (route != null) {
+      context.push(route);
+    }
   }
 }
 
 class _QuickActionData {
   final IconData icon;
   final String label;
-  final String route;
+  final String? route;
+  final int? tabIndex;
 
-  const _QuickActionData({
+  const _QuickActionData._({
     required this.icon,
     required this.label,
-    required this.route,
+    this.route,
+    this.tabIndex,
   });
+
+  const _QuickActionData.route({
+    required IconData icon,
+    required String label,
+    required String route,
+  }) : this._(icon: icon, label: label, route: route);
+
+  const _QuickActionData.tab({
+    required IconData icon,
+    required String label,
+    required int tabIndex,
+  }) : this._(icon: icon, label: label, tabIndex: tabIndex);
 }
 
 class _QuickAction extends StatelessWidget {

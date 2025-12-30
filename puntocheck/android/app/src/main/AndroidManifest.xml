@@ -17,6 +17,8 @@
         android:requestLegacyExternalStorage="true"
         android:enableOnBackInvokedCallback="true"
         android:largeHeap="true">
+        <!-- Mitigación para ciertos dispositivos (MIUI/Adreno) con fallos de GPU/Gralloc. -->
+        <meta-data android:name="io.flutter.embedding.android.EnableImpeller" android:value="false" />
         <meta-data
             android:name="com.google.android.geo.API_KEY"
             android:value="AIzaSyAANwOSBgv9eWPpdzurf4-qEYPCh1UgbGw" />
@@ -44,16 +46,6 @@
             android:name="flutterEmbedding"
             android:value="2" />
 
-        <!-- FileProvider para ImagePicker / camara -->
-        <provider
-            android:name="androidx.core.content.FileProvider"
-            android:authorities="${applicationId}.fileprovider"
-            android:exported="false"
-            android:grantUriPermissions="true">
-            <meta-data
-                android:name="android.support.FILE_PROVIDER_PATHS"
-                android:resource="@xml/file_paths" />
-        </provider>
         <!-- Provider usado por image_picker -->
         <provider
             android:name="androidx.core.content.FileProvider"

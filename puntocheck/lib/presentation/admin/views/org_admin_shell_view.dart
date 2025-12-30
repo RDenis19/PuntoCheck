@@ -17,23 +17,20 @@ class OrgAdminShellView extends ConsumerStatefulWidget {
 }
 
 class _OrgAdminShellViewState extends ConsumerState<OrgAdminShellView> {
-  int _currentIndex = 0;
-
   @override
   Widget build(BuildContext context) {
     final profileAsync = ref.watch(profileProvider);
     final orgAsync = ref.watch(orgAdminOrganizationProvider);
+    final index = ref.watch(orgAdminTabIndexProvider);
 
-    var userName = 'Admin';
-    profileAsync.whenData((p) {
-      if (p != null && p.nombres.isNotEmpty) {
-        userName = p.nombres;
-      }
-    });
+    final userName = profileAsync.maybeWhen(
+      data: (p) => (p?.nombres.trim().isNotEmpty ?? false) ? p!.nombres : 'Admin',
+      orElse: () => 'Admin',
+    );
 
     final orgName = orgAsync.maybeWhen(
       data: (org) => org.razonSocial,
-      orElse: () => '',
+      orElse: () => 'Cargando...',
     );
 
     final pages = const [
@@ -48,7 +45,7 @@ class _OrgAdminShellViewState extends ConsumerState<OrgAdminShellView> {
       body: SafeArea(
         child: Column(
           children: [
-            if (_currentIndex == 0) ...[
+            if (index == 0) ...[
               OrgAdminHeader(
                 userName: userName,
                 organizationName: orgName,
@@ -58,15 +55,15 @@ class _OrgAdminShellViewState extends ConsumerState<OrgAdminShellView> {
             Expanded(
               child: AnimatedSwitcher(
                 duration: const Duration(milliseconds: 200),
-                child: pages[_currentIndex],
+                child: pages[index.clamp(0, pages.length - 1)],
               ),
             ),
           ],
         ),
       ),
       bottomNavigationBar: OrgAdminTabNavigation(
-        currentIndex: _currentIndex,
-        onTap: (index) => setState(() => _currentIndex = index),
+        currentIndex: index,
+        onTap: (i) => ref.read(orgAdminTabIndexProvider.notifier).state = i,
       ),
     );
   }

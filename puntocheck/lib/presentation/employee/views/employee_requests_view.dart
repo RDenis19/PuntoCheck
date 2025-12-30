@@ -2,13 +2,15 @@ import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:puntocheck/models/enums.dart';
 import 'package:puntocheck/models/solicitudes_permisos.dart';
-import 'package:puntocheck/presentation/employee/views/employee_notifications_view.dart';
+import 'package:puntocheck/presentation/employee/widgets/employee_notifications_action.dart';
 import 'package:puntocheck/presentation/shared/widgets/empty_state.dart';
 import 'package:puntocheck/providers/employee_providers.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:puntocheck/utils/theme/app_colors.dart';
 
 class EmployeeRequestsView extends ConsumerWidget {
@@ -17,12 +19,6 @@ class EmployeeRequestsView extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final requestsAsync = ref.watch(employeePermissionsProvider);
-    final notificationsAsync = ref.watch(employeeNotificationsProvider);
-
-    final unread = notificationsAsync.valueOrNull
-            ?.where((n) => n['leido'] != true)
-            .length ??
-        0;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF4F6F8),
@@ -32,41 +28,7 @@ class EmployeeRequestsView extends ConsumerWidget {
         foregroundColor: AppColors.neutral900,
         elevation: 0.5,
         actions: [
-          IconButton(
-            tooltip: 'Notificaciones',
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const EmployeeNotificationsView()),
-              );
-            },
-            icon: Stack(
-              clipBehavior: Clip.none,
-              children: [
-                const Icon(Icons.notifications_outlined),
-                if (unread > 0)
-                  Positioned(
-                    right: -1,
-                    top: -1,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: AppColors.primaryRed,
-                        borderRadius: BorderRadius.circular(999),
-                        border: Border.all(color: Colors.white, width: 1.5),
-                      ),
-                      child: Text(
-                        unread > 99 ? '99+' : unread.toString(),
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w800,
-                          fontSize: 10,
-                        ),
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-          ),
+          const EmployeeNotificationsAction(),
           IconButton(
             tooltip: 'Actualizar',
             onPressed: () => ref.invalidate(employeePermissionsProvider),
@@ -316,9 +278,7 @@ class _RequestDetailSheet extends StatelessWidget {
                   height: 46,
                   child: OutlinedButton.icon(
                     onPressed: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Copia el path del documento desde el panel de admin si lo necesitas.')),
-                      );
+                      _openDocument(context, doc);
                     },
                     icon: const Icon(Icons.visibility_outlined),
                     label: const Text('Ver documento'),
@@ -327,6 +287,262 @@ class _RequestDetailSheet extends StatelessWidget {
               ],
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+void _openDocument(BuildContext context, String raw) {
+  showDialog<void>(
+    context: context,
+    barrierDismissible: true,
+    builder: (_) => _DocumentDialog(raw: raw),
+  );
+}
+
+String _normalizeLegalDocPath(String raw) {
+  const bucketId = 'documentos_legales';
+  final trimmed = raw.trim();
+  if (trimmed.startsWith('$bucketId/')) {
+    return trimmed.substring(bucketId.length + 1);
+  }
+  return trimmed;
+}
+
+Future<String> _resolveDocumentViewUrl(String raw) async {
+  final trimmed = raw.trim();
+  if (trimmed.isEmpty) return '';
+  if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+    return trimmed;
+  }
+
+  // Preferimos signed URL (bucket privado).
+  try {
+    return await Supabase.instance.client.storage
+        .from('documentos_legales')
+        .createSignedUrl(_normalizeLegalDocPath(trimmed), 60 * 10);
+  } catch (_) {
+    // Fallback: si el bucket es público, esto puede funcionar.
+    throw Exception(
+      'No se pudo generar el enlace para ver el documento. '
+      'Revisa que exista el bucket `documentos_legales` y que tengas policy SELECT para `authenticated` '
+      'en la carpeta `auth.uid()`.\n'
+      'Ruta: ${_normalizeLegalDocPath(trimmed)}',
+    );
+  }
+}
+
+class _DocumentDialog extends StatelessWidget {
+  const _DocumentDialog({required this.raw});
+
+  final String raw;
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      insetPadding: const EdgeInsets.all(12),
+      child: SizedBox(
+        height: MediaQuery.of(context).size.height * 0.85,
+        width: double.infinity,
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
+              child: Row(
+                children: [
+                  const Expanded(
+                    child: Text(
+                      'Documento',
+                      style: TextStyle(fontWeight: FontWeight.w900),
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: FutureBuilder<String>(
+                future: _resolveDocumentViewUrl(raw),
+                builder: (context, snap) {
+                  if (snap.connectionState == ConnectionState.waiting) {
+                    return const Center(
+                      child: CircularProgressIndicator(
+                        color: AppColors.primaryRed,
+                      ),
+                    );
+                  }
+
+                  if (snap.hasError) {
+                    return _DocumentError(
+                      raw: raw,
+                      error: snap.error?.toString(),
+                    );
+                  }
+
+                  final url = (snap.data ?? '').trim();
+                  if (url.isEmpty) {
+                    return _DocumentError(raw: raw);
+                  }
+
+                  return _DocumentBody(url: url, raw: raw);
+                },
+              ),
+            ),
+            const SizedBox(height: 8),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+              child: FutureBuilder<String>(
+                future: _resolveDocumentViewUrl(raw),
+                builder: (context, snap) {
+                  final url = (snap.data ?? '').trim();
+                  return Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () async {
+                            await Clipboard.setData(ClipboardData(text: raw));
+                            if (!context.mounted) return;
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Ruta copiada')),
+                            );
+                          },
+                          icon: const Icon(Icons.copy),
+                          label: const Text('Copiar ruta'),
+                        ),
+                      ),
+                      if (url.isNotEmpty) ...[
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: FilledButton.icon(
+                            onPressed: () async {
+                              await Clipboard.setData(ClipboardData(text: url));
+                              if (!context.mounted) return;
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Enlace copiado')),
+                              );
+                            },
+                            icon: const Icon(Icons.link),
+                            label: const Text('Copiar enlace'),
+                            style: FilledButton.styleFrom(
+                              backgroundColor: AppColors.primaryRed,
+                              foregroundColor: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _DocumentBody extends StatelessWidget {
+  const _DocumentBody({required this.url, required this.raw});
+
+  final String url;
+  final String raw;
+
+  String get _ext {
+    String pick(String s) {
+      final noQuery = s.split('?').first.trim();
+      return noQuery.isEmpty ? '' : noQuery;
+    }
+
+    final candidate = pick(raw).isNotEmpty ? pick(raw) : pick(url);
+    final dot = candidate.lastIndexOf('.');
+    if (dot == -1 || dot == candidate.length - 1) return '';
+    return candidate.substring(dot + 1).toLowerCase();
+  }
+
+  bool get _looksLikePdf => _ext == 'pdf';
+
+  bool get _looksLikeImage =>
+      _ext == 'jpg' || _ext == 'jpeg' || _ext == 'png' || _ext == 'webp';
+
+  @override
+  Widget build(BuildContext context) {
+    if (_looksLikePdf) {
+      return Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'PDF detectado',
+              style: TextStyle(
+                fontWeight: FontWeight.w900,
+                color: AppColors.neutral900,
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Este proyecto aún no tiene visor de PDF embebido. Puedes copiar la ruta y abrirlo desde el panel web o descargarlo desde otro visor.',
+              style: TextStyle(color: AppColors.neutral700),
+            ),
+            const SizedBox(height: 12),
+            SelectableText(
+              url,
+              style: const TextStyle(color: AppColors.neutral600, fontSize: 12),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (_looksLikeImage) {
+      return InteractiveViewer(
+        child: Center(
+          child: Image.network(
+            url,
+            fit: BoxFit.contain,
+            errorBuilder: (_, error, __) =>
+                _DocumentError(raw: raw, error: error.toString()),
+            loadingBuilder: (context, child, progress) {
+              if (progress == null) return child;
+              return const Center(
+                child: CircularProgressIndicator(color: AppColors.primaryRed),
+              );
+            },
+          ),
+        ),
+      );
+    }
+
+    return _DocumentError(raw: raw);
+  }
+}
+
+class _DocumentError extends StatelessWidget {
+  const _DocumentError({required this.raw, this.error});
+
+  final String raw;
+  final String? error;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Text(
+          'No se pudo mostrar el documento.\n'
+          'Ruta: $raw\n\n'
+          'Posibles causas:\n'
+          '- Falta policy SELECT en el bucket `documentos_legales`.\n'
+          '- El archivo no existe o la ruta está mal.\n'
+          '- El tipo de archivo no es imagen/PDF.'
+          '${(error ?? '').trim().isEmpty ? '' : '\n\nDetalle: ${error!.trim()}'}',
+          textAlign: TextAlign.center,
+          style: const TextStyle(color: AppColors.neutral700),
         ),
       ),
     );
@@ -817,4 +1033,3 @@ String _tipoLabel(TipoPermiso tipo) {
       return 'Otro';
   }
 }
-

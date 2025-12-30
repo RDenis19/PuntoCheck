@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:puntocheck/models/registros_asistencia.dart';
+import 'package:puntocheck/presentation/employee/widgets/employee_notifications_action.dart';
 import 'package:puntocheck/presentation/employee/widgets/attendance/employee_attendance_day_card.dart';
 import 'package:puntocheck/presentation/employee/widgets/attendance/employee_attendance_detail_sheet.dart';
 import 'package:puntocheck/presentation/employee/widgets/attendance/employee_attendance_filters.dart';
@@ -36,6 +37,7 @@ class _EmployeeAttendanceViewState extends ConsumerState<EmployeeAttendanceView>
         foregroundColor: AppColors.neutral900,
         elevation: 0.5,
         actions: [
+          const EmployeeNotificationsAction(),
           IconButton(
             tooltip: 'Filtrar',
             onPressed: () async {
@@ -183,4 +185,3 @@ extension _FirstOrNullExt<T> on Iterable<T> {
     return it.current;
   }
 }
-

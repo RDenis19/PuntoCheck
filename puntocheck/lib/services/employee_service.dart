@@ -540,6 +540,7 @@ class EmployeeService {
     double? latitud,
     double? longitud,
     String? sucursalId,
+    String? turnoJornadaId,
     required bool estaDentroGeocerca,
     String? notas,
     required bool isQr,
@@ -562,6 +563,7 @@ class EmployeeService {
       'evidencia_foto_url': evidenciaFotoUrl,
       'origen': isQr ? OrigenMarcacion.qrFijo.value : OrigenMarcacion.gpsMovil.value,
       'notas': notas,
+      'turno_jornada_id': turnoJornadaId,
       'eliminado': false,
     };
 

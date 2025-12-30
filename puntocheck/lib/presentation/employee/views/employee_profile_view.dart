@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:puntocheck/presentation/employee/views/employee_compliance_alerts_view.dart';
+import 'package:puntocheck/presentation/employee/widgets/employee_notifications_action.dart';
 import 'package:puntocheck/presentation/shared/widgets/section_card.dart';
 import 'package:puntocheck/providers/auth_providers.dart';
 import 'package:puntocheck/providers/employee_providers.dart';
@@ -149,6 +150,7 @@ class _EmployeeProfileViewState extends ConsumerState<EmployeeProfileView> {
         elevation: 0.5,
         foregroundColor: AppColors.neutral900,
         actions: [
+          const EmployeeNotificationsAction(),
           profileAsync.maybeWhen(
             data: (profile) => _isEditing
                 ? IconButton(

@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:puntocheck/models/alertas_cumplimiento.dart';
 import 'package:puntocheck/models/enums.dart';
+import 'package:puntocheck/presentation/employee/widgets/employee_notifications_action.dart';
 import 'package:puntocheck/providers/employee_providers.dart';
 import 'package:puntocheck/utils/theme/app_colors.dart';
 
@@ -32,6 +33,7 @@ class _EmployeeComplianceAlertsViewState
         foregroundColor: AppColors.neutral900,
         elevation: 0.5,
         actions: [
+          const EmployeeNotificationsAction(),
           IconButton(
             tooltip: 'Recargar',
             onPressed: () => ref.invalidate(employeeComplianceAlertsProvider),
