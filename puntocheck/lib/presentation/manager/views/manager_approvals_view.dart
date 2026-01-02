@@ -2,12 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:puntocheck/models/enums.dart';
 import 'package:puntocheck/models/solicitudes_permisos.dart';
-import 'package:puntocheck/presentation/manager/widgets/manager_permission_card.dart';
-import 'package:puntocheck/presentation/shared/widgets/empty_state.dart';
+import 'package:puntocheck/presentation/admin/widgets/leave_filter_chip.dart';
+import 'package:puntocheck/presentation/admin/widgets/leave_stat_card.dart';
+import 'package:puntocheck/presentation/admin/widgets/request_card.dart';
+import 'package:puntocheck/presentation/manager/views/manager_leave_detail_view.dart';
 import 'package:puntocheck/providers/manager_providers.dart';
 import 'package:puntocheck/utils/theme/app_colors.dart';
 
 /// Vista para revisar y resolver solicitudes de permisos del equipo del Manager.
+/// Refactorizada para coincidir con la UI del Admin (OrgAdminLeavesAndHoursView).
 class ManagerApprovalsView extends ConsumerStatefulWidget {
   const ManagerApprovalsView({super.key});
 
@@ -17,17 +20,18 @@ class ManagerApprovalsView extends ConsumerStatefulWidget {
 }
 
 class _ManagerApprovalsViewState extends ConsumerState<ManagerApprovalsView> {
-  bool _showOnlyPending = true;
+  EstadoAprobacion? _selectedFilter;
 
   @override
   Widget build(BuildContext context) {
+    // Fetch TODAS las solicitudes del equipo (pendingOnly = false)
     final permissionsAsync = ref.watch(
-      managerTeamPermissionsProvider(_showOnlyPending),
+      managerTeamPermissionsProvider(false),
     );
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Permisos'),
+        title: const Text('Permisos y Vacaciones'),
         backgroundColor: Colors.white,
         foregroundColor: AppColors.neutral900,
         elevation: 0.5,
@@ -39,193 +43,236 @@ class _ManagerApprovalsViewState extends ConsumerState<ManagerApprovalsView> {
           ),
         ],
       ),
-      body: SafeArea(
-        child: Column(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(16),
-              color: Colors.white,
-              child: Row(
-                children: [
-                  Expanded(
-                    child: _TabButton(
-                      label: 'Pendientes',
-                      isSelected: _showOnlyPending,
-                      onTap: () => setState(() => _showOnlyPending = true),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _TabButton(
-                      label: 'Todos',
-                      isSelected: !_showOnlyPending,
-                      onTap: () => setState(() => _showOnlyPending = false),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Expanded(
-              child: RefreshIndicator(
-                onRefresh: () async =>
-                    ref.invalidate(managerTeamPermissionsProvider),
-                color: AppColors.primaryRed,
-                child: permissionsAsync.when(
-                  data: (permissions) {
-                    if (permissions.isEmpty) {
-                      return EmptyState(
-                        icon: Icons.assignment_turned_in_outlined,
-                        title: _showOnlyPending
-                            ? 'Sin pendientes'
-                            : 'Sin permisos',
-                        message: _showOnlyPending
-                            ? 'No hay solicitudes pendientes por revisar'
-                            : 'No hay solicitudes de permisos del equipo',
-                      );
-                    }
+      body: RefreshIndicator(
+        onRefresh: () async => ref.invalidate(managerTeamPermissionsProvider),
+        color: AppColors.primaryRed,
+        child: permissionsAsync.when(
+          data: (allPermissions) {
+            // Filtrar localmente según el filtro seleccionado
+            final permissions = _selectedFilter == null
+                ? allPermissions
+                : allPermissions
+                    .where((r) => r.estado == _selectedFilter)
+                    .toList();
 
-                    return ListView.builder(
-                      padding: const EdgeInsets.all(16),
-                      itemCount: permissions.length,
-                      itemBuilder: (context, index) {
-                        final permission = permissions[index];
-                        final isPending =
-                            permission.estado == EstadoAprobacion.pendiente;
-                        final isCritical = _isCritical(permission);
+            // Calcular estadísticas de TODAS las solicitudes
+            final stats = _calculateStats(allPermissions);
 
-                        return ManagerPermissionCard(
-                          permission: permission,
-                          employeeName: permission.solicitanteNombreCompleto,
-                          onApprove: isPending
-                              ? () => _handleApproveOrEscalate(
-                                  context,
-                                  permissionId: permission.id,
-                                  isCritical: isCritical,
-                                )
-                              : null,
-                          onReject: isPending
-                              ? () => _handleReject(context, permission.id)
-                              : null,
-                        );
-                      },
-                    );
-                  },
-                  loading: () => const Center(
-                    child: CircularProgressIndicator(
-                      color: AppColors.primaryRed,
+            return CustomScrollView(
+              slivers: [
+                // Header con estadísticas
+                SliverToBoxAdapter(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                          child: Text(
+                            'Resumen'.toUpperCase(),
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.neutral500,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          physics: const BouncingScrollPhysics(),
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                          child: Row(
+                            children: [
+                              SizedBox(
+                                width: 200,
+                                child: LeaveStatCard(
+                                  label: 'Pendientes',
+                                  value: stats['pendientes'].toString(),
+                                  icon: Icons.pending_outlined,
+                                  color: AppColors.warningOrange,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              SizedBox(
+                                width: 200,
+                                child: LeaveStatCard(
+                                  label: 'Aprobados',
+                                  value: stats['aprobados'].toString(),
+                                  icon: Icons.check_circle_outline,
+                                  color: AppColors.successGreen,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              SizedBox(
+                                width: 200,
+                                child: LeaveStatCard(
+                                  label: 'Rechazados',
+                                  value: stats['rechazados'].toString(),
+                                  icon: Icons.cancel_outlined,
+                                  color: AppColors.errorRed,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              SizedBox(
+                                width: 200,
+                                child: LeaveStatCard(
+                                  label: 'Total Días',
+                                  value: stats['diasTotales'].toString(),
+                                  icon: Icons.calendar_today_outlined,
+                                  color: AppColors.infoBlue,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-                  error: (error, _) => _ErrorState(
-                    title: 'Error cargando permisos',
-                    message: '$error',
-                    onRetry: () =>
-                        ref.invalidate(managerTeamPermissionsProvider),
                   ),
                 ),
-              ),
+
+                // Filtros
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.only(top: 8, bottom: 16),
+                    child: LeaveFiltersSection(
+                      selectedFilter: _selectedFilter,
+                      onFilterChanged: (filter) {
+                        setState(() => _selectedFilter = filter);
+                      },
+                    ),
+                  ),
+                ),
+
+                // Lista de solicitudes
+                if (permissions.isEmpty)
+                  SliverFillRemaining(
+                    child: Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(
+                            Icons.event_note_outlined,
+                            size: 64,
+                            color: AppColors.neutral400,
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            _selectedFilter == null
+                                ? 'No hay solicitudes'
+                                : 'No hay solicitudes ${_getFilterLabel()}',
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.neutral700,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          const Text(
+                            'Las solicitudes del equipo aparecerán aquí',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: AppColors.neutral600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
+                else
+                  SliverPadding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    sliver: SliverList(
+                      delegate: SliverChildBuilderDelegate(
+                        (context, index) {
+                          final request = permissions[index];
+                          return RequestCard(
+                            request: request,
+                            onTap: () async {
+                              // Navegar al detalle para aprobar/rechazar
+                              final changed = await Navigator.push<bool>(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => ManagerLeaveDetailView(
+                                    request: request,
+                                  ),
+                                ),
+                              );
+                              // Si cambió algo (aprobó/rechazó), recargar
+                              if (changed == true) {
+                                ref.invalidate(managerTeamPermissionsProvider);
+                              }
+                            },
+                          );
+                        },
+                        childCount: permissions.length,
+                      ),
+                    ),
+                  ),
+
+                // Spacing al final
+                const SliverToBoxAdapter(
+                  child: SizedBox(height: 16),
+                ),
+              ],
+            );
+          },
+          loading: () => const Center(
+            child: CircularProgressIndicator(
+              color: AppColors.primaryRed,
             ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  bool _isCritical(SolicitudesPermisos permission) {
-    // Regla simple (no rompe nada): permisos largos o de alto impacto.
-    // En vez de aprobar "final", el manager pre-aprueba (aprobado_manager)
-    // para que el Org Admin haga la aprobación final (aprobado_rrhh).
-    final dias = permission.diasTotales;
-    final tipo = permission.tipo;
-    return dias >= 3 ||
-        tipo == TipoPermiso.vacaciones ||
-        tipo == TipoPermiso.maternidadPaternidad;
-  }
-
-  Future<void> _handleApproveOrEscalate(
-    BuildContext context, {
-    required String permissionId,
-    required bool isCritical,
-  }) async {
-    final controller = ref.read(managerPermissionControllerProvider.notifier);
-
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (context) => _ApprovalDialog(
-        title: isCritical ? '¿Escalar a Org Admin?' : '¿Aprobar permiso?',
-        message: isCritical
-            ? 'Esta solicitud parece crítica (por duración o tipo). Se marcará como aprobada por Manager para que el Org Admin haga la aprobación final.'
-            : '¿Estás seguro que deseas aprobar esta solicitud?',
-        confirmLabel: isCritical ? 'Escalar' : 'Aprobar',
-        confirmColor: AppColors.successGreen,
-        onConfirm: () => Navigator.pop(context, true),
-      ),
-    );
-
-    if (confirm != true) return;
-
-    try {
-      await controller.approve(
-        requestId: permissionId,
-        comment: isCritical
-            ? 'Escalado por el manager: requiere aprobación final del Org Admin'
-            : 'Aprobado por el manager',
-      );
-
-      if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            isCritical ? 'Solicitud escalada al Org Admin' : 'Permiso aprobado',
           ),
-          backgroundColor: AppColors.successGreen,
-          behavior: SnackBarBehavior.floating,
+          error: (error, _) => _ErrorState(
+            title: 'Error cargando permisos',
+            message: '$error',
+            onRetry: () => ref.invalidate(managerTeamPermissionsProvider),
+          ),
         ),
-      );
-      ref.invalidate(managerTeamPermissionsProvider);
-    } catch (e) {
-      if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error: $e'),
-          backgroundColor: AppColors.errorRed,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-    }
+      ),
+    );
   }
 
-  Future<void> _handleReject(BuildContext context, String requestId) async {
-    final controller = ref.read(managerPermissionControllerProvider.notifier);
+  Map<String, int> _calculateStats(List<SolicitudesPermisos> requests) {
+    int pendientes = 0;
+    int aprobados = 0;
+    int rechazados = 0;
+    int diasTotales = 0;
 
-    final comment = await showDialog<String>(
-      context: context,
-      builder: (context) => const _RejectDialog(),
-    );
+    for (var request in requests) {
+      if (request.estado == EstadoAprobacion.pendiente) {
+        pendientes++;
+      } else if (request.estado == EstadoAprobacion.aprobadoManager ||
+          request.estado == EstadoAprobacion.aprobadoRrhh) {
+        aprobados++;
+        diasTotales += request.diasTotales;
+      } else if (request.estado == EstadoAprobacion.rechazado) {
+        rechazados++;
+      }
+    }
 
-    final trimmed = comment?.trim();
-    if (trimmed == null || trimmed.isEmpty) return;
+    return {
+      'pendientes': pendientes,
+      'aprobados': aprobados,
+      'rechazados': rechazados,
+      'diasTotales': diasTotales,
+    };
+  }
 
-    try {
-      await controller.reject(requestId: requestId, comment: trimmed);
-
-      if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Permiso rechazado'),
-          backgroundColor: AppColors.warningOrange,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-      ref.invalidate(managerTeamPermissionsProvider);
-    } catch (e) {
-      if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error: $e'),
-          backgroundColor: AppColors.errorRed,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+  String _getFilterLabel() {
+    switch (_selectedFilter) {
+      case EstadoAprobacion.pendiente:
+        return 'pendientes';
+      case EstadoAprobacion.aprobadoManager:
+      case EstadoAprobacion.aprobadoRrhh:
+        return 'aprobadas';
+      case EstadoAprobacion.rechazado:
+        return 'rechazadas';
+      case EstadoAprobacion.canceladoUsuario:
+        return 'canceladas';
+      default:
+        return '';
     }
   }
 }
@@ -274,153 +321,6 @@ class _ErrorState extends StatelessWidget {
           ],
         ),
       ),
-    );
-  }
-}
-
-class _TabButton extends StatelessWidget {
-  final String label;
-  final bool isSelected;
-  final VoidCallback onTap;
-
-  const _TabButton({
-    required this.label,
-    required this.isSelected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        decoration: BoxDecoration(
-          color: isSelected ? AppColors.primaryRed : Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: isSelected ? AppColors.primaryRed : AppColors.neutral300,
-            width: isSelected ? 0 : 1.5,
-          ),
-          boxShadow: isSelected
-              ? [
-                  BoxShadow(
-                    color: AppColors.primaryRed.withValues(alpha: 0.3),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ]
-              : null,
-        ),
-        child: Text(
-          label,
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            fontWeight: FontWeight.w700,
-            fontSize: 14,
-            color: isSelected ? Colors.white : AppColors.neutral700,
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _ApprovalDialog extends StatelessWidget {
-  final String title;
-  final String message;
-  final String confirmLabel;
-  final Color confirmColor;
-  final VoidCallback onConfirm;
-
-  const _ApprovalDialog({
-    required this.title,
-    required this.message,
-    required this.confirmLabel,
-    required this.confirmColor,
-    required this.onConfirm,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      title: Text(title, style: const TextStyle(fontWeight: FontWeight.w800)),
-      content: Text(message),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Cancelar'),
-        ),
-        ElevatedButton(
-          onPressed: onConfirm,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: confirmColor,
-            foregroundColor: Colors.white,
-          ),
-          child: Text(confirmLabel),
-        ),
-      ],
-    );
-  }
-}
-
-class _RejectDialog extends StatefulWidget {
-  const _RejectDialog();
-
-  @override
-  State<_RejectDialog> createState() => _RejectDialogState();
-}
-
-class _RejectDialogState extends State<_RejectDialog> {
-  final _controller = TextEditingController();
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      title: const Text(
-        'Rechazar permiso',
-        style: TextStyle(fontWeight: FontWeight.w800),
-      ),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text('Indica el motivo del rechazo:'),
-          const SizedBox(height: 12),
-          TextField(
-            controller: _controller,
-            maxLines: 3,
-            decoration: InputDecoration(
-              hintText: 'Ej: No se cumplen los requisitos...',
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-          ),
-        ],
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Cancelar'),
-        ),
-        ElevatedButton(
-          onPressed: () => Navigator.pop(context, _controller.text),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.errorRed,
-            foregroundColor: Colors.white,
-          ),
-          child: const Text('Rechazar'),
-        ),
-      ],
     );
   }
 }

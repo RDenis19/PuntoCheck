@@ -89,221 +89,251 @@ class _ManagerAttendanceViewState extends ConsumerState<ManagerAttendanceView> {
     );
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Asistencia'),
-        backgroundColor: Colors.white,
-        foregroundColor: AppColors.neutral900,
-        elevation: 0.5,
-        actions: [
-          // Badge de filtros activos
-          Stack(
-            children: [
-              IconButton(
-                icon: const Icon(Icons.filter_list_rounded),
-                tooltip: 'Filtros avanzados',
-                onPressed: _openFilters,
+      body: SafeArea(
+        child: Column(
+          children: [
+            // Header Manual (Tipo Admin/Auditor) para evitar crashes y unificar estilo
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                border: Border(bottom: BorderSide(color: AppColors.neutral200)),
               ),
-              if (_filters.hasActiveFilters)
-                Positioned(
-                  right: 8,
-                  top: 8,
-                  child: Container(
-                    width: 8,
-                    height: 8,
-                    decoration: const BoxDecoration(
-                      color: AppColors.primaryRed,
-                      shape: BoxShape.circle,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  // Lado Izquierdo (Filtros)
+                  SizedBox(
+                    width: 96,
+                    child: Stack(
+                      alignment: Alignment.centerLeft,
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.filter_list_rounded),
+                          tooltip: 'Filtros avanzados',
+                          onPressed: _openFilters,
+                        ),
+                        if (_filters.hasActiveFilters)
+                          Positioned(
+                            right: 8,
+                            top: 8,
+                            child: Container(
+                              width: 8,
+                              height: 8,
+                              decoration: const BoxDecoration(
+                                color: AppColors.primaryRed,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                          ),
+                      ],
                     ),
                   ),
-                ),
-            ],
-          ),
-          IconButton(
-            icon: const Icon(Icons.refresh_rounded),
-            tooltip: 'Actualizar',
-            onPressed: () {
-              ref.invalidate(managerTeamAttendanceProvider);
-            },
-          ),
-        ],
-      ),
-      body: SafeArea(
-        child: RefreshIndicator(
-          onRefresh: () async {
-            ref.invalidate(managerTeamAttendanceProvider);
-          },
-          color: AppColors.primaryRed,
-          child: attendanceAsync.when(
-            data: (records) {
-              // Calcular estadísticas con records filtrados
-              final scheduleAssignments =
-                  schedulesAsync.valueOrNull ?? const <Map<String, dynamic>>[];
-              final insights = _computeInsights(
-                records: filteredRecords,
-                scheduleAssignments: scheduleAssignments,
-              );
-
-              if (filteredRecords.isEmpty) {
-                return EmptyState(
-                  icon: Icons.access_time_outlined,
-                  title: 'Sin registros',
-                  message: _filters.hasActiveFilters
-                      ? 'No hay registros que coincidan con los filtros'
-                      : _selectedDate.day == now.day &&
-                            _selectedDate.month == now.month &&
-                            _selectedDate.year == now.year
-                      ? 'No hay marcas de asistencia hoy'
-                      : 'No hay marcas de asistencia en esta fecha',
-                  actionLabel: _filters.hasActiveFilters
-                      ? 'Limpiar filtros'
-                      : 'Cambiar fecha',
-                  onAction: () {
-                    if (_filters.hasActiveFilters) {
-                      setState(() => _filters = const AttendanceFilters());
-                    } else {
-                      _selectDate(context);
-                    }
-                  },
-                );
-              }
-
-              return CustomScrollView(
-                slivers: [
-                  // Selector de fecha
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: _DateSelector(
-                        selectedDate: _selectedDate,
-                        onDateChanged: (date) {
-                          setState(() => _selectedDate = date);
-                        },
+                  // Centro (Título)
+                  const Expanded(
+                    child: Center(
+                      child: Text(
+                        'Asistencia',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.neutral900,
+                        ),
                       ),
                     ),
                   ),
-
-                  // Estadísticas
-                  SliverToBoxAdapter(
-                    child: _ManagerAttendanceStatsSection(insights: insights),
+                  // Lado Derecho (Refrescar)
+                  SizedBox(
+                    width: 96,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.refresh_rounded),
+                          tooltip: 'Actualizar',
+                          onPressed: () {
+                            ref.invalidate(managerTeamAttendanceProvider);
+                          },
+                        ),
+                      ],
+                    ),
                   ),
+                ],
+              ),
+            ),
+            
+            Expanded(
+              child: RefreshIndicator(
+                onRefresh: () async {
+                  ref.invalidate(managerTeamAttendanceProvider);
+                },
+                color: AppColors.primaryRed,
+                child: attendanceAsync.when(
+                  data: (records) {
+                    // Calcular estadísticas con records filtrados
+                    final scheduleAssignments =
+                        schedulesAsync.valueOrNull ?? const <Map<String, dynamic>>[];
+                    final insights = _computeInsights(
+                      records: filteredRecords,
+                      scheduleAssignments: scheduleAssignments,
+                    );
 
-                  // Header de lista
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 24, 16, 12),
-                      child: Row(
-                        children: [
-                          const Text(
-                            'Registros',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w900,
-                              color: AppColors.neutral900,
+                    if (filteredRecords.isEmpty) {
+                      return EmptyState(
+                        icon: Icons.access_time_outlined,
+                        title: 'Sin registros',
+                        message: _filters.hasActiveFilters
+                            ? 'No hay registros que coincidan con los filtros'
+                            : _selectedDate.day == now.day &&
+                                  _selectedDate.month == now.month &&
+                                  _selectedDate.year == now.year
+                            ? 'No hay marcas de asistencia hoy'
+                            : 'No hay marcas de asistencia en esta fecha',
+                        actionLabel: _filters.hasActiveFilters
+                            ? 'Limpiar filtros'
+                            : 'Cambiar fecha',
+                        onAction: () {
+                          if (_filters.hasActiveFilters) {
+                            setState(() => _filters = const AttendanceFilters());
+                          } else {
+                            _selectDate(context);
+                          }
+                        },
+                      );
+                    }
+
+                    return CustomScrollView(
+                      slivers: [
+                        // Selector de fecha
+                        SliverToBoxAdapter(
+                          child: Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: _DateSelector(
+                              selectedDate: _selectedDate,
+                              onDateChanged: (date) {
+                                setState(() => _selectedDate = date);
+                              },
                             ),
                           ),
-                          const SizedBox(width: 8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 4,
+                        ),
+
+                        // Estadísticas (Resumen Rojo)
+                        SliverToBoxAdapter(
+                          child: _ManagerAttendanceStatsSection(insights: insights),
+                        ),
+
+                        // Header de lista
+                        SliverToBoxAdapter(
+                          child: Padding(
+                            padding: const EdgeInsets.fromLTRB(16, 24, 16, 12),
+                            child: Row(
+                              children: [
+                                const Text(
+                                  'Registros',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w900,
+                                    color: AppColors.neutral900,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 4,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.neutral200,
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Text(
+                                    '${filteredRecords.length}',
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 13,
+                                      color: AppColors.neutral700,
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
-                            decoration: BoxDecoration(
-                              color: AppColors.neutral200,
-                              borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+
+                        // Lista de registros
+                        SliverPadding(
+                          padding: const EdgeInsets.fromLTRB(16, 0, 16, 80),
+                          sliver: SliverList(
+                            delegate: SliverChildBuilderDelegate((context, index) {
+                              final record = filteredRecords[index];
+                              final dateKey = _dateKey(record.fechaHoraMarcacion);
+                              final missingExit = insights.missingExitEmployeeDateKeys
+                                  .contains('${record.perfilId}::$dateKey');
+                              final isLate = insights.lateRecordIds.contains(
+                                record.id,
+                              );
+                              return ManagerAttendanceRecordCard(
+                                record: record,
+                                isLate: isLate,
+                                missingExit: missingExit,
+                                onViewEvidence: record.evidenciaFotoUrl.trim().isEmpty
+                                    ? null
+                                    : () => _openEvidence(context, record),
+                                onTap: () {
+                                  _openDetail(context, record);
+                                },
+                              );
+                            }, childCount: filteredRecords.length),
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+                  loading: () => const Center(
+                    child: CircularProgressIndicator(color: AppColors.primaryRed),
+                  ),
+                  error: (error, _) => Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                            Icons.error_outline,
+                            size: 48,
+                            color: AppColors.errorRed,
+                          ),
+                          const SizedBox(height: 16),
+                          const Text(
+                            'Error cargando asistencia',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w700,
                             ),
-                            child: Text(
-                              '${filteredRecords.length}',
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w700,
-                                fontSize: 13,
-                                color: AppColors.neutral700,
-                              ),
-                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            '$error',
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(color: AppColors.neutral700),
+                          ),
+                          const SizedBox(height: 16),
+                          OutlinedButton.icon(
+                            onPressed: () {
+                              ref.invalidate(managerTeamAttendanceProvider);
+                            },
+                            icon: const Icon(Icons.refresh),
+                            label: const Text('Reintentar'),
                           ),
                         ],
                       ),
                     ),
                   ),
-
-                  // Lista de registros
-                  SliverPadding(
-                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 80),
-                    sliver: SliverList(
-                      delegate: SliverChildBuilderDelegate((context, index) {
-                        final record = filteredRecords[index];
-                        final dateKey = _dateKey(record.fechaHoraMarcacion);
-                        final missingExit = insights.missingExitEmployeeDateKeys
-                            .contains('${record.perfilId}::$dateKey');
-                        final isLate = insights.lateRecordIds.contains(
-                          record.id,
-                        );
-                        return ManagerAttendanceRecordCard(
-                          record: record,
-                          isLate: isLate,
-                          missingExit: missingExit,
-                          onViewEvidence: record.evidenciaFotoUrl.trim().isEmpty
-                              ? null
-                              : () => _openEvidence(context, record),
-                          onTap: () {
-                            _openDetail(context, record);
-                            // TODO: Abrir detalle de la marcación
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                  'Detalle de marcación: ${record.tipoRegistro}',
-                                ),
-                                behavior: SnackBarBehavior.floating,
-                              ),
-                            );
-                          },
-                        );
-                      }, childCount: filteredRecords.length),
-                    ),
-                  ),
-                ],
-              );
-            },
-            loading: () => const Center(
-              child: CircularProgressIndicator(color: AppColors.primaryRed),
-            ),
-            error: (error, _) => Center(
-              child: Padding(
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(
-                      Icons.error_outline,
-                      size: 48,
-                      color: AppColors.errorRed,
-                    ),
-                    const SizedBox(height: 16),
-                    const Text(
-                      'Error cargando asistencia',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      '$error',
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(color: AppColors.neutral700),
-                    ),
-                    const SizedBox(height: 16),
-                    OutlinedButton.icon(
-                      onPressed: () {
-                        ref.invalidate(managerTeamAttendanceProvider);
-                      },
-                      icon: const Icon(Icons.refresh),
-                      label: const Text('Reintentar'),
-                    ),
-                  ],
                 ),
               ),
             ),
-          ),
+          ],
         ),
       ),
     );
@@ -577,26 +607,15 @@ class _DateSelector extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            AppColors.primaryRed,
-            AppColors.primaryRed.withValues(alpha: 0.8),
-          ],
-        ),
+        color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.primaryRed.withValues(alpha: 0.3),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        border: Border.all(color: AppColors.neutral200),
       ),
       child: Row(
         children: [
           const Icon(
             Icons.calendar_today_rounded,
-            color: Colors.white,
+            color: AppColors.primaryRed,
             size: 24,
           ),
           const SizedBox(width: 12),
@@ -607,15 +626,15 @@ class _DateSelector extends StatelessWidget {
                 Text(
                   isToday ? 'Hoy' : _formatDate(selectedDate),
                   style: const TextStyle(
-                    color: Colors.white,
+                    color: AppColors.neutral900,
                     fontWeight: FontWeight.w900,
                     fontSize: 18,
                   ),
                 ),
                 Text(
                   _formatLongDate(selectedDate),
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.9),
+                  style: const TextStyle(
+                    color: AppColors.neutral600,
                     fontSize: 13,
                   ),
                 ),
@@ -644,7 +663,7 @@ class _DateSelector extends StatelessWidget {
                 onDateChanged(picked);
               }
             },
-            icon: const Icon(Icons.edit_calendar_rounded, color: Colors.white),
+            icon: const Icon(Icons.edit_calendar_rounded, color: AppColors.primaryRed),
             tooltip: 'Cambiar fecha',
           ),
         ],
@@ -719,6 +738,7 @@ class _ParsedTime {
   const _ParsedTime({required this.hour, required this.minute});
 }
 
+/// Header con Resumen Rojo (Nuevo diseño solicitado)
 class _ManagerAttendanceStatsSection extends StatelessWidget {
   final _AttendanceInsights insights;
 
@@ -726,86 +746,116 @@ class _ManagerAttendanceStatsSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          child: Row(
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            AppColors.primaryRed,
+            AppColors.primaryRed.withValues(alpha: 0.85),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primaryRed.withValues(alpha: 0.3),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Expanded(
-                child: Text(
-                  'Resumen de hoy',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w900,
-                    color: AppColors.neutral900,
-                  ),
-                ),
-              ),
-              TextButton.icon(
-                onPressed: () => showModalBottomSheet<void>(
-                  context: context,
-                  showDragHandle: true,
-                  isScrollControlled: true,
-                  backgroundColor: Colors.white,
-                  builder: (_) => _AttendanceInsightsSheet(insights: insights),
-                ),
-                icon: const Icon(Icons.tune, size: 18),
-                label: const Text('Más'),
-              ),
+              _StatItem(label: 'Total Marcas', value: '${insights.total}'),
+              Container(width: 1, height: 40, color: Colors.white24),
+              _StatItem(label: 'En Sitio', value: '${insights.insideGeofence}'),
+              Container(width: 1, height: 40, color: Colors.white24),
+              _StatItem(label: 'Fuera Sitio', value: '${insights.outsideGeofence}'),
             ],
           ),
-        ),
-        const SizedBox(height: 8),
-        GridView.count(
-          crossAxisCount: 2,
-          mainAxisSpacing: 12,
-          crossAxisSpacing: 12,
-          childAspectRatio: 1.75,
-          physics: const NeverScrollableScrollPhysics(),
-          shrinkWrap: true,
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          children: [
-            AttendanceStatsCard(
-              label: 'Total marcas',
-              value: '${insights.total}',
-              icon: Icons.calendar_today_rounded,
-              color: AppColors.neutral900,
-            ),
-            AttendanceStatsCard(
-              label: 'Dentro geocerca',
-              value: '${insights.insideGeofence}',
-              icon: Icons.check_circle_rounded,
-              color: AppColors.successGreen,
-            ),
-            AttendanceStatsCard(
-              label: 'Fuera geocerca',
-              value: '${insights.outsideGeofence}',
-              icon: Icons.warning_amber_rounded,
-              color: AppColors.warningOrange,
-              subtitle: 'Requiere revisión',
-            ),
-            AttendanceStatsCard(
-              label: 'Mock GPS',
-              value: '${insights.mockGps}',
-              icon: Icons.location_off_outlined,
-              color: AppColors.warningOrange,
-              subtitle: 'Posible fraude',
-            ),
-            AttendanceStatsCard(
-              label: 'Entradas tarde',
-              value: '${insights.lateRecordIds.length}',
-              icon: Icons.schedule_outlined,
-              color: AppColors.warningOrange,
-            ),
-            AttendanceStatsCard(
-              label: 'Faltas de salida',
-              value: '${insights.missingExitEmployeeDateKeys.length}',
-              icon: Icons.logout_outlined,
-              color: AppColors.errorRed,
+          // Si hay Mock GPS, mostramos alerta
+          if (insights.mockGps > 0) ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.warning_amber_rounded, color: Colors.white, size: 16),
+                  const SizedBox(width: 6),
+                  Text(
+                    '${insights.mockGps} Alertas de GPS',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ],
+          // Botón "Ver más"
+          Align(
+            alignment: Alignment.centerRight,
+            child: TextButton.icon(
+              onPressed: () => showModalBottomSheet<void>(
+                context: context,
+                showDragHandle: true,
+                isScrollControlled: true,
+                backgroundColor: Colors.white,
+                builder: (_) => _AttendanceInsightsSheet(insights: insights),
+              ),
+              icon: const Icon(Icons.tune, size: 16, color: Colors.white70),
+              label: const Text('Detalles', style: TextStyle(color: Colors.white)),
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 0),
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StatItem extends StatelessWidget {
+  final String label;
+  final String value;
+  const _StatItem({required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Text(
+          value,
+          style: const TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.w900,
+            color: Colors.white,
+            height: 1.0,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w500,
+            color: Colors.white.withValues(alpha: 0.9),
+          ),
         ),
       ],
     );
@@ -827,17 +877,12 @@ class _AttendanceInsightsSheet extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              'Indicadores',
+              'Indicadores Detallados',
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w900,
                 color: AppColors.neutral900,
               ),
-            ),
-            const SizedBox(height: 6),
-            const Text(
-              'Úsalos para detectar problemas y tomar acción operativa.',
-              style: TextStyle(color: AppColors.neutral600),
             ),
             const SizedBox(height: 14),
             _InsightTile(
@@ -850,23 +895,23 @@ class _AttendanceInsightsSheet extends StatelessWidget {
             _InsightTile(
               icon: Icons.location_off_outlined,
               color: AppColors.warningOrange,
-              title: 'Mock GPS',
+              title: 'GPS (Alerta)',
               value: '${insights.mockGps}',
-              subtitle: 'Posible ubicación falsa (si tu app lo detecta).',
+              subtitle: 'Ubicación simulada detectada.',
             ),
             _InsightTile(
               icon: Icons.schedule_outlined,
               color: AppColors.warningOrange,
               title: 'Entradas tarde',
               value: '${insights.lateRecordIds.length}',
-              subtitle: 'Superan la tolerancia del horario asignado.',
+              subtitle: 'Superan la tolerancia del horario.',
             ),
             _InsightTile(
               icon: Icons.logout_outlined,
               color: AppColors.errorRed,
               title: 'Faltas de salida',
               value: '${insights.missingExitEmployeeDateKeys.length}',
-              subtitle: 'Días con entrada sin salida para un empleado.',
+              subtitle: 'Entrada sin salida registrada.',
             ),
             const SizedBox(height: 12),
             SizedBox(
@@ -877,7 +922,7 @@ class _AttendanceInsightsSheet extends StatelessWidget {
                   foregroundColor: Colors.white,
                 ),
                 onPressed: () => Navigator.pop(context),
-                child: const Text('Listo'),
+                child: const Text('Entendido'),
               ),
             ),
           ],
@@ -1014,11 +1059,9 @@ class _AttendanceDetailSheet extends StatelessWidget {
                 value: (record.estaDentroGeocerca ?? true) ? 'Dentro' : 'Fuera',
               ),
               _DetailRow(
-                label: 'Mock GPS',
-                value: record.esMockLocation == true ? 'Sí' : 'No',
+                label: 'GPS',
+                value: record.esMockLocation == true ? 'Simulado (Alerta)' : 'Normal',
               ),
-              if (record.turnoJornadaId != null)
-                _DetailRow(label: 'Turno ID', value: record.turnoJornadaId!),
               if (record.turnoNombreTurno != null)
                 _DetailRow(label: 'Turno', value: record.turnoNombreTurno!),
               if (record.notasSistema != null &&

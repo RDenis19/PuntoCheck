@@ -57,7 +57,7 @@ class AuditorAlertCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      alert.tipoIncumplimiento,
+                      _humanize(alert.tipoIncumplimiento),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
@@ -139,3 +139,10 @@ class _Pill extends StatelessWidget {
   }
 }
 
+
+
+String _humanize(String text) {
+  if (text.isEmpty) return text;
+  final replaced = text.replaceAll('_', ' ');
+  return replaced[0].toUpperCase() + replaced.substring(1).toLowerCase();
+}

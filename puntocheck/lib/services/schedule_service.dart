@@ -32,7 +32,7 @@ class ScheduleService {
 
     if (isOverlap) {
       throw Exception(
-        'Los turnos no pueden solaparse. Revisa las horas o marca \"d\u00eda siguiente\" cuando aplique.',
+        'Los turnos no pueden solaparse. Revisa las horas o marca "d\u00eda siguiente" cuando aplique.',
       );
     }
 

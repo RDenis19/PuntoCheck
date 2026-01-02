@@ -59,7 +59,7 @@ class AuditorAuditLogCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      log.accion,
+                      _humanize(log.accion),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
@@ -118,6 +118,11 @@ class AuditorAuditLogCard extends StatelessWidget {
     if (a.contains('DELETE') || a.contains('REMOVE')) return AppColors.errorRed;
     if (a.contains('UPDATE') || a.contains('EDIT')) return AppColors.infoBlue;
     return AppColors.neutral600;
+  }
+  static String _humanize(String text) {
+    if (text.isEmpty) return text;
+    final replaced = text.replaceAll('_', ' ');
+    return replaced[0].toUpperCase() + replaced.substring(1).toLowerCase();
   }
 }
 

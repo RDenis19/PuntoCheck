@@ -96,7 +96,7 @@ class _AuditorAlertDetailSheetState extends State<AuditorAlertDetailSheet> {
                 ],
               ),
               const SizedBox(height: 10),
-              _KeyValue(label: 'Tipo', value: widget.alert.tipoIncumplimiento),
+              _KeyValue(label: 'Tipo', value: _humanize(widget.alert.tipoIncumplimiento)),
               const SizedBox(height: 8),
               _KeyValue(label: 'Empleado', value: employee),
               if ((widget.alert.empleadoCedula ?? '').trim().isNotEmpty) ...[
@@ -176,17 +176,11 @@ class _AuditorAlertDetailSheetState extends State<AuditorAlertDetailSheet> {
                   border: OutlineInputBorder(),
                 ),
               ),
-              if (prettyJson != null) ...[
+              
+              // SECCIÓN DETALLES (Mejorada visualmente, sin JSON crudo)
+             if (widget.alert.detalleTecnico != null) ...[
                 const SizedBox(height: 12),
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    'Detalle técnico (JSON)',
-                    style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Container(
+                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
@@ -194,9 +188,66 @@ class _AuditorAlertDetailSheetState extends State<AuditorAlertDetailSheet> {
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(color: AppColors.neutral200),
                   ),
-                  child: Text(
-                    prettyJson,
-                    style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                       Row(
+                         children: [
+                           Icon(Icons.info_outline, size: 16, color: AppColors.neutral600),
+                           const SizedBox(width: 6),
+                           Text(
+                             'Información del suceso',
+                             style: theme.textTheme.titleSmall?.copyWith(
+                               fontWeight: FontWeight.w700,
+                               color: AppColors.neutral700,
+                             ),
+                           ),
+                         ],
+                       ),
+                       const SizedBox(height: 6),
+                       // Extraer descripción o mostrar valores clave limpios
+                       Builder(
+                         builder: (context) {
+                           final map = widget.alert.detalleTecnico!;
+                           final desc = map['descripcion']?.toString() ?? 
+                                        map['mensaje']?.toString() ?? 
+                                        map['message']?.toString();
+                           
+                           if (desc != null && desc.isNotEmpty) {
+                             return Text(
+                               desc, 
+                               style: const TextStyle(fontSize: 13, color: AppColors.neutral700),
+                             );
+                           }
+
+                           // Si no hay descripción clara, mostrar pares clave-valor filtrados (sin IDs largos)
+                           final entries = map.entries.where((e) {
+                             final k = e.key.toLowerCase();
+                             final v = e.value.toString();
+                             // Filtrar IDs largos y datos técnicos irrelevantes
+                             return !k.contains('_id') && v.length < 50; 
+                           }).toList();
+
+                           if (entries.isEmpty) {
+                             return const Text(
+                               'Sin detalles adicionales relevantes.',
+                               style: TextStyle(fontSize: 13, fontStyle: FontStyle.italic, color: AppColors.neutral500),
+                             );
+                           }
+
+                           return Column(
+                             crossAxisAlignment: CrossAxisAlignment.start,
+                             children: entries.map((e) => Padding(
+                               padding: const EdgeInsets.only(bottom: 2),
+                               child: Text(
+                                 '• ${_humanize(e.key)}: ${e.value}',
+                                 style: const TextStyle(fontSize: 13, color: AppColors.neutral700),
+                               ),
+                             )).toList(),
+                           );
+                         }
+                       ),
+                    ],
                   ),
                 ),
               ],
@@ -309,4 +360,11 @@ class _KeyValue extends StatelessWidget {
       ],
     );
   }
+}
+
+
+String _humanize(String text) {
+  if (text.isEmpty) return text;
+  final replaced = text.replaceAll('_', ' ');
+  return replaced[0].toUpperCase() + replaced.substring(1).toLowerCase();
 }

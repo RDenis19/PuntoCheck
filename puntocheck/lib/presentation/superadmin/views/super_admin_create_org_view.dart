@@ -157,7 +157,7 @@ class _SuperAdminCreateOrgViewState
                       plansAsync.when(
                         data: (plans) =>
                             DropdownButtonFormField<PlanesSuscripcion>(
-                              value: _selectedPlan,
+                              initialValue: _selectedPlan,
                               icon: const Icon(
                                 Icons.keyboard_arrow_down,
                                 color: AppColors.neutral700,

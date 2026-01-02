@@ -6,6 +6,7 @@ import 'package:puntocheck/presentation/admin/widgets/permission_type_chip.dart'
 import 'package:puntocheck/providers/manager_providers.dart';
 import 'package:puntocheck/services/supabase_client.dart';
 import 'package:puntocheck/utils/theme/app_colors.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 /// Vista de detalle completo de una solicitud de permiso para Manager.
 /// 
@@ -347,13 +348,49 @@ class _ManagerLeaveDetailViewState
                   _DetailRow(
                     label: 'Documento',
                     value: InkWell(
-                      onTap: () {
-                        // TODO: Abrir documento en navegador o viewer
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Abriendo documento...'),
-                          ),
-                        );
+                      onTap: () async {
+                        final url = widget.request.documentoSoporteUrl;
+                        if (url == null || url.isEmpty) return;
+
+                        try {
+                           Uri? uri;
+                           if (url.startsWith('http')) {
+                             uri = Uri.parse(url);
+                           } else {
+                             // Intentar generar link firmado en varios buckets
+                             final buckets = ['documentos_legales', 'justificativos', 'evidencias'];
+                             for (final bucket in buckets) {
+                               try {
+                                 final signed = await supabase.storage.from(bucket).createSignedUrl(url, 60);
+                                 uri = Uri.parse(signed);
+                                 break;
+                               } catch (_) {
+                                 continue;
+                               }
+                             }
+                           }
+                           
+                           if (uri != null) {
+                             if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+                               if (context.mounted) {
+                                 ScaffoldMessenger.of(context).showSnackBar(
+                                   const SnackBar(content: Text('No se pudo abrir el documento')),
+                                 );
+                               }
+                             }
+                           } else {
+                              throw 'Archivo no encontrado';
+                           }
+                        } catch(e) {
+                           if (context.mounted) {
+                             ScaffoldMessenger.of(context).showSnackBar(
+                               const SnackBar(
+                                 content: Text('No se pudo abrir el documento. Es posible que no exista.'),
+                                 backgroundColor: AppColors.errorRed,
+                               ),
+                             );
+                           }
+                        }
                       },
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
@@ -690,7 +727,13 @@ class _DetailRow extends StatelessWidget {
             fontWeight: FontWeight.w600,
           ),
         ),
-        value,
+        const SizedBox(width: 8),
+        Expanded(
+          child: Align(
+            alignment: Alignment.centerRight,
+            child: value,
+          ),
+        ),
       ],
     );
   }

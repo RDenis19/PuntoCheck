@@ -24,30 +24,41 @@ Future<int?> _safeCount(Future<int> Function() loader) async {
 }
 
 final auditorDashboardMetricsProvider =
-    FutureProvider.autoDispose<AuditorDashboardMetrics>((ref) async {
+    StreamProvider.autoDispose<AuditorDashboardMetrics>((ref) async* {
   final orgId = await requireAuditorOrgId(ref);
   final svc = ref.read(auditorServiceProvider);
 
-  final openAlerts = await _safeCount(
-    () => svc.countComplianceAlerts(
-      orgId: orgId,
-      statuses: const ['pendiente', 'en_revision'],
-    ),
-  );
+  Future<AuditorDashboardMetrics> fetchData() async {
+    final openAlerts = await _safeCount(
+      () => svc.countComplianceAlerts(
+        orgId: orgId,
+        statuses: const ['pendiente', 'en_revision'],
+      ),
+    );
 
-  final pendingPermissions = await _safeCount(
-    () => svc.countPendingLeaveRequests(orgId: orgId),
-  );
+    final pendingPermissions = await _safeCount(
+      () => svc.countPendingLeaveRequests(orgId: orgId),
+    );
 
-  final attendanceToday = await _safeCount(
-    () => svc.countAttendanceToday(orgId: orgId),
-  );
+    final attendanceToday = await _safeCount(
+      () => svc.countAttendanceToday(orgId: orgId),
+    );
 
-  return AuditorDashboardMetrics(
-    openAlerts: openAlerts,
-    pendingPermissions: pendingPermissions,
-    attendanceToday: attendanceToday,
-  );
+    return AuditorDashboardMetrics(
+      openAlerts: openAlerts,
+      pendingPermissions: pendingPermissions,
+      attendanceToday: attendanceToday,
+    );
+  }
+
+  // Emit initial value
+  yield await fetchData();
+
+  // Polling every 15s
+  final timer = Stream.periodic(const Duration(seconds: 15), (i) => i);
+  await for (final _ in timer) {
+     yield await fetchData();
+  }
 });
 
 final auditorDashboardRecentFindingsProvider =

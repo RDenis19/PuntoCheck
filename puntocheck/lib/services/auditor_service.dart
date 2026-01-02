@@ -486,4 +486,93 @@ class AuditorService {
       throw Exception('Error actualizando perfil: $e');
     }
   }
+
+  // ==========================================================================
+  // Permisos y Banco de horas (Auditoría)
+  // ==========================================================================
+  Future<List<dynamic>> getLeaveRequests({
+    required String orgId,
+    EstadoAprobacion? status,
+    DateTime? startDate,
+    DateTime? endDate,
+    String? employeeQuery,
+    int limit = 300,
+  }) async {
+    try {
+      // Retornamos dynamic o SolicitudesPermisos si tenemos el import
+      // Como no tengo import visible de SolicitudesPermisos en este archivo, usare dynamic
+      // y hare el cast afuera o añadire el import.
+      // MEJOR: Añadir imports faltantes arriba en un paso separado si falla,
+      // pero por ahora asumo que el servicio debe retornar List<SolicitudesPermisos>.
+      // Voy a usar dynamic para evitar error de import inmediato y el provider lo mapea.
+      // ESPERA, el prompt original tenia imports. Voy a revisar imports.
+      // SÍ, falta importar SolicitudesPermisos y BancoHorasCompensatorias.
+      // Lo hare en un paso previo o usare dynamic y map en provider?
+      // Mejor retornar List<Map<String,dynamic>> o dynamic para ser seguro.
+      var query = supabase
+          .from('solicitudes_permisos')
+          .select('''
+            *,
+            solicitante:perfiles!solicitudes_permisos_solicitante_id_fkey(
+              id, nombres, apellidos, cedula, rol, sucursal_id
+            )
+          ''')
+          .eq('organizacion_id', orgId);
+
+      if (status != null) {
+        query = query.eq('estado', status.value);
+      }
+
+      if (startDate != null) {
+        query = query.gte('fecha_inicio', startDate.toIso8601String());
+      }
+      if (endDate != null) {
+        query = query.lte('fecha_inicio', endDate.toIso8601String());
+      }
+
+      final q = employeeQuery?.trim();
+      if (q != null && q.isNotEmpty) {
+        query = query.or(
+          'nombres.ilike.%$q%,apellidos.ilike.%$q%,cedula.ilike.%$q%',
+          referencedTable: 'solicitante',
+        );
+      }
+
+      final response = await query.order('creado_en', ascending: false).limit(limit);
+      return response as List;
+    } catch (e) {
+      throw Exception('Error cargando permisos: $e');
+    }
+  }
+
+  Future<List<dynamic>> getHoursBankEntries({
+    required String orgId,
+    String? employeeQuery,
+    int limit = 300,
+  }) async {
+    try {
+      var query = supabase
+          .from('banco_horas')
+          .select('''
+            *,
+            empleado:perfiles!banco_horas_empleado_id_fkey(
+              id, nombres, apellidos, cedula, sucursal_id
+            )
+          ''')
+          .eq('organizacion_id', orgId);
+
+      final q = employeeQuery?.trim();
+      if (q != null && q.isNotEmpty) {
+         query = query.or(
+          'nombres.ilike.%$q%,apellidos.ilike.%$q%,cedula.ilike.%$q%',
+          referencedTable: 'empleado',
+        );
+      }
+
+      final response = await query.order('creado_en', ascending: false).limit(limit);
+      return response as List;
+    } catch (e) {
+      throw Exception('Error cargando banco de horas: $e');
+    }
+  }
 }

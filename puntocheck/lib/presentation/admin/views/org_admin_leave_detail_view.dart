@@ -7,6 +7,7 @@ import 'package:puntocheck/presentation/admin/widgets/permission_type_chip.dart'
 import 'package:puntocheck/providers/app_providers.dart';
 import 'package:puntocheck/services/supabase_client.dart';
 import 'package:puntocheck/utils/theme/app_colors.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 /// Vista de detalle completo de una solicitud de permiso
 class OrgAdminLeaveDetailView extends ConsumerStatefulWidget {
@@ -330,13 +331,37 @@ class _OrgAdminLeaveDetailViewState
                   _DetailRow(
                     label: 'Documento',
                     value: InkWell(
-                      onTap: () {
-                        // TODO: Abrir documento en navegador o viewer
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Abriendo documento...'),
-                          ),
-                        );
+                      onTap: () async {
+                        final pathOrUrl = widget.request.documentoSoporteUrl;
+                        if (pathOrUrl == null || pathOrUrl.isEmpty) return;
+                        
+                        try {
+                           Uri uri;
+                           if (pathOrUrl.startsWith('http')) {
+                             uri = Uri.parse(pathOrUrl);
+                           } else {
+                             // Es un path relativo en el bucket 'documentos_legales'
+                             // Generamos una URL firmada válida por 60 segundos (o más si es necesario)
+                             final signedUrl = await supabase.storage
+                                 .from('documentos_legales')
+                                 .createSignedUrl(pathOrUrl, 60); // 60 segundos
+                             uri = Uri.parse(signedUrl);
+                           }
+
+                           if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+                             if (mounted) {
+                               ScaffoldMessenger.of(context).showSnackBar(
+                                 const SnackBar(content: Text('No se pudo abrir el documento')),
+                               );
+                             }
+                           }
+                        } catch (e) {
+                           if (mounted) {
+                             ScaffoldMessenger.of(context).showSnackBar(
+                               SnackBar(content: Text('Error al abrir documento: $e')),
+                             );
+                           }
+                        }
                       },
                       child: Row(
                         mainAxisSize: MainAxisSize.min,

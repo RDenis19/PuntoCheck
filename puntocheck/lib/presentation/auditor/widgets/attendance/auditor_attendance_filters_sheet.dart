@@ -114,14 +114,14 @@ class _AuditorAttendanceFiltersSheetState
                 onChanged: (v) => setState(() => _geofenceOnly = v),
                 contentPadding: EdgeInsets.zero,
                 title: const Text('Solo fuera de geocerca'),
-                subtitle: const Text('esta_dentro_geocerca = false'),
+                subtitle: const Text('Registros fuera del perímetro'),
               ),
               SwitchListTile.adaptive(
                 value: _mockOnly,
                 onChanged: (v) => setState(() => _mockOnly = v),
                 contentPadding: EdgeInsets.zero,
-                title: const Text('Solo mock location'),
-                subtitle: const Text('es_mock_location = true'),
+                title: const Text('Ubicación simulada'),
+                subtitle: const Text('Apps de GPS falso detectadas'),
               ),
               const SizedBox(height: 12),
               Row(

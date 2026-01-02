@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:puntocheck/providers/app_providers.dart';
 import 'package:puntocheck/routes/app_router.dart';
@@ -16,6 +17,14 @@ class PuntoCheckApp extends ConsumerWidget {
       debugShowCheckedModeBanner: false,
       theme: theme,
       routerConfig: appRouter,
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: const [
+        Locale('es', ''),
+      ],
     );
   }
 }

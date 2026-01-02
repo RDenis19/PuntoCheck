@@ -58,29 +58,46 @@ class _AuditorAttendanceViewState extends ConsumerState<AuditorAttendanceView> {
     return SafeArea(
       child: Column(
         children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              border: Border(bottom: BorderSide(color: AppColors.neutral200)),
+            ),
             child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
+                // Spacer para balancear el título centrado
+                const SizedBox(width: 96), 
                 const Expanded(
-                  child: Text(
-                    'Asistencia',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w900,
-                      color: AppColors.neutral900,
+                  child: Center(
+                    child: Text(
+                      'Asistencia',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.neutral900,
+                      ),
                     ),
                   ),
                 ),
-                IconButton(
-                  tooltip: 'Filtros',
-                  onPressed: () => _openFilters(context, branchesAsync),
-                  icon: const Icon(Icons.tune),
-                ),
-                IconButton(
-                  tooltip: 'Actualizar',
-                  onPressed: () => ref.invalidate(auditorAttendanceProvider),
-                  icon: const Icon(Icons.refresh),
+                SizedBox(
+                  width: 96,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      IconButton(
+                        tooltip: 'Filtros',
+                        onPressed: () => _openFilters(context, branchesAsync),
+                        icon: const Icon(Icons.tune),
+                      ),
+                      IconButton(
+                        tooltip: 'Actualizar',
+                        onPressed: () => ref.invalidate(auditorAttendanceProvider),
+                        icon: const Icon(Icons.refresh),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -210,10 +227,10 @@ class _ActiveFiltersBar extends StatelessWidget {
     String? branchLabel;
     final branches = branchesAsync.valueOrNull;
     if (filter.branchId != null && branches != null) {
-      branchLabel = branches
-          .where((b) => b.id == filter.branchId)
-          .map((b) => b.nombre)
-          .firstOrNull;
+      final match = branches.where((b) => b.id == filter.branchId);
+      if (match.isNotEmpty) {
+        branchLabel = match.first.nombre;
+      }
     }
 
     final range = filter.dateRange;

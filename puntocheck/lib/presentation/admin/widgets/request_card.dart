@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:puntocheck/models/enums.dart';
 import 'package:puntocheck/models/solicitudes_permisos.dart';
 import 'package:puntocheck/presentation/admin/widgets/permission_type_chip.dart';
-import 'package:puntocheck/presentation/admin/widgets/status_badge.dart';
 import 'package:puntocheck/services/supabase_client.dart';
 import 'package:puntocheck/utils/theme/app_colors.dart';
 
 /// Card moderno para mostrar una solicitud de permiso
+/// Estilo limpio: Fondo blanco, borde ROJO (o del color primario) para destacar.
 class RequestCard extends StatefulWidget {
   final SolicitudesPermisos request;
   final VoidCallback? onTap;
@@ -59,185 +59,150 @@ class _RequestCardState extends State<RequestCard> {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      elevation: 2,
-      margin: const EdgeInsets.only(bottom: 12),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-      ),
-      shadowColor: AppColors.neutral900.withValues(alpha: 0.08),
-      child: InkWell(
-        onTap: widget.onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Container(
-          decoration: BoxDecoration(
-            gradient: _getGradientByStatus(),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: _getBorderColorByStatus(),
-              width: 2,
-            ),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        color: Colors.white, // Fondo SIEMPRE blanco
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          // MARCO ROJO para destacar, como solicitó el usuario
+          color: AppColors.primaryRed.withValues(alpha: 0.3), 
+          width: 1.5,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.neutral900.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
           ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: widget.onTap,
+          borderRadius: BorderRadius.circular(20),
           child: Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(20),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Header: Empleado + Estado
+                // 1. Header: Avatar + Nombre/Fecha + Estado
                 Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // Avatar
                     _buildAvatar(),
                     const SizedBox(width: 12),
-                    // Nombre y fecha
+                    // Info Central
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           _isLoading
-                              ? const SizedBox(
-                                  width: 100,
+                              ? Container(
+                                  width: 120,
                                   height: 16,
-                                  child: LinearProgressIndicator(
-                                    backgroundColor: AppColors.neutral200,
-                                  ),
+                                  color: AppColors.neutral200,
                                 )
                               : Text(
-                                  _employeeName ?? 'Cargando...',
+                                  _employeeName ?? 'Empleado',
                                   style: const TextStyle(
-                                    fontWeight: FontWeight.w800,
+                                    fontWeight: FontWeight.w700,
                                     fontSize: 16,
                                     color: AppColors.neutral900,
+                                    letterSpacing: -0.5,
                                   ),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                 ),
                           const SizedBox(height: 4),
                           Text(
-                            _formatCreatedDate(),
-                            style: const TextStyle(
-                              fontSize: 12,
-                              color: AppColors.neutral600,
+                            _formatDate(widget.request.creadoEn ?? DateTime.now()),
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: AppColors.neutral500,
+                              fontWeight: FontWeight.w500,
                             ),
                           ),
                         ],
                       ),
                     ),
-                    // Estado badge
-                    if (widget.request.estado != null)
-                      StatusBadge(
-                        estado: widget.request.estado!,
-                        compact: true,
-                      ),
+                    const SizedBox(width: 8),
+                    // Estado Pill
+                    _buildStatusPill(),
                   ],
                 ),
 
-                const SizedBox(height: 14),
-                const Divider(height: 1),
-                const SizedBox(height: 14),
+                const SizedBox(height: 16),
+                const Divider(color: Color(0xFFF3F4F6), thickness: 1),
+                const SizedBox(height: 16),
 
-                // Tipo de permiso
+                // 2. Chip de Tipo (Ej: Vacaciones)
                 PermissionTypeChip(
                   tipo: widget.request.tipo,
-                  compact: false,
+                  compact: true,
                 ),
+                
+                const SizedBox(height: 20),
 
-                const SizedBox(height: 14),
-
-                // Fechas y días
+                // 3. Layout de Fechas y Días
                 Container(
-                  padding: const EdgeInsets.all(14),
+                  padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: AppColors.neutral100,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: AppColors.neutral200,
-                      width: 1,
-                    ),
+                    color: const Color(0xFFF9FAFB),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: const Color(0xFFF3F4F6)),
                   ),
                   child: Row(
                     children: [
-                      // Fecha inicio
+                      // Fechas Desde -> Hasta
                       Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                        child: Row(
                           children: [
-                            const Text(
-                              'Desde',
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
-                                color: AppColors.neutral600,
+                            _buildDateColumn('Desde', widget.request.fechaInicio),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 16),
+                              child: Icon(
+                                Icons.arrow_forward_rounded,
+                                size: 18,
+                                color: AppColors.neutral400,
                               ),
                             ),
-                            const SizedBox(height: 4),
-                            Text(
-                              _formatDate(widget.request.fechaInicio),
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w700,
-                                fontSize: 14,
-                                color: AppColors.neutral900,
-                              ),
-                            ),
+                            _buildDateColumn('Hasta', widget.request.fechaFin),
                           ],
                         ),
                       ),
-                      Icon(
-                        Icons.arrow_forward,
-                        size: 18,
-                        color: AppColors.neutral400,
-                      ),
-                      const SizedBox(width: 8),
-                      // Fecha fin
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'Hasta',
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
-                                color: AppColors.neutral600,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              _formatDate(widget.request.fechaFin),
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w700,
-                                fontSize: 14,
-                                color: AppColors.neutral900,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      // Días totales
+                      // Caja Roja de Días
                       Container(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 8,
-                        ),
+                            horizontal: 16, vertical: 10),
                         decoration: BoxDecoration(
                           color: AppColors.primaryRed,
-                          borderRadius: BorderRadius.circular(10),
+                          borderRadius: BorderRadius.circular(12),
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppColors.primaryRed.withValues(alpha: 0.2),
+                              blurRadius: 8,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
                         ),
                         child: Column(
                           children: [
                             Text(
                               '${widget.request.diasTotales}',
                               style: const TextStyle(
-                                fontWeight: FontWeight.w900,
+                                fontWeight: FontWeight.w800,
                                 fontSize: 18,
                                 color: Colors.white,
+                                height: 1.0,
                               ),
                             ),
                             const Text(
                               'días',
                               style: TextStyle(
-                                fontSize: 10,
+                                fontSize: 11,
                                 color: Colors.white,
                                 fontWeight: FontWeight.w600,
                               ),
@@ -249,27 +214,24 @@ class _RequestCardState extends State<RequestCard> {
                   ),
                 ),
 
-                // Motivo (si existe)
+                // 4. Motivo / Footer (si existe)
                 if (widget.request.motivoDetalle != null &&
                     widget.request.motivoDetalle!.isNotEmpty) ...[
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 16),
                   Container(
-                    padding: const EdgeInsets.all(12),
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     decoration: BoxDecoration(
-                      color: AppColors.infoBlue.withValues(alpha: 0.08),
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(
-                        color: AppColors.infoBlue.withValues(alpha: 0.2),
-                        width: 1,
-                      ),
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: AppColors.neutral200),
                     ),
                     child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Icon(
-                          Icons.comment_outlined,
-                          size: 18,
-                          color: AppColors.infoBlue,
+                          Icons.chat_bubble_outline_rounded,
+                          size: 16,
+                          color: AppColors.neutral500,
                         ),
                         const SizedBox(width: 8),
                         Expanded(
@@ -277,10 +239,10 @@ class _RequestCardState extends State<RequestCard> {
                             widget.request.motivoDetalle!,
                             style: const TextStyle(
                               fontSize: 13,
-                              color: AppColors.neutral900,
-                              height: 1.4,
+                              color: AppColors.neutral700,
+                              fontStyle: FontStyle.italic,
                             ),
-                            maxLines: 3,
+                            maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
@@ -296,18 +258,38 @@ class _RequestCardState extends State<RequestCard> {
     );
   }
 
+  Widget _buildDateColumn(String label, DateTime date) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            color: AppColors.neutral500,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          _formatDate(date),
+          style: const TextStyle(
+            fontWeight: FontWeight.w700,
+            fontSize: 15,
+            color: AppColors.neutral900,
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildAvatar() {
     return Container(
-      width: 44,
-      height: 44,
+      width: 48,
+      height: 48,
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            AppColors.primaryRed.withValues(alpha: 0.8),
-            AppColors.primaryRed,
-          ],
-        ),
-        borderRadius: BorderRadius.circular(12),
+        color: AppColors.neutral100,
+        borderRadius: BorderRadius.circular(14),
         image: _employeePhotoUrl != null
             ? DecorationImage(
                 image: NetworkImage(_employeePhotoUrl!),
@@ -317,102 +299,72 @@ class _RequestCardState extends State<RequestCard> {
       ),
       child: _employeePhotoUrl == null
           ? const Center(
-              child: Icon(
-                Icons.person,
-                color: Colors.white,
-                size: 24,
-              ),
+              child: Icon(Icons.person, color: AppColors.neutral400, size: 26),
             )
           : null,
     );
   }
 
-  LinearGradient _getGradientByStatus() {
-    if (widget.request.estado == null) {
-      return LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        colors: [
-          Colors.white,
-          AppColors.neutral100.withValues(alpha: 0.3),
+  /// Construye el badge de estado con color
+  Widget _buildStatusPill() {
+    Color color;
+    String text;
+    IconData icon;
+
+    final estado = widget.request.estado;
+
+    if (estado == null || estado == EstadoAprobacion.pendiente) {
+      color = const Color(0xFFF59E0B); // Amber 600
+      text = 'Pendiente';
+      icon = Icons.access_time_rounded;
+    } else if (estado == EstadoAprobacion.aprobadoManager) {
+      color = AppColors.successGreen;
+      text = 'Aprob. Mng';
+      icon = Icons.check_circle_outline_rounded;
+    } else if (estado == EstadoAprobacion.aprobadoRrhh) {
+      color = AppColors.successGreen;
+      text = 'Aprobado';
+      icon = Icons.check_circle_rounded;
+    } else if (estado == EstadoAprobacion.rechazado) {
+      color = AppColors.errorRed;
+      text = 'Rechazado';
+      icon = Icons.cancel_outlined;
+    } else {
+      color = AppColors.neutral500;
+      text = 'Cancelado';
+      icon = Icons.block_rounded;
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: color.withValues(alpha: 0.2)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: color),
+          const SizedBox(width: 4),
+          Text(
+            text,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: color,
+            ),
+          ),
         ],
-      );
-    }
-
-    Color baseColor;
-    if (widget.request.estado == EstadoAprobacion.pendiente) {
-      baseColor = AppColors.warningOrange;
-    } else if (widget.request.estado == EstadoAprobacion.aprobadoManager ||
-               widget.request.estado == EstadoAprobacion.aprobadoRrhh) {
-      baseColor = AppColors.successGreen;
-    } else if (widget.request.estado == EstadoAprobacion.rechazado) {
-      baseColor = AppColors.errorRed;
-    } else { // cancelado_usuario
-      baseColor = AppColors.neutral600;
-    }
-
-    return LinearGradient(
-      begin: Alignment.topLeft,
-      end: Alignment.bottomRight,
-      colors: [
-        Colors.white,
-        baseColor.withValues(alpha: 0.03),
-      ],
+      ),
     );
-  }
-
-  Color _getBorderColorByStatus() {
-    if (widget.request.estado == null) {
-      return AppColors.neutral300;
-    }
-
-    if (widget.request.estado == EstadoAprobacion.pendiente) {
-      return AppColors.warningOrange;
-    } else if (widget.request.estado == EstadoAprobacion.aprobadoManager ||
-               widget.request.estado == EstadoAprobacion.aprobadoRrhh) {
-      return AppColors.successGreen;
-    } else if (widget.request.estado == EstadoAprobacion.rechazado) {
-      return AppColors.errorRed;
-    } else { // cancelado_usuario
-      return AppColors.neutral600;
-    }
   }
 
   String _formatDate(DateTime date) {
     const months = [
-      'Ene',
-      'Feb',
-      'Mar',
-      'Abr',
-      'May',
-      'Jun',
-      'Jul',
-      'Ago',
-      'Sep',
-      'Oct',
-      'Nov',
-      'Dic'
+      'Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun',
+      'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'
     ];
     return '${date.day} ${months[date.month - 1]}';
-  }
-
-  String _formatCreatedDate() {
-    if (widget.request.creadoEn == null) return 'Sin fecha';
-
-    final now = DateTime.now();
-    final diff = now.difference(widget.request.creadoEn!);
-
-    if (diff.inDays == 0) {
-      if (diff.inHours == 0) {
-        return 'Hace ${diff.inMinutes} min';
-      }
-      return 'Hace ${diff.inHours}h';
-    } else if (diff.inDays == 1) {
-      return 'Ayer';
-    } else if (diff.inDays < 7) {
-      return 'Hace ${diff.inDays} días';
-    } else {
-      return _formatDate(widget.request.creadoEn!);
-    }
   }
 }

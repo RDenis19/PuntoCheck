@@ -1,12 +1,12 @@
-import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:puntocheck/models/alertas_cumplimiento.dart';
-import 'package:puntocheck/models/sucursales.dart';
 import 'package:puntocheck/models/perfiles.dart';
 import 'package:puntocheck/providers/manager_providers.dart';
 import 'package:puntocheck/utils/theme/app_colors.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:puntocheck/services/supabase_client.dart'; // Needed for signed url
 
 class ManagerComplianceAlertsView extends ConsumerStatefulWidget {
   const ManagerComplianceAlertsView({super.key});
@@ -95,9 +95,6 @@ class _ManagerComplianceAlertsViewState
     return alerts.where((a) {
       if (_severity != null && a.gravedad?.value != _severity) return false;
 
-      final branchIdFromJson = a.detalleTecnico?['sucursal_id']?.toString();
-      final branch = a.empleadoSucursalId ?? branchIdFromJson;
-      if (_branchId != null && branch != _branchId) return false;
 
       if (_employeeId != null && a.empleadoId != _employeeId) return false;
       return true;
@@ -105,7 +102,6 @@ class _ManagerComplianceAlertsViewState
   }
 
   Future<void> _openFilters(BuildContext context) async {
-    final branchesAsync = await ref.read(managerBranchesProvider.future);
     final teamAsync = await ref.read(managerTeamAllProvider(null).future);
 
     if (!context.mounted) return;
@@ -116,9 +112,7 @@ class _ManagerComplianceAlertsViewState
       showDragHandle: true,
       backgroundColor: Colors.white,
       builder: (_) => _AlertFiltersSheet(
-        branches: branchesAsync,
         team: teamAsync,
-        selectedBranchId: _branchId,
         selectedEmployeeId: _employeeId,
         selectedSeverity: _severity,
       ),
@@ -185,7 +179,8 @@ class _AlertCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final severityColor = _severityColor(alert.gravedad?.value);
     final estado = alert.estado ?? 'pendiente';
-    final title = alert.tipoIncumplimiento;
+
+    final title = _formatSnakeCase(alert.tipoIncumplimiento);
     final employee = alert.empleadoNombreCompleto;
     final desc =
         (alert.detalleTecnico?['descripcion'] as String?) ??
@@ -303,6 +298,14 @@ class _AlertCard extends StatelessWidget {
         return AppColors.infoBlue;
     }
   }
+
+  static String _formatSnakeCase(String text) {
+    if (text.isEmpty) return text;
+    return text.replaceAll('_', ' ').split(' ').map((word) {
+      if (word.isEmpty) return '';
+      return word[0].toUpperCase() + word.substring(1).toLowerCase();
+    }).join(' ');
+  }
 }
 
 class _AlertDetailSheet extends ConsumerStatefulWidget {
@@ -323,14 +326,20 @@ class _AlertDetailSheetState extends ConsumerState<_AlertDetailSheet> {
     _status = widget.alert.estado;
   }
 
+  String _formatSnakeCase(String text) {
+    if (text.isEmpty) return text;
+    return text.replaceAll('_', ' ').split(' ').map((word) {
+      if (word.isEmpty) return '';
+      return word[0].toUpperCase() + word.substring(1).toLowerCase();
+    }).join(' ');
+  }
+
   @override
   Widget build(BuildContext context) {
     final alert = widget.alert;
     final severityColor = _AlertCard._severityColor(alert.gravedad?.value);
 
-    final jsonPretty = alert.detalleTecnico == null
-        ? null
-        : const JsonEncoder.withIndent('  ').convert(alert.detalleTecnico);
+
 
     final controllerState = ref.watch(managerComplianceAlertControllerProvider);
 
@@ -360,7 +369,7 @@ class _AlertDetailSheetState extends ConsumerState<_AlertDetailSheet> {
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    alert.tipoIncumplimiento,
+                    _formatSnakeCase(alert.tipoIncumplimiento),
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w800,
@@ -380,12 +389,12 @@ class _AlertDetailSheetState extends ConsumerState<_AlertDetailSheet> {
             ],
             _KeyValueRow(
               label: 'Gravedad',
-              value: alert.gravedad?.value ?? 'leve',
+              value: _formatSnakeCase(alert.gravedad?.value ?? 'leve'),
             ),
             const SizedBox(height: 10),
             _KeyValueRow(
               label: 'Estado',
-              value: alert.estado ?? 'pendiente',
+              value: _formatSnakeCase(alert.estado ?? 'pendiente'),
             ),
             const SizedBox(height: 14),
             if (alert.detalleTecnico != null) ...[
@@ -405,16 +414,34 @@ class _AlertDetailSheetState extends ConsumerState<_AlertDetailSheet> {
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: AppColors.neutral200),
                 ),
-                child: Text(
-                  jsonPretty ?? '',
-                  style: const TextStyle(
-                    fontFamily: 'monospace',
-                    fontSize: 12,
-                    color: AppColors.neutral700,
-                  ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                     if (alert.detalleTecnico!['sucursal'] != null)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 4),
+                          child: Text('Sucursal: ${alert.detalleTecnico!['sucursal']}', style: const TextStyle(fontSize: 13, color: AppColors.neutral700)),
+                        ),
+                     if (alert.detalleTecnico!['descripcion'] != null)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 4),
+                          child: Text('Descripción: ${alert.detalleTecnico!['descripcion']}', style: const TextStyle(fontSize: 13, color: AppColors.neutral700)),
+                        ),
+                      if (alert.detalleTecnico!['motivo'] != null)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 4),
+                          child: Text('Motivo: ${alert.detalleTecnico!['motivo']}', style: const TextStyle(fontSize: 13, color: AppColors.neutral700)),
+                        ),
+                      // Fallback for other important fields we might want to see, or keep it clean as requested.
+                      // Hiding raw IDs (registro_id) as per request for "bonito" UI.
+                  ],
                 ),
               ),
               const SizedBox(height: 14),
+            ],
+            if (alert.detalleTecnico != null && (alert.detalleTecnico!['evidencia_foto_url'] != null || alert.detalleTecnico!['documento_url'] != null)) ...[
+                 _buildDocButton(context, alert.detalleTecnico!),
+                 const SizedBox(height: 14),
             ],
             const Text(
               'Acción operativa',
@@ -434,11 +461,11 @@ class _AlertDetailSheetState extends ConsumerState<_AlertDetailSheet> {
               children: [
                 Expanded(
                   child: DropdownButtonFormField<String>(
-                    value: _status ?? alert.estado,
+                    initialValue: _status ?? alert.estado,
                     items: const [
                       DropdownMenuItem(value: 'pendiente', child: Text('Pendiente')),
-                      DropdownMenuItem(value: 'revisado', child: Text('Revisado')),
-                      DropdownMenuItem(value: 'atendida', child: Text('Atendida')),
+                      DropdownMenuItem(value: 'en_revision', child: Text('En revisión')),
+                      DropdownMenuItem(value: 'resuelta', child: Text('Resuelta')),
                     ],
                     decoration: const InputDecoration(
                       labelText: 'Actualizar estado',
@@ -498,19 +525,65 @@ class _AlertDetailSheetState extends ConsumerState<_AlertDetailSheet> {
       ),
     );
   }
+  Widget _buildDocButton(BuildContext context, Map<String, dynamic> json) {
+      final url = json['evidencia_foto_url'] ?? json['documento_url'];
+      if (url == null || url is! String) return const SizedBox();
+
+      return InkWell(
+        onTap: () async {
+          try {
+             Uri uri;
+             if (url.startsWith('http')) {
+               uri = Uri.parse(url);
+             } else {
+               // Signed URL fallback
+               final signed = await supabase.storage
+                   .from('evidencias') 
+                   .createSignedUrl(url, 60);
+               uri = Uri.parse(signed);
+             }
+             if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+                 if (context.mounted) {
+                   ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('No se pudo abrir el documento')),
+                   );
+                 }
+             }
+          } catch(e) {
+             if (context.mounted) {
+               ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Error: $e')),
+               );
+             }
+          }
+        },
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+             color: AppColors.infoBlue.withValues(alpha: 0.1),
+             borderRadius: BorderRadius.circular(8),
+             border: Border.all(color: AppColors.infoBlue.withValues(alpha: 0.3)),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: const [
+               Icon(Icons.attachment, size: 16, color: AppColors.infoBlue),
+               SizedBox(width: 8),
+               Text('Ver evidencia/documento', style: TextStyle(color: AppColors.infoBlue, fontWeight: FontWeight.w600)),
+            ],
+          ),
+        ),
+      );
+  }
 }
 
 class _AlertFiltersSheet extends StatefulWidget {
-  final List<Sucursales> branches;
   final List<Perfiles> team;
-  final String? selectedBranchId;
   final String? selectedEmployeeId;
   final String? selectedSeverity;
 
   const _AlertFiltersSheet({
-    required this.branches,
     required this.team,
-    required this.selectedBranchId,
     required this.selectedEmployeeId,
     required this.selectedSeverity,
   });
@@ -527,7 +600,6 @@ class _AlertFiltersSheetState extends State<_AlertFiltersSheet> {
   @override
   void initState() {
     super.initState();
-    _branchId = widget.selectedBranchId;
     _employeeId = widget.selectedEmployeeId;
     _severity = widget.selectedSeverity;
   }
@@ -560,7 +632,6 @@ class _AlertFiltersSheetState extends State<_AlertFiltersSheet> {
                 ),
                 TextButton(
                   onPressed: () => setState(() {
-                    _branchId = null;
                     _employeeId = null;
                     _severity = null;
                   }),
@@ -569,23 +640,10 @@ class _AlertFiltersSheetState extends State<_AlertFiltersSheet> {
               ],
             ),
             const SizedBox(height: 12),
-            DropdownButtonFormField<String?>(
-              value: _branchId,
-              decoration: const InputDecoration(
-                labelText: 'Sucursal',
-                border: OutlineInputBorder(),
-              ),
-              items: [
-                const DropdownMenuItem(value: null, child: Text('Todas')),
-                ...widget.branches.map(
-                  (b) => DropdownMenuItem(value: b.id, child: Text(b.nombre)),
-                ),
-              ],
-              onChanged: (v) => setState(() => _branchId = v),
-            ),
+
             const SizedBox(height: 12),
             DropdownButtonFormField<String?>(
-              value: _employeeId,
+              initialValue: _employeeId,
               decoration: const InputDecoration(
                 labelText: 'Empleado',
                 border: OutlineInputBorder(),
@@ -603,7 +661,7 @@ class _AlertFiltersSheetState extends State<_AlertFiltersSheet> {
             ),
             const SizedBox(height: 12),
             DropdownButtonFormField<String?>(
-              value: _severity,
+              initialValue: _severity,
               decoration: const InputDecoration(
                 labelText: 'Gravedad',
                 border: OutlineInputBorder(),
@@ -628,7 +686,7 @@ class _AlertFiltersSheetState extends State<_AlertFiltersSheet> {
                   Navigator.pop(
                     context,
                     _AlertFiltersResult(
-                      branchId: _branchId,
+                      branchId: null, 
                       employeeId: _employeeId,
                       severity: _severity,
                     ),

@@ -162,57 +162,65 @@ class ManagerHomeSummary {
 }
 
 /// Provider que calcula estadísticas del equipo para el dashboard.
-final managerHomeSummaryProvider = FutureProvider<ManagerHomeSummary>((
-  ref,
-) async {
-  try {
-    // Obtener equipo
-    final team = await ref.read(managerServiceProvider).getMyTeam();
-    final teamTotal = team.length;
+/// Provider que calcula estadísticas del equipo para el dashboard (Actualizado automáticamente).
+final managerHomeSummaryProvider = StreamProvider.autoDispose<ManagerHomeSummary>((ref) async* {
+  // Función auxiliar para obtener datos
+  Future<ManagerHomeSummary> fetchData() async {
+    try {
+      final team = await ref.read(managerServiceProvider).getMyTeam();
+      final teamTotal = team.length;
 
-    // Obtener asistencia de hoy
-    final now = DateTime.now();
-    final startOfDay = DateTime(now.year, now.month, now.day);
-    final attendanceToday = await ref
-        .read(managerServiceProvider)
-        .getTeamAttendance(startDate: startOfDay, endDate: now, limit: 200);
+      final now = DateTime.now();
+      final startOfDay = DateTime(now.year, now.month, now.day);
+      final attendanceToday = await ref
+          .read(managerServiceProvider)
+          .getTeamAttendance(startDate: startOfDay, endDate: now, limit: 200);
 
-    // Calcular presentes (al menos una entrada hoy)
-    final presentEmployeeIds = attendanceToday
-        .where((r) => r.tipoRegistro == 'entrada')
-        .map((r) => r.perfilId)
-        .toSet();
-    final teamPresent = presentEmployeeIds.length;
+      final presentEmployeeIds = attendanceToday
+          .where((r) => r.tipoRegistro == 'entrada')
+          .map((r) => r.perfilId)
+          .toSet();
+      final teamPresent = presentEmployeeIds.length;
 
-    // TODO: Calcular tardanzas (requiere lógica de horarios)
-    final teamLate = 0;
+      final teamLate = 0; // Logíca pendiente de tardanzas
 
-    // Obtener permisos pendientes (para mostrar resumen y lista breve)
-    final pendingPermissionsList = await ref
-        .read(managerServiceProvider)
-        .getTeamPermissions(pendingOnly: true);
-    final pendingPermissions = pendingPermissionsList.length;
+      final pendingPermissionsList = await ref
+          .read(managerServiceProvider)
+          .getTeamPermissions(pendingOnly: true);
+      final pendingPermissions = pendingPermissionsList.length;
 
-    // TODO: Calcular horas extra semanales
-    final overtimeHoursWeek = 0;
+      final overtimeHoursWeek = 0; // Lógica pendiente
 
-    return ManagerHomeSummary(
-      teamTotal: teamTotal,
-      teamPresent: teamPresent,
-      teamLate: teamLate,
-      pendingPermissions: pendingPermissions,
-      overtimeHoursWeek: overtimeHoursWeek,
-      recentPermissions: pendingPermissionsList.take(3).toList(),
-    );
-  } catch (e) {
-    return ManagerHomeSummary(
-      teamTotal: 0,
-      teamPresent: 0,
-      teamLate: 0,
-      pendingPermissions: 0,
-      overtimeHoursWeek: 0,
-      recentPermissions: const [],
-    );
+      return ManagerHomeSummary(
+        teamTotal: teamTotal,
+        teamPresent: teamPresent,
+        teamLate: teamLate,
+        pendingPermissions: pendingPermissions,
+        overtimeHoursWeek: overtimeHoursWeek,
+        recentPermissions: pendingPermissionsList.take(3).toList(),
+      );
+    } catch (e) {
+       // Retornar vacío en error para no romper stream
+       return ManagerHomeSummary(
+          teamTotal: 0, 
+          teamPresent: 0, 
+          teamLate: 0, 
+          pendingPermissions: 0, 
+          overtimeHoursWeek: 0, 
+          recentPermissions: []
+       );
+    }
+  }
+
+  // Emitir primer valor inmediatamente
+  yield await fetchData();
+
+  // Loop para actualizar cada 15 segundos
+  final timer = Stream.periodic(const Duration(seconds: 15), (i) => i);
+  await for (final _ in timer) {
+    // Verificar si el provider fue dispuesto para detener
+    // (StreamProvider.autoDispose lo maneja cancelando la subscripción)
+    yield await fetchData();
   }
 });
 

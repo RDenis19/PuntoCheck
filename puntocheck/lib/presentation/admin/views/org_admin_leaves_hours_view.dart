@@ -52,54 +52,71 @@ class _OrgAdminLeavesAndHoursViewState
               slivers: [
                 // Header con estadísticas
                 SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 20),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          'Resumen',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w800,
-                            color: AppColors.neutral900,
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                          child: Text(
+                            'Resumen'.toUpperCase(),
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.neutral500,
+                              letterSpacing: 0.5,
+                            ),
                           ),
                         ),
-                        const SizedBox(height: 12),
-                        // Grid de estadísticas
-                        GridView.count(
-                          crossAxisCount: 2,
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          crossAxisSpacing: 12,
-                          mainAxisSpacing: 12,
-                          childAspectRatio: 1.6,
-                          children: [
-                            LeaveStatCard(
-                              label: 'Pendientes',
-                              value: stats['pendientes'].toString(),
-                              icon: Icons.pending_outlined,
-                              color: AppColors.warningOrange,
-                            ),
-                            LeaveStatCard(
-                              label: 'Aprobados',
-                              value: stats['aprobados'].toString(),
-                              icon: Icons.check_circle_outline,
-                              color: AppColors.successGreen,
-                            ),
-                            LeaveStatCard(
-                              label: 'Rechazados',
-                              value: stats['rechazados'].toString(),
-                              icon: Icons.cancel_outlined,
-                              color: AppColors.errorRed,
-                            ),
-                            LeaveStatCard(
-                              label: 'Días Solicitados',
-                              value: stats['diasTotales'].toString(),
-                              icon: Icons.calendar_month,
-                              color: AppColors.infoBlue,
-                            ),
-                          ],
+                        const SizedBox(height: 16),
+                        SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          physics: const BouncingScrollPhysics(),
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                          child: Row(
+                            children: [
+                              SizedBox(
+                                width: 200,
+                                child: LeaveStatCard(
+                                  label: 'Pendientes',
+                                  value: stats['pendientes'].toString(),
+                                  icon: Icons.pending_outlined,
+                                  color: AppColors.warningOrange,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              SizedBox(
+                                width: 200,
+                                child: LeaveStatCard(
+                                  label: 'Aprobados',
+                                  value: stats['aprobados'].toString(),
+                                  icon: Icons.check_circle_outline,
+                                  color: AppColors.successGreen,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              SizedBox(
+                                width: 200,
+                                child: LeaveStatCard(
+                                  label: 'Rechazados',
+                                  value: stats['rechazados'].toString(),
+                                  icon: Icons.cancel_outlined,
+                                  color: AppColors.errorRed,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              SizedBox(
+                                width: 200,
+                                child: LeaveStatCard(
+                                  label: 'Total Días',
+                                  value: stats['diasTotales'].toString(),
+                                  icon: Icons.calendar_today_outlined,
+                                  color: AppColors.infoBlue,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ],
                     ),

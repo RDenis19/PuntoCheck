@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:puntocheck/presentation/admin/widgets/admin_stat_card.dart';
+
 import 'package:puntocheck/presentation/manager/views/manager_approvals_view.dart';
 import 'package:puntocheck/presentation/manager/views/manager_branch_view.dart';
 import 'package:puntocheck/presentation/manager/views/manager_compliance_alerts_view.dart';
 import 'package:puntocheck/presentation/manager/views/manager_hours_bank_view.dart';
+import 'package:puntocheck/presentation/manager/views/manager_leave_detail_view.dart'; // Import Detail View
 import 'package:puntocheck/providers/manager_providers.dart';
 import 'package:puntocheck/utils/theme/app_colors.dart';
 
@@ -25,8 +26,8 @@ class _ManagerDashboardViewState extends ConsumerState<ManagerDashboardView> {
   Widget build(BuildContext context) {
     final summaryAsync = ref.watch(managerHomeSummaryProvider);
 
-    return SafeArea(
-      child: summaryAsync.when(
+    // SafeArea rernoved to prevent double padding/gap, handled by Shell
+    return summaryAsync.when(
         loading: () => const Center(
           child: CircularProgressIndicator(color: AppColors.primaryRed),
         ),
@@ -73,153 +74,96 @@ class _ManagerDashboardViewState extends ConsumerState<ManagerDashboardView> {
                 },
                 color: AppColors.primaryRed,
                 child: ListView(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
                   children: [
-                    // Fila 1: Presentes y Tardanzas
+                    // Título Resumen
+                    Text(
+                      'RESUMEN',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.neutral500,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+
+                    // Fila 1: Presentes y Tardanzas (Tarjetas Rojas)
                     Row(
                       children: [
                         Expanded(
-                          child: AdminStatCard(
+                          child: _RedStatCard(
                             label: 'Presentes hoy',
                             value: '${summary.teamPresent}',
-                            hint: 'De ${summary.teamTotal} en equipo',
                             icon: Icons.check_circle_outline,
-                            color: AppColors.successGreen,
                           ),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
-                          child: AdminStatCard(
+                          child: _RedStatCard(
                             label: 'Tardanzas',
                             value: '${summary.teamLate}',
-                            hint: 'Supera tolerancia',
                             icon: Icons.schedule_outlined,
-                            color: AppColors.warningOrange,
                           ),
                         ),
                       ],
                     ),
                     const SizedBox(height: 12),
 
-                    // Fila 2: Permisos pendientes y Horas extra
+                    // Fila 2: Permisos pendientes y Horas extra (Tarjetas Rojas)
                     Row(
                       children: [
                         Expanded(
-                          child: AdminStatCard(
-                            label: 'Permisos pendientes',
+                          child: _RedStatCard(
+                            label: 'Pendientes',
                             value: '${summary.pendingPermissions}',
-                            hint: 'Requieren aprobación',
                             icon: Icons.mail_outline,
-                            color: AppColors.primaryRed,
                           ),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
-                          child: AdminStatCard(
+                          child: _RedStatCard(
                             label: 'Horas extra',
                             value: '${summary.overtimeHoursWeek}',
-                            hint: 'Acumulado semanal',
                             icon: Icons.trending_up,
-                            color: AppColors.infoBlue,
                           ),
                         ),
                       ],
                     ),
                     const SizedBox(height: 24),
 
-                    // Sección: Solicitudes Recientes
+                    // Título Solicitudes Recientes
                     if (summary.recentPermissions.isNotEmpty) ...[
-                      const Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 4),
-                        child: Text(
-                          'Solicitudes Recientes',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.neutral900,
-                          ),
+                      Text(
+                        'SOLICITUDES RECIENTES',
+                         style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.neutral500,
+                          letterSpacing: 0.5,
                         ),
                       ),
                       const SizedBox(height: 12),
                       ...summary.recentPermissions.map((permission) {
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 12),
-                          child: Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: AppColors.neutral200),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.05),
-                                  blurRadius: 4,
-                                  offset: const Offset(0, 2),
-                                ),
-                              ],
-                            ),
-                            child: Row(
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.all(8),
-                                  decoration: BoxDecoration(
-                                    color: AppColors.primaryRed.withValues(
-                                      alpha: 0.1,
-                                    ),
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: const Icon(
-                                    Icons.person_outline,
-                                    color: AppColors.primaryRed,
-                                    size: 20,
+                        return _RecentRequestCard(
+                          request: permission,
+                          onTap: () async {
+                             // Navegar al detalle para aprobar/rechazar
+                              final changed = await Navigator.push<bool>(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => ManagerLeaveDetailView(
+                                    request: permission,
                                   ),
                                 ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        permission.solicitanteId,
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 14,
-                                        ),
-                                      ),
-                                      Text(
-                                        permission.tipo.name,
-                                        style: const TextStyle(
-                                          color: AppColors.neutral600,
-                                          fontSize: 12,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 8,
-                                    vertical: 4,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: AppColors.warningOrange.withValues(
-                                      alpha: 0.1,
-                                    ),
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: Text(
-                                    'Pendiente',
-                                    style: const TextStyle(
-                                      color: AppColors.warningOrange,
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
+                              );
+                              // Si cambió algo (aprobó/rechazó), provider auto-refresh lo captará eventualemente
+                              // pero forzamos refresh inmediato por UX
+                              if (changed == true) {
+                                ref.invalidate(managerHomeSummaryProvider);
+                                ref.invalidate(managerTeamPermissionsProvider);
+                              }
+                          },
                         );
                       }),
                       const SizedBox(height: 80),
@@ -313,14 +257,188 @@ class _ManagerDashboardViewState extends ConsumerState<ManagerDashboardView> {
             ],
           );
         },
+      );
+  }
+}
+
+// ============================================================================
+// WIDGET LOCALS
+// ============================================================================
+
+/// Tarjeta de estadística roja con ícono blanco y texto blanco, 
+/// estilo "block" uniforme.
+class _RedStatCard extends StatelessWidget {
+  final String label;
+  final String value;
+  final IconData icon;
+
+  const _RedStatCard({
+    required this.label,
+    required this.value,
+    required this.icon,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      // Altura fija para uniformidad ("del mismo porte")
+      height: 100, 
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.primaryRed,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primaryRed.withValues(alpha: 0.3),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          // Icono y Valor
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                value,
+                style: const TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.w800,
+                  color: Colors.white,
+                  height: 1.0,
+                ),
+              ),
+              Icon(
+                icon,
+                color: Colors.white.withValues(alpha: 0.8),
+                size: 24,
+              ),
+            ],
+          ),
+          // Label
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+              color: Colors.white.withValues(alpha: 0.9),
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
       ),
     );
   }
 }
 
-// ============================================================================
-// Widget de acción rápida (reutilizado del patrón del Admin)
-// ============================================================================
+/// Tarjeta compacta para solicitudes recientes (solo Nombre, Fecha, Tipo)
+class _RecentRequestCard extends StatelessWidget {
+  final dynamic request;
+  final VoidCallback onTap;
+
+  const _RecentRequestCard({required this.request, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    // Helper para fecha "17 Dic"
+    String formatDate(DateTime d) {
+      const months = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+      return '${d.day} ${months[d.month-1]}';
+    }
+
+    final nombre = request.solicitanteNombreCompleto;
+    final fecha = formatDate(request.creadoEn ?? DateTime.now());
+    final tipo = request.tipo.label;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.primaryRed.withValues(alpha: 0.3)), // Borde rojo suave
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              // Avatar simple
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: AppColors.neutral100,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(Icons.person, color: AppColors.neutral400),
+              ),
+              const SizedBox(width: 12),
+              
+              // Info: Nombre y Fecha
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                     Text(
+                        nombre,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 15,
+                          color: AppColors.neutral900,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                     ),
+                     const SizedBox(height: 4),
+                     Text(
+                       fecha,
+                       style: const TextStyle(
+                         fontSize: 13,
+                         color: AppColors.neutral500,
+                       ),
+                     ),
+                  ],
+                ),
+              ),
+
+              // Chip de Tipo (destacado suave)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: AppColors.primaryRed.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  tipo,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.primaryRed,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
 
 class _QuickAction extends StatelessWidget {
   final IconData icon;

@@ -621,12 +621,13 @@ class _PaymentsSection extends StatelessWidget {
             final filtered = estadoFilter == null
                 ? payments
                 : payments.where((p) => p.estado == estadoFilter).toList();
-            if (filtered.isEmpty)
+            if (filtered.isEmpty) {
               return const EmptyState(
                 title: 'Sin movimientos',
                 message: 'No hay pagos con este criterio.',
                 icon: Icons.receipt_long,
               );
+            }
             return Column(
               children: filtered
                   .map(

@@ -66,7 +66,7 @@ class _SuperAdminShellViewState extends ConsumerState<SuperAdminShellView> {
     );
 
     return Scaffold(
-      backgroundColor: theme.colorScheme.background,
+      backgroundColor: theme.colorScheme.surface,
       body: SafeArea(child: body),
       bottomNavigationBar: SuperAdminTabNavigation(
         currentIndex: _currentIndex,

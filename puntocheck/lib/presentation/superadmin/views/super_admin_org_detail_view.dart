@@ -828,7 +828,7 @@ class _EditOrgDialogState extends ConsumerState<_EditOrgDialog> {
                       );
                   _selectedPlan ??= current;
                   return DropdownButtonFormField<PlanesSuscripcion>(
-                    value: _selectedPlan,
+                    initialValue: _selectedPlan,
                     items: items,
                     onChanged: isSaving
                         ? null

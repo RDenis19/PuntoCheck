@@ -4,13 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:puntocheck/models/alertas_cumplimiento.dart';
-import 'package:puntocheck/presentation/admin/widgets/admin_stat_card.dart';
 import 'package:puntocheck/presentation/auditor/widgets/alerts/auditor_alert_card.dart';
 import 'package:puntocheck/presentation/auditor/widgets/alerts/auditor_alert_constants.dart';
 import 'package:puntocheck/presentation/auditor/widgets/alerts/auditor_alert_detail_sheet.dart';
 import 'package:puntocheck/presentation/auditor/widgets/alerts/auditor_alert_filters_sheet.dart';
 import 'package:puntocheck/presentation/shared/widgets/empty_state.dart';
-import 'package:puntocheck/presentation/shared/widgets/section_card.dart';
 import 'package:puntocheck/providers/auditor_providers.dart';
 import 'package:puntocheck/routes/app_router.dart';
 import 'package:puntocheck/utils/theme/app_colors.dart';
@@ -73,29 +71,47 @@ class _AuditorAlertsViewState extends ConsumerState<AuditorAlertsView> {
     return SafeArea(
       child: Column(
         children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              border: Border(bottom: BorderSide(color: AppColors.neutral200)),
+            ),
             child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
+                // Spacer para balancear
+                const SizedBox(width: 96), 
                 const Expanded(
-                  child: Text(
-                    'Alertas',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w900,
-                      color: AppColors.neutral900,
+                  child: Center(
+                    child: Text(
+                      'Alertas de Cumplimiento',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.neutral900,
+                      ),
                     ),
                   ),
                 ),
-                IconButton(
-                  tooltip: 'Filtros',
-                  onPressed: () => _openFilters(context, branchesAsync),
-                  icon: const Icon(Icons.tune),
-                ),
-                IconButton(
-                  tooltip: 'Actualizar',
-                  onPressed: () => ref.invalidate(auditorAlertsProvider),
-                  icon: const Icon(Icons.refresh),
+                SizedBox(
+                  width: 96,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      IconButton(
+                        tooltip: 'Filtros',
+                        onPressed: () => _openFilters(context, branchesAsync),
+                        icon: const Icon(Icons.tune),
+                      ),
+                      IconButton(
+                        tooltip: 'Actualizar',
+                        onPressed: () => ref.invalidate(auditorAlertsProvider),
+                        icon: const Icon(Icons.refresh),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -123,7 +139,12 @@ class _AuditorAlertsViewState extends ConsumerState<AuditorAlertsView> {
                             },
                             icon: const Icon(Icons.close),
                           ),
-                    border: const OutlineInputBorder(),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: AppColors.neutral300),
+                    ),
+                    filled: true,
+                    fillColor: Colors.white,
                   ),
                 );
               },
@@ -174,70 +195,18 @@ class _AuditorAlertsViewState extends ConsumerState<AuditorAlertsView> {
                   return null;
                 }
 
-                    return RefreshIndicator(
+                return RefreshIndicator(
                   color: AppColors.primaryRed,
                   onRefresh: () async => ref.refresh(auditorAlertsProvider.future),
                   child: ListView(
-                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+                    padding: const EdgeInsets.fromLTRB(16, 6, 16, 16),
                     children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: AdminStatCard(
-                              label: 'Pendientes',
-                              value: '${summary.pending}',
-                              hint: 'Por revisar',
-                              icon: Icons.flag_outlined,
-                              color: AppColors.warningOrange,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: AdminStatCard(
-                              label: 'En revisión',
-                              value: '${summary.inReview}',
-                              hint: 'Abiertas',
-                              icon: Icons.manage_search_outlined,
-                              color: AppColors.infoBlue,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: AdminStatCard(
-                              label: 'Cerradas',
-                              value: '${summary.closed}',
-                              hint: 'Resueltas',
-                              icon: Icons.verified_outlined,
-                              color: AppColors.successGreen,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: AdminStatCard(
-                              label: 'Total',
-                              value: '${summary.total}',
-                              hint: 'Cargadas',
-                              icon: Icons.shield_outlined,
-                              color: AppColors.neutral700,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      SectionCard(
-                        title: 'Métricas rápidas',
-                        child: _QuickMetrics(
-                          alerts: alerts,
-                          branchNameFor: branchNameFor,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
+                      // Resumen Rojo tipo Header
+                      _SummaryHeader(summary: summary),
+
+                      const SizedBox(height: 16),
                       const Text(
-                        'Centro de control',
+                        'Listado de Alertas',
                         style: TextStyle(
                           fontWeight: FontWeight.w900,
                           fontSize: 18,
@@ -462,154 +431,78 @@ class _AlertsSummary {
   }
 }
 
-class _QuickMetrics extends StatelessWidget {
-  final List<AlertasCumplimiento> alerts;
-  final String? Function(String? branchId) branchNameFor;
-
-  const _QuickMetrics({
-    required this.alerts,
-    required this.branchNameFor,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final byType = <String, int>{};
-    final byBranch = <String, int>{};
-    final byEmployee = <String, int>{};
-
-    for (final a in alerts) {
-      final t = a.tipoIncumplimiento.trim();
-      if (t.isNotEmpty) byType[t] = (byType[t] ?? 0) + 1;
-
-      final branchId = a.empleadoSucursalId;
-      if (branchId != null && branchId.isNotEmpty) {
-        byBranch[branchId] = (byBranch[branchId] ?? 0) + 1;
-      }
-
-      final employee = (a.empleadoNombreCompleto ?? '').trim();
-      if (employee.isNotEmpty) byEmployee[employee] = (byEmployee[employee] ?? 0) + 1;
-    }
-
-    List<MapEntry<String, int>> top(Map<String, int> input) {
-      final list = input.entries.toList();
-      list.sort((a, b) => b.value.compareTo(a.value));
-      return list.take(3).toList();
-    }
-
-    final topTypes = top(byType);
-    final topEmployees = top(byEmployee);
-    final topBranches = top(byBranch)
-        .map((e) => MapEntry(branchNameFor(e.key) ?? e.key.substring(0, 8), e.value))
-        .toList();
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _MetricRow(
-          title: 'Por tipo',
-          items: [
-            for (final e in topTypes) _MetricChip(label: e.key, value: e.value),
-          ],
-        ),
-        const SizedBox(height: 10),
-        _MetricRow(
-          title: 'Por sucursal',
-          items: [
-            for (final e in topBranches)
-              _MetricChip(label: e.key, value: e.value),
-          ],
-        ),
-        const SizedBox(height: 10),
-        _MetricRow(
-          title: 'Por empleado',
-          items: [
-            for (final e in topEmployees) _MetricChip(label: e.key, value: e.value),
-          ],
-        ),
-      ],
-    );
-  }
-}
-
-class _MetricRow extends StatelessWidget {
-  final String title;
-  final List<Widget> items;
-
-  const _MetricRow({required this.title, required this.items});
-
-  @override
-  Widget build(BuildContext context) {
-    if (items.isEmpty) {
-      return Row(
-        children: [
-          SizedBox(
-            width: 92,
-            child: Text(
-              title,
-              style: const TextStyle(
-                fontWeight: FontWeight.w800,
-                color: AppColors.neutral700,
-              ),
-            ),
-          ),
-          const Expanded(
-            child: Text('—', style: TextStyle(color: AppColors.neutral600)),
-          ),
-        ],
-      );
-    }
-
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SizedBox(
-          width: 92,
-          child: Text(
-            title,
-            style: const TextStyle(
-              fontWeight: FontWeight.w800,
-              color: AppColors.neutral700,
-            ),
-          ),
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: items,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _MetricChip extends StatelessWidget {
-  final String label;
-  final int value;
-
-  const _MetricChip({required this.label, required this.value});
+class _SummaryHeader extends StatelessWidget {
+  final _AlertsSummary summary;
+  const _SummaryHeader({required this.summary});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: AppColors.neutral100,
-        borderRadius: BorderRadius.circular(99),
-        border: Border.all(color: AppColors.neutral200),
-      ),
-      child: Text(
-        '$label · $value',
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-        style: const TextStyle(
-          fontSize: 12,
-          color: AppColors.neutral700,
-          fontWeight: FontWeight.w700,
+        gradient: LinearGradient(
+          colors: [
+            AppColors.primaryRed,
+            AppColors.primaryRed.withValues(alpha: 0.85),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
         ),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primaryRed.withValues(alpha: 0.3),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _StatItem(label: 'Total Alertas', value: '${summary.total}'),
+              Container(width: 1, height: 40, color: Colors.white24),
+              _StatItem(label: 'Pendientes', value: '${summary.pending}'),
+              Container(width: 1, height: 40, color: Colors.white24),
+              _StatItem(label: 'En Revisión', value: '${summary.inReview}'),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StatItem extends StatelessWidget {
+  final String label;
+  final String value;
+  const _StatItem({required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Text(
+          value,
+          style: const TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.w900,
+            color: Colors.white,
+            height: 1.0,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w500,
+            color: Colors.white.withValues(alpha: 0.9),
+          ),
+        ),
+      ],
     );
   }
 }

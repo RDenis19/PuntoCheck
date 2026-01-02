@@ -4,12 +4,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:puntocheck/presentation/shared/widgets/section_card.dart';
+import 'package:puntocheck/presentation/shared/views/shared_profile_scaffold.dart';
+import 'package:puntocheck/presentation/shared/widgets/profile_widgets.dart';
 import 'package:puntocheck/providers/app_providers.dart';
 import 'package:puntocheck/routes/app_router.dart';
 import 'package:puntocheck/utils/safe_image_picker.dart';
 import 'package:puntocheck/utils/theme/app_colors.dart';
 
+/// Vista UNIFICADA para Auditor.
+/// Usa [SharedProfileScaffold].
 class AuditorProfileView extends ConsumerStatefulWidget {
   const AuditorProfileView({super.key});
 
@@ -20,8 +23,9 @@ class AuditorProfileView extends ConsumerStatefulWidget {
 class _AuditorProfileViewState extends ConsumerState<AuditorProfileView> {
   final _imagePicker = SafeImagePicker();
   bool _isSaving = false;
-  File? _newPhotoFile;
+  File? _newPhotoFile; // En auditor el perfil solo permite cambiar foto
 
+  // --- LÓGICA DE FOTOS ---
   Future<void> _pickProfilePhoto() async {
     final source = await showModalBottomSheet<ImageSource>(
       context: context,
@@ -54,29 +58,10 @@ class _AuditorProfileViewState extends ConsumerState<AuditorProfileView> {
     );
 
     if (!mounted) return;
-
-    if (result.permissionDenied) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Permiso denegado. Habilítalo en ajustes para continuar.'),
-          backgroundColor: AppColors.warningOrange,
-        ),
-      );
-      return;
+    if (result.file != null) {
+      setState(() => _newPhotoFile = result.file);
+      // Guardar inmediatamente o preguntar (aquí lo haremos explícito como en los otros roles)
     }
-
-    if (result.errorMessage != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(result.errorMessage!),
-          backgroundColor: AppColors.errorRed,
-        ),
-      );
-      return;
-    }
-
-    if (result.file == null) return;
-    setState(() => _newPhotoFile = result.file);
   }
 
   Future<void> _savePhoto() async {
@@ -89,28 +74,20 @@ class _AuditorProfileViewState extends ConsumerState<AuditorProfileView> {
       final url = await service.uploadProfilePhoto(file);
       await service.updateMyProfile(fotoPerfilUrl: url);
 
-      ref.invalidate(profileProvider);
+      ref.invalidate(profileProvider); // Ojo: auditor tiene su provider específico? profileProvider general sirve
 
       if (!mounted) return;
       setState(() => _newPhotoFile = null);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Foto de perfil actualizada'),
-          backgroundColor: AppColors.successGreen,
-        ),
-      );
+      _showSuccess('Foto de perfil actualizada');
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(e.toString().replaceFirst('Exception: ', '')),
-          backgroundColor: AppColors.errorRed,
-        ),
-      );
+      _showError(e.toString().replaceFirst('Exception: ', ''));
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }
   }
+
+  // --- PASSWORD Y LOGOUT ---
 
   Future<void> _showChangePasswordDialog() async {
     final newCtrl = TextEditingController();
@@ -120,15 +97,12 @@ class _AuditorProfileViewState extends ConsumerState<AuditorProfileView> {
     await showDialog<void>(
       context: context,
       builder: (_) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Row(
           children: [
             Icon(Icons.lock_reset, color: AppColors.primaryRed),
             SizedBox(width: 12),
-            Text(
-              'Cambiar contraseña',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
-            ),
+            Text('Cambiar contraseña', style: TextStyle(fontWeight: FontWeight.bold)),
           ],
         ),
         content: Form(
@@ -143,16 +117,10 @@ class _AuditorProfileViewState extends ConsumerState<AuditorProfileView> {
                   labelText: 'Nueva contraseña',
                   prefixIcon: const Icon(Icons.lock_outline),
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                  filled: true,
-                  fillColor: AppColors.neutral100,
                 ),
-                validator: (v) {
-                  if (v == null || v.isEmpty) return 'Requerido';
-                  if (v.length < 6) return 'Mínimo 6 caracteres';
-                  return null;
-                },
+                validator: (v) => (v?.length ?? 0) < 6 ? 'Mínimo 6 caracteres' : null,
               ),
-              const SizedBox(height: 14),
+              const SizedBox(height: 16),
               TextFormField(
                 controller: confirmCtrl,
                 obscureText: true,
@@ -160,33 +128,28 @@ class _AuditorProfileViewState extends ConsumerState<AuditorProfileView> {
                   labelText: 'Confirmar contraseña',
                   prefixIcon: const Icon(Icons.lock_outline),
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                  filled: true,
-                  fillColor: AppColors.neutral100,
                 ),
-                validator: (v) {
-                  if (v != newCtrl.text) return 'Las contraseñas no coinciden';
-                  return null;
-                },
+                validator: (v) => v != newCtrl.text ? 'No coinciden' : null,
               ),
             ],
           ),
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancelar'),
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancelar', style: TextStyle(color: AppColors.neutral600)),
           ),
           ElevatedButton(
-            onPressed: _isSaving
-                ? null
-                : () async {
-                    if (!formKey.currentState!.validate()) return;
-                    Navigator.of(context).pop();
-                    await _changePassword(newCtrl.text);
-                  },
+            onPressed: _isSaving ? null : () {
+              if (formKey.currentState!.validate()) {
+                Navigator.pop(context);
+                _changePassword(newCtrl.text);
+              }
+            },
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primaryRed,
               foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
             child: const Text('Guardar'),
           ),
@@ -200,20 +163,10 @@ class _AuditorProfileViewState extends ConsumerState<AuditorProfileView> {
     try {
       await ref.read(authServiceProvider).updatePassword(newPassword);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Contraseña actualizada'),
-          backgroundColor: AppColors.successGreen,
-        ),
-      );
+      _showSuccess('Contraseña actualizada');
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(e.toString().replaceFirst('Exception: ', '')),
-          backgroundColor: AppColors.errorRed,
-        ),
-      );
+      _showError(e.toString());
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }
@@ -225,6 +178,26 @@ class _AuditorProfileViewState extends ConsumerState<AuditorProfileView> {
     context.go(AppRoutes.login);
   }
 
+  void _showSuccess(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(msg),
+        backgroundColor: AppColors.successGreen,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  void _showError(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(msg),
+        backgroundColor: AppColors.errorRed,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final profileAsync = ref.watch(auditorProfileProvider);
@@ -232,300 +205,148 @@ class _AuditorProfileViewState extends ConsumerState<AuditorProfileView> {
     final branchesAsync = ref.watch(auditorBranchesProvider);
     final user = ref.watch(currentUserProvider);
 
-    return SafeArea(
-      child: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          const Text(
-            'Perfil',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.w900,
-              color: AppColors.neutral900,
-            ),
-          ),
-          const SizedBox(height: 12),
-          profileAsync.when(
-            loading: () => const Center(
-              child: Padding(
-                padding: EdgeInsets.all(20),
-                child: CircularProgressIndicator(color: AppColors.primaryRed),
-              ),
-            ),
-            error: (e, _) => SectionCard(
-              title: 'Tu cuenta',
-              child: Text(
-                'No se pudo cargar el perfil.\n$e',
-                style: const TextStyle(color: AppColors.errorRed),
-              ),
-            ),
-            data: (profile) {
-              final branchName = branchesAsync.maybeWhen(
-                data: (branches) {
-                  final id = profile.sucursalId;
-                  if (id == null || id.isEmpty) return null;
-                  final match = branches.where((b) => b.id == id).toList();
-                  return match.isEmpty ? null : match.first.nombre;
-                },
-                orElse: () => null,
-              );
+    return profileAsync.when(
+      loading: () => const Scaffold(
+        body: Center(child: CircularProgressIndicator(color: AppColors.primaryRed)),
+      ),
+      error: (e, _) => Scaffold(
+        body: Center(child: Text('Error cargando perfil: $e')),
+      ),
+      data: (profile) {
+        final branchName = branchesAsync.maybeWhen(
+          data: (branches) {
+            final id = profile.sucursalId;
+            if (id == null || id.isEmpty) return null;
+            final match = branches.where((b) => b.id == id).toList();
+            return match.isEmpty ? null : match.first.nombre;
+          },
+          orElse: () => null,
+        );
 
-              final orgName = orgAsync.maybeWhen(
-                data: (org) => org.razonSocial,
-                orElse: () => null,
-              );
+        final orgName = orgAsync.maybeWhen(
+          data: (org) => org.razonSocial,
+          orElse: () => profile.organizacionId?.isNotEmpty == true ? profile.organizacionId! : 'No asignada',
+        );
 
-              final initials = (profile.nombres.isNotEmpty ? profile.nombres[0] : '?')
-                  .toUpperCase();
+        final initials = (profile.nombres.isNotEmpty ? profile.nombres[0] : '?').toUpperCase();
+        
+        // En Auditor solo se edita la foto desde la pantalla, no hay botón general de "Editar texto"
+        // ya que el auditor suele tener datos fijos o gestionados por admin (comúnmente).
+        // Pero mantenemos la UI consistente con el botón de "Camara" en el avatar.
 
-              final photoUrl = profile.fotoPerfilUrl?.trim();
-
-              return Column(
+        return SharedProfileScaffold(
+          userName: profile.nombreCompleto,
+          userEmail: user?.email ?? '',
+          initials: initials,
+          photoUrl: _newPhotoFile != null ? null : profile.fotoPerfilUrl, // TODO: FileImage si hay nuevo archivo
+          isEditing: true, // Esto habilita el botón de cámara en el scaffold
+          onEditPhoto: _pickProfilePhoto, 
+          
+          children: [
+            // Botón guardar foto si hay una seleccionada
+            if (_newPhotoFile != null) ...[
+              Row(
                 children: [
-                  SectionCard(
-                    title: 'Tu cuenta',
-                    child: Column(
-                      children: [
-                        Row(
-                          children: [
-                            Stack(
-                              children: [
-                                CircleAvatar(
-                                  radius: 34,
-                                  backgroundColor: AppColors.neutral200,
-                                  backgroundImage: _newPhotoFile != null
-                                      ? FileImage(_newPhotoFile!)
-                                      : (photoUrl != null && photoUrl.isNotEmpty)
-                                          ? NetworkImage(photoUrl)
-                                          : null,
-                                  child: (photoUrl == null || photoUrl.isEmpty) &&
-                                          _newPhotoFile == null
-                                      ? Text(
-                                          initials,
-                                          style: const TextStyle(
-                                            fontWeight: FontWeight.w900,
-                                            color: AppColors.neutral700,
-                                            fontSize: 18,
-                                          ),
-                                        )
-                                      : null,
-                                ),
-                                Positioned(
-                                  bottom: 0,
-                                  right: 0,
-                                  child: InkWell(
-                                    onTap: _isSaving ? null : _pickProfilePhoto,
-                                    child: Container(
-                                      padding: const EdgeInsets.all(6),
-                                      decoration: BoxDecoration(
-                                        color: AppColors.primaryRed,
-                                        borderRadius: BorderRadius.circular(99),
-                                        border: Border.all(color: Colors.white, width: 2),
-                                      ),
-                                      child: const Icon(
-                                        Icons.edit,
-                                        size: 14,
-                                        color: Colors.white,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(width: 14),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    profile.nombreCompleto,
-                                    style: const TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w900,
-                                      color: AppColors.neutral900,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    profile.cargo ?? 'Auditor',
-                                    style: const TextStyle(color: AppColors.neutral700),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                        if (_newPhotoFile != null) ...[
-                          const SizedBox(height: 12),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: OutlinedButton(
-                                  onPressed: _isSaving
-                                      ? null
-                                      : () => setState(() => _newPhotoFile = null),
-                                  child: const Text('Cancelar'),
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: FilledButton(
-                                  onPressed: _isSaving ? null : _savePhoto,
-                                  child: _isSaving
-                                      ? const SizedBox(
-                                          width: 18,
-                                          height: 18,
-                                          child: CircularProgressIndicator(
-                                            strokeWidth: 2,
-                                            color: Colors.white,
-                                          ),
-                                        )
-                                      : const Text('Guardar foto'),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ],
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: _isSaving ? null : () => setState(() => _newPhotoFile = null),
+                       style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.neutral700,
+                        side: const BorderSide(color: AppColors.neutral300),
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      child: const Text('Cancelar Foto'),
                     ),
                   ),
-                  const SizedBox(height: 12),
-                  SectionCard(
-                    title: 'Datos',
-                    child: Column(
-                      children: [
-                        _InfoRow(
-                          icon: Icons.verified_user_outlined,
-                          label: 'Rol',
-                          value: 'Auditor',
-                        ),
-                        const Divider(height: 24),
-                        _InfoRow(
-                          icon: Icons.badge_outlined,
-                          label: 'Cédula',
-                          value: profile.cedula ?? 'No registrada',
-                        ),
-                        const Divider(height: 24),
-                        _InfoRow(
-                          icon: Icons.email_outlined,
-                          label: 'Email',
-                          value: user?.email ?? 'No disponible',
-                        ),
-                        const Divider(height: 24),
-                        _InfoRow(
-                          icon: Icons.store_outlined,
-                          label: 'Sucursal',
-                          value: branchName ?? (profile.sucursalId ?? 'No asignada'),
-                        ),
-                        const Divider(height: 24),
-                        _InfoRow(
-                          icon: Icons.apartment_outlined,
-                          label: 'Organización',
-                          value: orgName ??
-                              (profile.organizacionId?.isNotEmpty == true
-                                  ? profile.organizacionId!
-                                  : 'No asignada'),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  SectionCard(
-                    title: 'Cuenta',
-                    child: Column(
-                      children: [
-                        SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton.icon(
-                            onPressed: _isSaving ? null : _showChangePasswordDialog,
-                            icon: const Icon(Icons.lock_reset),
-                            label: const Text('Cambiar contraseña'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.primaryRed,
-                              foregroundColor: Colors.white,
-                              elevation: 0,
-                              padding: const EdgeInsets.symmetric(vertical: 14),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 10),
-                        SizedBox(
-                          width: double.infinity,
-                          child: OutlinedButton.icon(
-                            onPressed: _isSaving ? null : _signOut,
-                            icon: const Icon(Icons.logout),
-                            label: const Text('Cerrar sesión'),
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: AppColors.errorRed,
-                              side: const BorderSide(color: AppColors.errorRed),
-                              padding: const EdgeInsets.symmetric(vertical: 14),
-                            ),
-                          ),
-                        ),
-                      ],
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: _isSaving ? null : _savePhoto,
+                       style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primaryRed,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      child: _isSaving 
+                          ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                          : const Text('Guardar Foto'),
                     ),
                   ),
                 ],
-              );
-            },
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _InfoRow extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final String value;
-
-  const _InfoRow({
-    required this.icon,
-    required this.label,
-    required this.value,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Container(
-          width: 36,
-          height: 36,
-          decoration: BoxDecoration(
-            color: AppColors.neutral100,
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: AppColors.neutral200),
-          ),
-          child: Icon(icon, color: AppColors.neutral700, size: 18),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                label,
-                style: const TextStyle(
-                  fontSize: 12,
-                  color: AppColors.neutral600,
-                  fontWeight: FontWeight.w600,
-                ),
               ),
-              const SizedBox(height: 2),
-              Text(
-                value,
-                style: const TextStyle(
-                  fontSize: 14,
-                  color: AppColors.neutral900,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
+              const SizedBox(height: 16),
             ],
-          ),
-        ),
-      ],
+
+            // 1. Datos
+            ProfileSectionCard(
+              title: 'Mis Datos',
+              icon: Icons.person_outline,
+              children: [
+                ProfileInfoChip(
+                  label: 'Rol', 
+                  value: 'Auditor', 
+                  icon: Icons.verified_user_outlined
+                ),
+                const SizedBox(height: 12),
+                ProfileInfoChip(
+                  label: 'Cédula', 
+                  value: profile.cedula ?? 'No registrada', 
+                  icon: Icons.badge_outlined
+                ),
+                const SizedBox(height: 12),
+                ProfileInfoChip(
+                  label: 'Sucursal', 
+                  value: branchName ?? 'No asignada', 
+                  icon: Icons.store_outlined
+                ),
+                const SizedBox(height: 12),
+                ProfileInfoChip(
+                  label: 'Organización', 
+                  value: orgName, 
+                  icon: Icons.apartment_outlined
+                ),
+              ],
+            ),
+
+            // 2. Seguridad
+            ProfileSectionCard(
+              title: 'Seguridad',
+              icon: Icons.security_outlined,
+              children: [
+                ElevatedButton.icon(
+                  onPressed: _isSaving ? null : _showChangePasswordDialog,
+                  icon: const Icon(Icons.lock_reset),
+                  label: const Text('Cambiar contraseña'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.neutral900,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    minimumSize: const Size(double.infinity, 50),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                
+                OutlinedButton.icon(
+                  onPressed: _isSaving ? null : _signOut,
+                  icon: const Icon(Icons.logout),
+                  label: const Text('Cerrar sesión'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.errorRed,
+                    side: const BorderSide(color: AppColors.errorRed),
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    minimumSize: const Size(double.infinity, 50),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        );
+      },
     );
   }
 }

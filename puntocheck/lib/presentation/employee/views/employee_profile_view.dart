@@ -5,14 +5,17 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:puntocheck/presentation/employee/views/employee_compliance_alerts_view.dart';
-import 'package:puntocheck/presentation/employee/widgets/employee_notifications_action.dart';
-import 'package:puntocheck/presentation/shared/widgets/section_card.dart';
+import 'package:puntocheck/presentation/shared/views/shared_profile_scaffold.dart';
+import 'package:puntocheck/presentation/shared/widgets/profile_widgets.dart';
 import 'package:puntocheck/providers/auth_providers.dart';
+import 'package:puntocheck/providers/core_providers.dart';
 import 'package:puntocheck/providers/employee_providers.dart';
 import 'package:puntocheck/routes/app_router.dart';
 import 'package:puntocheck/utils/theme/app_colors.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+/// Vista UNIFICADA para Empleados.
+/// Usa [SharedProfileScaffold] pero inyecta tarjetas específicas de Empleado (Alertas, datos limitados).
 class EmployeeProfileView extends ConsumerStatefulWidget {
   const EmployeeProfileView({super.key});
 
@@ -35,6 +38,7 @@ class _EmployeeProfileViewState extends ConsumerState<EmployeeProfileView> {
     super.dispose();
   }
 
+  // --- LÓGICA DE FOTOS ---
   Future<void> _pickProfilePhoto() async {
     final source = await showModalBottomSheet<ImageSource>(
       context: context,
@@ -71,23 +75,7 @@ class _EmployeeProfileViewState extends ConsumerState<EmployeeProfileView> {
     setState(() => _newPhotoFile = File(picked.path));
   }
 
-  Future<void> _startEditing(String? phone) async {
-    setState(() {
-      _isEditing = true;
-      _newPhotoFile = null;
-      _phoneController.text = phone ?? '';
-    });
-  }
-
-  void _cancelEditing(String? phone) {
-    setState(() {
-      _isEditing = false;
-      _isSaving = false;
-      _newPhotoFile = null;
-      _phoneController.text = phone ?? '';
-    });
-  }
-
+  // --- LÓGICA DE GUARDADO ---
   Future<void> _saveChanges() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -111,21 +99,11 @@ class _EmployeeProfileViewState extends ConsumerState<EmployeeProfileView> {
         _isEditing = false;
         _newPhotoFile = null;
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Perfil actualizado correctamente'),
-          backgroundColor: AppColors.successGreen,
-        ),
-      );
+      _showSuccess('Perfil actualizado correctamente');
     } catch (e) {
       if (!mounted) return;
       setState(() => _isSaving = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(e.toString().replaceFirst('Exception: ', '')),
-          backgroundColor: AppColors.errorRed,
-        ),
-      );
+      _showError(e.toString().replaceFirst('Exception: ', ''));
     }
   }
 
@@ -135,6 +113,110 @@ class _EmployeeProfileViewState extends ConsumerState<EmployeeProfileView> {
     context.go(AppRoutes.login);
   }
 
+  // --- LÓGICA DE PASSWORD ---
+  Future<void> _changePassword(String newPassword) async {
+    setState(() => _isSaving = true);
+    try {
+      await ref.read(authServiceProvider).updatePassword(newPassword);
+      if (!mounted) return;
+      _showSuccess('Contraseña actualizada');
+    } catch (e) {
+      if (!mounted) return;
+      _showError('Error: $e');
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
+    }
+  }
+
+  Future<void> _showPasswordDialog(BuildContext context) async {
+    final ctrl = TextEditingController();
+    final confirmCtrl = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+
+    await showDialog<void>(
+      context: context,
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Row(
+          children: [
+            Icon(Icons.lock_reset, color: AppColors.primaryRed),
+            SizedBox(width: 12),
+            Text('Cambiar contraseña', style: TextStyle(fontWeight: FontWeight.bold)),
+          ],
+        ),
+        content: Form(
+          key: formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextFormField(
+                controller: ctrl,
+                obscureText: true,
+                decoration: InputDecoration(
+                  labelText: 'Nueva contraseña',
+                  prefixIcon: const Icon(Icons.lock_outline),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                validator: (v) => (v?.length ?? 0) < 6 ? 'Mínimo 6 caracteres' : null,
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: confirmCtrl,
+                obscureText: true,
+                decoration: InputDecoration(
+                  labelText: 'Confirmar contraseña',
+                  prefixIcon: const Icon(Icons.lock_outline),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                validator: (v) => v != ctrl.text ? 'No coinciden' : null,
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancelar', style: TextStyle(color: AppColors.neutral600)),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              if (formKey.currentState!.validate()) {
+                Navigator.pop(context);
+                _changePassword(ctrl.text);
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primaryRed,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            child: const Text('Guardar'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showSuccess(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(msg),
+        backgroundColor: AppColors.successGreen,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  void _showError(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(msg),
+        backgroundColor: AppColors.errorRed,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final profileAsync = ref.watch(employeeProfileProvider);
@@ -142,570 +224,210 @@ class _EmployeeProfileViewState extends ConsumerState<EmployeeProfileView> {
     final complianceAsync = ref.watch(employeeComplianceAlertsProvider);
     final orgAsync = ref.watch(employeeOrganizationProvider);
 
-    return Scaffold(
-      backgroundColor: AppColors.neutral100,
-      appBar: AppBar(
-        title: const Text('Mi perfil'),
-        backgroundColor: Colors.white,
-        elevation: 0.5,
-        foregroundColor: AppColors.neutral900,
-        actions: [
-          const EmployeeNotificationsAction(),
-          profileAsync.maybeWhen(
-            data: (profile) => _isEditing
-                ? IconButton(
-                    tooltip: 'Cancelar',
-                    icon: const Icon(Icons.close),
-                    onPressed: _isSaving ? null : () => _cancelEditing(profile.telefono),
-                  )
-                : IconButton(
-                    tooltip: 'Editar',
-                    icon: const Icon(Icons.edit_outlined),
-                    onPressed: () => _startEditing(profile.telefono),
-                  ),
-            orElse: () => const SizedBox.shrink(),
-          ),
-        ],
+    return profileAsync.when(
+      loading: () => const Scaffold(
+        body: Center(child: CircularProgressIndicator(color: AppColors.primaryRed)),
       ),
-      body: profileAsync.when(
-        loading: () => const Center(
-          child: CircularProgressIndicator(color: AppColors.primaryRed),
-        ),
-        error: (e, _) => Center(child: Text('Error: $e')),
-        data: (profile) {
-          final branchName = branchesAsync.maybeWhen(
-            data: (branches) {
-              if (profile.sucursalId == null) return null;
-              final match = branches.where((b) => b.id == profile.sucursalId).toList();
-              return match.isEmpty ? null : match.first.nombre;
-            },
-            orElse: () => null,
-          );
+      error: (e, _) => Scaffold(
+        body: Center(child: Text('Error: $e')),
+      ),
+      data: (profile) {
+        // Resolver nombres
+        final branchName = branchesAsync.maybeWhen(
+          data: (branches) {
+            if (profile.sucursalId == null) return null;
+            final match = branches.where((b) => b.id == profile.sucursalId).toList();
+            return match.isEmpty ? null : match.first.nombre;
+          },
+          orElse: () => null,
+        );
+        final orgName = orgAsync.valueOrNull?.razonSocial ?? 'Mi Organización';
+        final currentUserEmail = Supabase.instance.client.auth.currentUser?.email ?? '';
 
-          final org = orgAsync.valueOrNull;
-          final orgName = org?.razonSocial;
-          final orgRuc = org?.ruc;
-          final orgLabel = orgName ??
-              (orgAsync.hasError
-                  ? 'Sin permisos para ver el nombre (RLS)'
-                  : _shortId(profile.organizacionId));
+        // Sync controlador
+        if (!_isEditing && _phoneController.text.isEmpty) {
+          _phoneController.text = profile.telefono ?? '';
+        }
 
-          if (!_isEditing && _phoneController.text.isEmpty) {
-            _phoneController.text = profile.telefono ?? '';
-          }
-
-          return SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
-            child: Form(
+        return SharedProfileScaffold(
+          userName: '${profile.nombres} ${profile.apellidos}',
+          userEmail: currentUserEmail,
+          initials: profile.nombres.isNotEmpty ? profile.nombres[0].toUpperCase() : '?',
+          photoUrl: _newPhotoFile != null ? null : profile.fotoPerfilUrl, 
+          isEditing: _isEditing,
+          onEditPhoto: _pickProfilePhoto,
+          
+          // Action Buttons (Sin notificaciones)
+          actions: [
+            if (!_isEditing)
+              IconButton(
+                tooltip: 'Editar',
+                icon: const Icon(Icons.edit_outlined),
+                onPressed: () => setState(() => _isEditing = true),
+              )
+            else
+              IconButton(
+                tooltip: 'Cancelar',
+                icon: const Icon(Icons.close),
+                onPressed: _isSaving ? null : () => setState(() {
+                  _isEditing = false;
+                  _newPhotoFile = null;
+                  _phoneController.text = profile.telefono ?? '';
+                }),
+              ),
+          ],
+          
+          children: [
+            // 1. Datos Personales
+            Form(
               key: _formKey,
-              child: Column(
+              child: ProfileSectionCard(
+                title: 'Mis Datos',
+                icon: Icons.person_outline,
                 children: [
-                  _ProfileHeaderCard(
-                    isEditing: _isEditing,
-                    isSaving: _isSaving,
-                    newPhotoFile: _newPhotoFile,
-                    fotoPerfilUrl: profile.fotoPerfilUrl,
-                    initials: profile.nombres.isNotEmpty
-                        ? profile.nombres[0].toUpperCase()
-                        : '?',
-                    fullName: '${profile.nombres} ${profile.apellidos}',
-                    role: profile.cargo ?? 'Empleado',
-                    orgName: orgLabel,
-                    branchName: branchName ?? _shortId(profile.sucursalId),
-                    onPickPhoto: _pickProfilePhoto,
-                    onRefreshOrg: () => ref.invalidate(employeeOrganizationProvider),
+                   ProfileInfoChip(
+                    label: 'Cédula',
+                    value: profile.cedula ?? 'No registrada',
+                    icon: Icons.badge_outlined,
                   ),
-                  const SizedBox(height: 14),
-                  SectionCard(
-                    title: 'Datos',
-                    child: Column(
-                      children: [
-                        _readOnlyRow(
-                          label: 'Cédula',
-                          value: profile.cedula ?? 'No registrada',
-                          icon: Icons.badge_outlined,
-                        ),
-                        const Divider(height: 24),
-                        _editableRow(
-                          label: 'Teléfono',
-                          icon: Icons.phone_outlined,
-                          enabled: _isEditing,
-                          child: TextFormField(
-                            controller: _phoneController,
-                            enabled: _isEditing && !_isSaving,
-                            keyboardType: TextInputType.phone,
-                            decoration: const InputDecoration(
-                              hintText: 'Opcional',
-                              border: InputBorder.none,
+                  const SizedBox(height: 12),
+                  
+                  // Teléfono Editable
+                  ProfileTextField(
+                    label: 'Teléfono',
+                    controller: _phoneController,
+                    enabled: _isEditing,
+                    icon: Icons.phone_outlined,
+                    keyboardType: TextInputType.phone,
+                    validator: (v) => (v?.length ?? 0) > 0 && (v!.length < 7) ? 'Inválido' : null,
+                  ),
+                  const SizedBox(height: 12),
+                  
+                  ProfileInfoChip(
+                    label: 'Sucursal',
+                    value: branchName ?? 'Sin asignar',
+                    icon: Icons.store_mall_directory_outlined,
+                  ),
+                  const SizedBox(height: 12),
+                  
+                  ProfileInfoChip(
+                    label: 'Organización',
+                    value: orgName,
+                    icon: Icons.apartment_outlined,
+                  ),
+
+                  // Botón Guardar
+                  if (_isEditing) ...[
+                    const SizedBox(height: 20),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: _isSaving ? null : _saveChanges,
+                         style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.primaryRed,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                             ),
-                            validator: (v) {
-                              final value = v?.trim() ?? '';
-                              if (value.isEmpty) return null;
-                              if (value.length < 7) return 'Teléfono inválido';
-                              return null;
-                            },
-                          ),
-                        ),
-                        const Divider(height: 24),
-                        _readOnlyRow(
-                          label: 'Email',
-                          value: Supabase.instance.client.auth.currentUser?.email ?? '—',
-                          icon: Icons.email_outlined,
-                        ),
-                        const Divider(height: 24),
-                        _readOnlyRow(
-                          label: 'Sucursal',
-                          value: branchName ?? (profile.sucursalId ?? 'No asignada'),
-                          icon: Icons.store_mall_directory_outlined,
-                        ),
-                        const Divider(height: 24),
-                        _readOnlyRow(
-                          label: 'Organización',
-                          value: orgLabel.isEmpty ? 'No asignada' : orgLabel,
-                          icon: Icons.apartment_outlined,
-                        ),
-                        const Divider(height: 24),
-                        _readOnlyRow(
-                          label: 'RUC',
-                          value: orgRuc ?? '—',
-                          icon: Icons.receipt_long_outlined,
-                        ),
-                      ],
+                        child: _isSaving 
+                          ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                          : const Text('Guardar Cambios'),
+                      ),
                     ),
-                  ),
-                  SectionCard(
-                    title: 'Cumplimiento',
-                    child: _ComplianceEntry(
-                      pendingCount: complianceAsync.valueOrNull
-                              ?.where((a) =>
-                                  (a.estado ?? '').trim().toLowerCase() ==
-                                  'pendiente')
-                              .length ??
-                          0,
-                      isLoading: complianceAsync.isLoading,
-                      onTap: () {
-                        Navigator.of(context).push(
+                  ],
+                ],
+              ),
+            ),
+
+            // 2. Cumplimiento (Solo Empleado)
+            ProfileSectionCard(
+              title: 'Cumplimiento',
+              icon: Icons.shield_outlined,
+              trailing: _TinyBadge(
+                count: complianceAsync.valueOrNull
+                      ?.where((a) => (a.estado ?? '').toLowerCase() == 'pendiente')
+                      .length ?? 0
+              ),
+              children: [
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('Alertas de auditoría', style: TextStyle(fontWeight: FontWeight.bold)),
+                  subtitle: const Text('Revisar si tienes llamados de atención pendientes.'),
+                  trailing: const Icon(Icons.arrow_forward_ios, size: 16, color: AppColors.neutral500),
+                  onTap: () {
+                     Navigator.of(context).push(
                           MaterialPageRoute(
                             builder: (_) => const EmployeeComplianceAlertsView(),
                           ),
                         );
-                      },
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  if (_isEditing)
-                    SizedBox(
-                      width: double.infinity,
-                      height: 50,
-                      child: ElevatedButton(
-                        onPressed: _isSaving ? null : _saveChanges,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primaryRed,
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        child: _isSaving
-                            ? const SizedBox(
-                                width: 18,
-                                height: 18,
-                                child: CircularProgressIndicator(strokeWidth: 2),
-                              )
-                            : const Text(
-                                'Guardar cambios',
-                                style: TextStyle(fontWeight: FontWeight.w800),
-                              ),
-                      ),
-                    )
-                  else
-                    SizedBox(
-                      width: double.infinity,
-                      child: OutlinedButton(
-                        onPressed: _signOut,
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: AppColors.errorRed,
-                          side: const BorderSide(color: AppColors.errorRed),
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                        ),
-                        child: const Text('Cerrar sesión'),
-                      ),
-                    ),
-                  const SizedBox(height: 10),
-                  if (_isEditing)
-                    const Text(
-                      'Solo puedes actualizar tu teléfono y foto de perfil.',
-                      style: TextStyle(color: AppColors.neutral600),
-                    ),
-                ],
-              ),
-            ),
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _readOnlyRow({
-    required String label,
-    required String value,
-    required IconData icon,
-  }) {
-    return Row(
-      children: [
-        Icon(icon, color: AppColors.neutral600),
-        const SizedBox(width: 10),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                label,
-                style: const TextStyle(
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.neutral700,
-                ),
-              ),
-              const SizedBox(height: 2),
-              Text(value, style: const TextStyle(color: AppColors.neutral900)),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _editableRow({
-    required String label,
-    required IconData icon,
-    required bool enabled,
-    required Widget child,
-  }) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Icon(icon, color: enabled ? AppColors.primaryRed : AppColors.neutral600),
-        const SizedBox(width: 10),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                label,
-                style: const TextStyle(
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.neutral700,
-                ),
-              ),
-              child,
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-String _shortId(String? id) {
-  final v = (id ?? '').trim();
-  if (v.isEmpty) return '—';
-  return v.length > 8 ? '${v.substring(0, 8)}...' : v;
-}
-
-class _ComplianceEntry extends StatelessWidget {
-  const _ComplianceEntry({
-    required this.pendingCount,
-    required this.isLoading,
-    required this.onTap,
-  });
-
-  final int pendingCount;
-  final bool isLoading;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final Color accent =
-        pendingCount > 0 ? AppColors.warningOrange : AppColors.successGreen;
-
-    return Material(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(16),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-          child: Row(
-            children: [
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: accent.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(Icons.shield_outlined, color: accent),
-              ),
-              const SizedBox(width: 12),
-              const Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Alertas de cumplimiento',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontWeight: FontWeight.w900,
-                        color: AppColors.neutral900,
-                      ),
-                    ),
-                    SizedBox(height: 2),
-                    Text(
-                      'Ver alertas que te afectan',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: AppColors.neutral600,
-                        fontSize: 12,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              if (isLoading) ...[
-                const SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                ),
-                const SizedBox(width: 10),
-              ] else ...[
-                _TinyBadge(count: pendingCount),
-                const SizedBox(width: 10),
+                  },
+                )
               ],
-              const Icon(Icons.chevron_right, color: AppColors.neutral500),
-            ],
-          ),
-        ),
-      ),
+            ),
+
+            // 3. Seguridad (Nueva sección con Cambio de Password y Logout)
+            ProfileSectionCard(
+              title: 'Seguridad',
+              icon: Icons.security_outlined,
+              children: [
+                ProfileInfoChip(
+                  label: 'Correo electrónico',
+                  value: currentUserEmail,
+                  icon: Icons.email_outlined,
+                ),
+                const SizedBox(height: 16),
+                
+                // Botón Cambiar Contraseña
+                ElevatedButton.icon(
+                  onPressed: _isSaving ? null : () => _showPasswordDialog(context),
+                  icon: const Icon(Icons.lock_reset),
+                  label: const Text('Cambiar contraseña'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.neutral900,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    minimumSize: const Size(double.infinity, 50),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                
+                // Botón Cerrar Sesión
+                OutlinedButton.icon(
+                  onPressed: _isSaving ? null : _signOut,
+                  icon: const Icon(Icons.logout),
+                  label: const Text('Cerrar sesión'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.errorRed,
+                    side: const BorderSide(color: AppColors.errorRed),
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    minimumSize: const Size(double.infinity, 50),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        );
+      },
     );
   }
 }
 
 class _TinyBadge extends StatelessWidget {
-  const _TinyBadge({required this.count});
-
   final int count;
-
+  const _TinyBadge({required this.count});
   @override
   Widget build(BuildContext context) {
-    final color = count > 0 ? AppColors.warningOrange : AppColors.successGreen;
-    final label = count > 0 ? '$count' : 'OK';
-    final icon = count > 0 ? Icons.warning_amber_rounded : Icons.check_rounded;
-
+    if (count == 0) return const SizedBox.shrink();
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: color.withValues(alpha: 0.18)),
+        color: AppColors.warningOrange,
+        borderRadius: BorderRadius.circular(12),
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 14, color: color),
-          const SizedBox(width: 6),
-          Text(
-            label,
-            style: TextStyle(
-              fontWeight: FontWeight.w900,
-              fontSize: 12,
-              color: color,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ProfileHeaderCard extends StatelessWidget {
-  const _ProfileHeaderCard({
-    required this.isEditing,
-    required this.isSaving,
-    required this.newPhotoFile,
-    required this.fotoPerfilUrl,
-    required this.initials,
-    required this.fullName,
-    required this.role,
-    required this.orgName,
-    required this.branchName,
-    required this.onPickPhoto,
-    required this.onRefreshOrg,
-  });
-
-  final bool isEditing;
-  final bool isSaving;
-  final File? newPhotoFile;
-  final String? fotoPerfilUrl;
-  final String initials;
-  final String fullName;
-  final String role;
-  final String orgName;
-  final String branchName;
-  final VoidCallback onPickPhoto;
-  final VoidCallback onRefreshOrg;
-
-  @override
-  Widget build(BuildContext context) {
-    final ImageProvider<Object>? imageProvider = newPhotoFile != null
-        ? FileImage(newPhotoFile!) as ImageProvider<Object>
-        : ((fotoPerfilUrl != null && fotoPerfilUrl!.isNotEmpty)
-            ? NetworkImage(fotoPerfilUrl!) as ImageProvider<Object>
-            : null);
-
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppColors.neutral200),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Stack(
-            children: [
-              CircleAvatar(
-                radius: 42,
-                backgroundColor: AppColors.primaryRed.withValues(alpha: 0.08),
-                backgroundImage: imageProvider,
-                child: imageProvider == null
-                    ? Text(
-                        initials,
-                        style: const TextStyle(
-                          fontSize: 30,
-                          fontWeight: FontWeight.w900,
-                          color: AppColors.primaryRed,
-                        ),
-                      )
-                    : null,
-              ),
-              if (isEditing)
-                Positioned(
-                  bottom: 0,
-                  right: 0,
-                  child: CircleAvatar(
-                    backgroundColor: AppColors.primaryRed,
-                    radius: 16,
-                    child: IconButton(
-                      icon: const Icon(
-                        Icons.camera_alt,
-                        size: 16,
-                        color: Colors.white,
-                      ),
-                      onPressed: isSaving ? null : onPickPhoto,
-                      tooltip: 'Cambiar foto',
-                    ),
-                  ),
-                ),
-            ],
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  fullName,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w900,
-                    color: AppColors.neutral900,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  role,
-                  style: const TextStyle(
-                    color: AppColors.neutral600,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 10),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    _InfoChip(
-                      icon: Icons.apartment_outlined,
-                      label: orgName,
-                      onLongPress: onRefreshOrg,
-                    ),
-                    _InfoChip(
-                      icon: Icons.store_mall_directory_outlined,
-                      label: branchName,
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _InfoChip extends StatelessWidget {
-  const _InfoChip({
-    required this.icon,
-    required this.label,
-    this.onLongPress,
-  });
-
-  final IconData icon;
-  final String label;
-  final VoidCallback? onLongPress;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onLongPress: onLongPress,
-      borderRadius: BorderRadius.circular(999),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-        decoration: BoxDecoration(
-          color: AppColors.neutral100,
-          borderRadius: BorderRadius.circular(999),
-          border: Border.all(color: AppColors.neutral200),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 16, color: AppColors.neutral600),
-            const SizedBox(width: 6),
-            Flexible(
-              fit: FlexFit.loose,
-              child: Text(
-                label,
-                maxLines: 1,
-                softWrap: false,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  fontWeight: FontWeight.w800,
-                  color: AppColors.neutral700,
-                  fontSize: 12,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
+      child: Text('$count', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
     );
   }
 }

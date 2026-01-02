@@ -2,10 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:puntocheck/utils/theme/app_colors.dart';
 
 /// Card individual de estadística para permisos
+/// Estilo: Fondo ROJO vibrante (hardcoded por petición de usuario), texto blanco.
 class LeaveStatCard extends StatelessWidget {
   final String label;
   final String value;
   final IconData icon;
+  
+  // El color se recibe por compatibilidad, pero NO se usa en el fondo
+  // para cumplir con el requerimiento de "tarjetas rojas arriba".
   final Color color;
 
   const LeaveStatCard({
@@ -21,6 +25,7 @@ class LeaveStatCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
+        // GRADIENTE ROJO FIJO (AppColors.primaryRed)
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,

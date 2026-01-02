@@ -54,13 +54,30 @@ enum TipoPermiso {
     }
     return TipoPermiso.otro;
   }
+
+  String get label {
+    switch (this) {
+      case TipoPermiso.enfermedad:
+        return 'Enfermedad';
+      case TipoPermiso.maternidadPaternidad:
+        return 'Maternidad/Paternidad';
+      case TipoPermiso.calamidadDomestica:
+        return 'Calamidad Doméstica';
+      case TipoPermiso.vacaciones:
+        return 'Vacaciones';
+      case TipoPermiso.legalVotacion:
+        return 'Permiso Legal/Votación';
+      case TipoPermiso.otro:
+        return 'Otro';
+    }
+  }
 }
 
 // CREATE TYPE estado_aprobacion
 enum EstadoAprobacion {
   pendiente('pendiente'),
   aprobadoManager('aprobado_manager'),
-  aprobadoRrhh('aprobado_rrhh'),
+  aprobadoRrhh('aprobado_admin'),
   rechazado('rechazado'),
   canceladoUsuario('cancelado_usuario');
 
@@ -82,6 +99,21 @@ enum EstadoAprobacion {
 
   // Helper para saber si está pendiente o puede modificarse
   bool get esPendiente => this == EstadoAprobacion.pendiente;
+
+  String get label {
+    switch (this) {
+      case EstadoAprobacion.pendiente:
+        return 'Pendiente';
+      case EstadoAprobacion.aprobadoManager:
+        return 'Aprobado por Manager';
+      case EstadoAprobacion.aprobadoRrhh:
+        return 'Aprobado por RRHH';
+      case EstadoAprobacion.rechazado:
+        return 'Rechazado';
+      case EstadoAprobacion.canceladoUsuario:
+        return 'Cancelado por Usuario';
+    }
+  }
 }
 
 // CREATE TYPE origen_marcacion

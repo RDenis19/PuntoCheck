@@ -9,6 +9,8 @@ import '../models/enums.dart';
 import '../models/organizaciones.dart';
 import '../models/perfiles.dart';
 import '../models/sucursales.dart';
+import '../models/solicitudes_permisos.dart';
+import '../models/banco_horas_compensatorias.dart';
 import '../services/auditor_service.dart';
 import 'auth_providers.dart';
 import 'core_providers.dart';
@@ -306,3 +308,89 @@ final auditorAlertsControllerProvider =
     AsyncNotifierProvider<AuditorAlertsController, void>(
   AuditorAlertsController.new,
 );
+
+// ============================================================================
+// Permisos (auditor)
+// ============================================================================
+class AuditorLeavesFilter {
+  final EstadoAprobacion? status;
+  final String query;
+  final DateTimeRange? dateRange;
+
+  const AuditorLeavesFilter({
+    this.status,
+    this.query = '',
+    this.dateRange,
+  });
+
+  AuditorLeavesFilter copyWith({
+    EstadoAprobacion? status,
+    bool statusToNull = false,
+    String? query,
+    DateTimeRange? dateRange,
+    bool dateRangeToNull = false,
+  }) {
+    return AuditorLeavesFilter(
+      status: statusToNull ? null : (status ?? this.status),
+      query: query ?? this.query,
+      dateRange: dateRangeToNull ? null : (dateRange ?? this.dateRange),
+    );
+  }
+
+  static AuditorLeavesFilter initial() => const AuditorLeavesFilter();
+}
+
+final auditorLeavesFilterProvider = StateProvider<AuditorLeavesFilter>((ref) {
+  return AuditorLeavesFilter.initial();
+});
+
+final auditorLeavesProvider =
+    FutureProvider.autoDispose<List<SolicitudesPermisos>>((ref) async {
+  final orgId = await _requireAuditorOrgId(ref);
+  final filter = ref.watch(auditorLeavesFilterProvider);
+
+  final raw = await ref.read(auditorServiceProvider).getLeaveRequests(
+        orgId: orgId,
+        status: filter.status,
+        employeeQuery: filter.query,
+        startDate: filter.dateRange?.start,
+        endDate: filter.dateRange?.end,
+      );
+  
+  return raw
+      .map((e) => SolicitudesPermisos.fromJson(Map<String, dynamic>.from(e)))
+      .toList();
+});
+
+
+// ============================================================================
+// Banco de Horas (auditor)
+// ============================================================================
+class AuditorHoursBankFilter {
+  final String query;
+  
+  const AuditorHoursBankFilter({this.query = ''});
+
+  AuditorHoursBankFilter copyWith({String? query}) {
+    return AuditorHoursBankFilter(query: query ?? this.query);
+  }
+}
+
+final auditorHoursBankFilterProvider = StateProvider<AuditorHoursBankFilter>((ref) {
+  return const AuditorHoursBankFilter();
+});
+
+final auditorHoursBankProvider =
+    FutureProvider.autoDispose<List<BancoHorasCompensatorias>>((ref) async {
+  final orgId = await _requireAuditorOrgId(ref);
+  final filter = ref.watch(auditorHoursBankFilterProvider);
+
+  final raw = await ref.read(auditorServiceProvider).getHoursBankEntries(
+        orgId: orgId,
+        employeeQuery: filter.query,
+      );
+  
+  return raw
+      .map((e) => BancoHorasCompensatorias.fromJson(Map<String, dynamic>.from(e)))
+      .toList();
+});

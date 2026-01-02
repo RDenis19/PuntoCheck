@@ -164,7 +164,7 @@ class _ManagerAssignScheduleSheetState
                       ),
                       const SizedBox(height: 8),
                       DropdownButtonFormField<String?>(
-                        value: _selectedBranchId,
+                        initialValue: _selectedBranchId,
                         decoration: InputDecoration(
                           filled: true,
                           fillColor: AppColors.neutral100,
@@ -247,7 +247,7 @@ class _ManagerAssignScheduleSheetState
 
                           if (active.isEmpty) return const SizedBox();
                           return DropdownButtonFormField<String?>(
-                            value: _selectedEmployeeId,
+                            initialValue: _selectedEmployeeId,
                             decoration: const InputDecoration(
                               contentPadding: EdgeInsets.symmetric(
                                 horizontal: 16,
@@ -300,7 +300,7 @@ class _ManagerAssignScheduleSheetState
                       ),
                       child: templatesAsync.when(
                         data: (templates) => DropdownButtonFormField<String?>(
-                          value: _selectedTemplateId,
+                          initialValue: _selectedTemplateId,
                           decoration: const InputDecoration(
                             contentPadding: EdgeInsets.symmetric(
                                 horizontal: 16, vertical: 12),
