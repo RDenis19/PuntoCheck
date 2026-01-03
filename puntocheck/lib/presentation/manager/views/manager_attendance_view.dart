@@ -10,13 +10,6 @@ import 'package:puntocheck/presentation/shared/widgets/storage_object_image.dart
 import 'package:puntocheck/providers/manager_providers.dart';
 import 'package:puntocheck/utils/theme/app_colors.dart';
 
-/// Vista de asistencia del equipo del manager (Fase 2).
-///
-/// Permite al manager:
-/// - Ver historial de asistencia de su equipo
-/// - Filtrar por empleado, rango de fechas, sucursal y tipo
-/// - Ver quién marcó dentro/fuera de geocerca
-/// - Ver estadísticas de asistencia
 class ManagerAttendanceView extends ConsumerStatefulWidget {
   const ManagerAttendanceView({super.key});
 
@@ -738,7 +731,6 @@ class _ParsedTime {
   const _ParsedTime({required this.hour, required this.minute});
 }
 
-/// Header con Resumen Rojo (Nuevo diseño solicitado)
 class _ManagerAttendanceStatsSection extends StatelessWidget {
   final _AttendanceInsights insights;
 
