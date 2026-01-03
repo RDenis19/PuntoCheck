@@ -38,7 +38,7 @@ class _ManagerDashboardViewState extends ConsumerState<ManagerDashboardView> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 const Icon(
-                  Icons.error_outline,
+                  Icons.error_outline_rounded,
                   size: 64,
                   color: AppColors.errorRed,
                 ),
@@ -95,7 +95,7 @@ class _ManagerDashboardViewState extends ConsumerState<ManagerDashboardView> {
                           child: _RedStatCard(
                             label: 'Presentes hoy',
                             value: '${summary.teamPresent}',
-                            icon: Icons.check_circle_outline,
+                            icon: Icons.check_circle_outline_rounded,
                           ),
                         ),
                         const SizedBox(width: 12),
@@ -103,7 +103,7 @@ class _ManagerDashboardViewState extends ConsumerState<ManagerDashboardView> {
                           child: _RedStatCard(
                             label: 'Tardanzas',
                             value: '${summary.teamLate}',
-                            icon: Icons.schedule_outlined,
+                            icon: Icons.schedule_rounded,
                           ),
                         ),
                       ],
@@ -117,7 +117,7 @@ class _ManagerDashboardViewState extends ConsumerState<ManagerDashboardView> {
                           child: _RedStatCard(
                             label: 'Pendientes',
                             value: '${summary.pendingPermissions}',
-                            icon: Icons.mail_outline,
+                            icon: Icons.mail_outline_rounded,
                           ),
                         ),
                         const SizedBox(width: 12),
@@ -125,7 +125,7 @@ class _ManagerDashboardViewState extends ConsumerState<ManagerDashboardView> {
                           child: _RedStatCard(
                             label: 'Horas extra',
                             value: '${summary.overtimeHoursWeek}',
-                            icon: Icons.trending_up,
+                            icon: Icons.trending_up_rounded,
                           ),
                         ),
                       ],
@@ -192,7 +192,7 @@ class _ManagerDashboardViewState extends ConsumerState<ManagerDashboardView> {
                   children: [
                     if (_showActions) ...[
                       _QuickAction(
-                        icon: Icons.approval_outlined,
+                        icon: Icons.approval_rounded,
                         label: 'Aprobar permisos',
                         onTap: () {
                           setState(() => _showActions = false);
@@ -205,7 +205,7 @@ class _ManagerDashboardViewState extends ConsumerState<ManagerDashboardView> {
                       ),
                       const SizedBox(height: 10),
                       _QuickAction(
-                        icon: Icons.store_mall_directory_outlined,
+                        icon: Icons.store_mall_directory_rounded,
                         label: 'Mi sucursal',
                         onTap: () {
                           setState(() => _showActions = false);
@@ -231,7 +231,7 @@ class _ManagerDashboardViewState extends ConsumerState<ManagerDashboardView> {
                       ),
                       const SizedBox(height: 10),
                       _QuickAction(
-                        icon: Icons.shield_outlined,
+                        icon: Icons.shield_rounded,
                         label: 'Alertas',
                         onTap: () {
                           setState(() => _showActions = false);
@@ -249,7 +249,7 @@ class _ManagerDashboardViewState extends ConsumerState<ManagerDashboardView> {
                       foregroundColor: Colors.white,
                       onPressed: () =>
                           setState(() => _showActions = !_showActions),
-                      child: Icon(_showActions ? Icons.close : Icons.add),
+                      child: Icon(_showActions ? Icons.close_rounded : Icons.add_rounded),
                     ),
                   ],
                 ),
@@ -385,7 +385,7 @@ class _RecentRequestCard extends StatelessWidget {
                   color: AppColors.neutral100,
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Icon(Icons.person, color: AppColors.neutral400),
+                child: const Icon(Icons.person_rounded, color: AppColors.neutral400),
               ),
               const SizedBox(width: 12),
               

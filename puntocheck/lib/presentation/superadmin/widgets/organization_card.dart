@@ -87,7 +87,7 @@ class OrganizationCard extends StatelessWidget {
                 ],
               ),
             ),
-            const Icon(Icons.chevron_right, color: AppColors.neutral700),
+            const Icon(Icons.chevron_right_rounded, color: AppColors.neutral700),
           ],
         ),
       ),

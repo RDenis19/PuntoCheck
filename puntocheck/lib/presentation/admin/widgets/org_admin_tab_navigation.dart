@@ -49,17 +49,17 @@ class OrgAdminTabNavigation extends StatelessWidget {
           items: const [
             BottomNavigationBarItem(
               icon: Icon(Icons.dashboard_outlined),
-              activeIcon: Icon(Icons.dashboard),
+              activeIcon: Icon(Icons.dashboard_rounded),
               label: 'Inicio',
             ),
             BottomNavigationBarItem(
               icon: Icon(Icons.groups_outlined),
-              activeIcon: Icon(Icons.groups),
+              activeIcon: Icon(Icons.groups_rounded),
               label: 'Personas',
             ),
             BottomNavigationBarItem(
               icon: Icon(Icons.access_time_outlined),
-              activeIcon: Icon(Icons.access_time_filled),
+              activeIcon: Icon(Icons.access_time_filled_rounded),
               label: 'Asistencia',
             ),
             BottomNavigationBarItem(
@@ -69,7 +69,7 @@ class OrgAdminTabNavigation extends StatelessWidget {
             ),
             BottomNavigationBarItem(
               icon: Icon(Icons.person_outline),
-              activeIcon: Icon(Icons.person),
+              activeIcon: Icon(Icons.person_rounded),
               label: 'Perfil',
             ),
           ],

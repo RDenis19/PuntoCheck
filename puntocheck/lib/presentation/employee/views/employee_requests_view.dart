@@ -32,7 +32,7 @@ class EmployeeRequestsView extends ConsumerWidget {
           IconButton(
             tooltip: 'Actualizar',
             onPressed: () => ref.invalidate(employeePermissionsProvider),
-            icon: const Icon(Icons.refresh),
+            icon: const Icon(Icons.refresh_rounded),
           ),
         ],
       ),
@@ -50,7 +50,7 @@ class EmployeeRequestsView extends ConsumerWidget {
           data: (requests) {
             if (requests.isEmpty) {
               return const EmptyState(
-                icon: Icons.event_note_outlined,
+                icon: Icons.event_note_rounded,
                 title: 'Sin solicitudes',
                 message: 'Aún no has solicitado permisos.',
               );
@@ -75,7 +75,7 @@ class EmployeeRequestsView extends ConsumerWidget {
         heroTag: 'employee_request_create',
         onPressed: () => _openCreateSheet(context),
         backgroundColor: AppColors.primaryRed,
-        icon: const Icon(Icons.add, color: Colors.white),
+        icon: const Icon(Icons.add_rounded, color: Colors.white),
         label: const Text('Solicitar', style: TextStyle(color: Colors.white)),
       ),
     );
@@ -164,19 +164,19 @@ class _RequestCard extends StatelessWidget {
               runSpacing: 10,
               children: [
                 _MetaPill(
-                  icon: Icons.calendar_today_outlined,
+                  icon: Icons.calendar_today_rounded,
                   label: 'Días',
                   value: '${request.diasTotales}',
                 ),
                 if (hasDoc)
                   const _MetaPill(
-                    icon: Icons.attach_file,
+                    icon: Icons.attach_file_rounded,
                     label: 'Documento',
                     value: 'Adjunto',
                   ),
                 if (approver.isNotEmpty && status != EstadoAprobacion.pendiente)
                   _MetaPill(
-                    icon: Icons.person_outline,
+                    icon: Icons.person_rounded,
                     label: 'Decidió',
                     value: _shortId(approver),
                   ),
@@ -233,7 +233,7 @@ class _RequestDetailSheet extends StatelessWidget {
                   ),
                   const Spacer(),
                   IconButton(
-                    icon: const Icon(Icons.close),
+                    icon: const Icon(Icons.close_rounded),
                     onPressed: () => Navigator.pop(context),
                   ),
                 ],
@@ -280,7 +280,7 @@ class _RequestDetailSheet extends StatelessWidget {
                     onPressed: () {
                       _openDocument(context, doc);
                     },
-                    icon: const Icon(Icons.visibility_outlined),
+                    icon: const Icon(Icons.visibility_rounded),
                     label: const Text('Ver documento'),
                   ),
                 ),
@@ -358,7 +358,7 @@ class _DocumentDialog extends StatelessWidget {
                     ),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.close),
+                    icon: const Icon(Icons.close_rounded),
                     onPressed: () => Navigator.pop(context),
                   ),
                 ],
@@ -410,7 +410,7 @@ class _DocumentDialog extends StatelessWidget {
                               const SnackBar(content: Text('Ruta copiada')),
                             );
                           },
-                          icon: const Icon(Icons.copy),
+                          icon: const Icon(Icons.content_copy_rounded),
                           label: const Text('Copiar ruta'),
                         ),
                       ),
@@ -425,7 +425,7 @@ class _DocumentDialog extends StatelessWidget {
                                 const SnackBar(content: Text('Enlace copiado')),
                               );
                             },
-                            icon: const Icon(Icons.link),
+                            icon: const Icon(Icons.link_rounded),
                             label: const Text('Copiar enlace'),
                             style: FilledButton.styleFrom(
                               backgroundColor: AppColors.primaryRed,
@@ -599,7 +599,7 @@ class _CreatePermissionSheetState extends ConsumerState<_CreatePermissionSheet> 
                       ),
                       const Spacer(),
                       IconButton(
-                        icon: const Icon(Icons.close),
+                        icon: const Icon(Icons.close_rounded),
                         onPressed: () => Navigator.pop(context),
                       ),
                     ],
@@ -665,7 +665,7 @@ class _CreatePermissionSheetState extends ConsumerState<_CreatePermissionSheet> 
                   const SizedBox(height: 12),
                   OutlinedButton.icon(
                     onPressed: isLoading ? null : _pickFile,
-                    icon: const Icon(Icons.attach_file),
+                    icon: const Icon(Icons.attach_file_rounded),
                     label: Text(
                       _documento != null ? 'Documento adjunto' : 'Adjuntar documento (PDF/JPG/PNG)',
                     ),
@@ -685,7 +685,7 @@ class _CreatePermissionSheetState extends ConsumerState<_CreatePermissionSheet> 
                         IconButton(
                           tooltip: 'Quitar',
                           onPressed: isLoading ? null : () => setState(() => _documento = null),
-                          icon: const Icon(Icons.close),
+                          icon: const Icon(Icons.close_rounded),
                         ),
                       ],
                     ),

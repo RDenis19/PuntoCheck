@@ -58,7 +58,7 @@ class ManagerAttendanceRecordCard extends StatelessWidget {
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: const Center(
-                      child: Icon(Icons.person, color: Colors.white, size: 24),
+                      child: Icon(Icons.person_rounded, color: Colors.white, size: 24),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -132,7 +132,7 @@ class ManagerAttendanceRecordCard extends StatelessWidget {
                   if (record.esMockLocation == true)
                     _MiniBadge(
                       label: 'Mock GPS',
-                      icon: Icons.location_off_outlined,
+                      icon: Icons.location_off_rounded,
                       background: AppColors.warningOrange.withValues(
                         alpha: 0.12,
                       ),
@@ -141,7 +141,7 @@ class ManagerAttendanceRecordCard extends StatelessWidget {
                   if (isLate)
                     _MiniBadge(
                       label: 'Tarde',
-                      icon: Icons.schedule_outlined,
+                      icon: Icons.schedule_rounded,
                       background: AppColors.warningOrange.withValues(
                         alpha: 0.12,
                       ),
@@ -150,7 +150,7 @@ class ManagerAttendanceRecordCard extends StatelessWidget {
                   if (missingExit && record.tipoRegistro == 'entrada')
                     _MiniBadge(
                       label: 'Falta salida',
-                      icon: Icons.logout_outlined,
+                      icon: Icons.logout_rounded,
                       background: AppColors.errorRed.withValues(alpha: 0.10),
                       foreground: AppColors.errorRed,
                     ),
@@ -160,7 +160,7 @@ class ManagerAttendanceRecordCard extends StatelessWidget {
               Row(
                 children: [
                   const Icon(
-                    Icons.store_mall_directory_outlined,
+                    Icons.store_mall_directory_rounded,
                     size: 16,
                     color: AppColors.neutral600,
                   ),
@@ -198,7 +198,7 @@ class ManagerAttendanceRecordCard extends StatelessWidget {
                 Row(
                   children: [
                     const Icon(
-                      Icons.timelapse_outlined,
+                      Icons.timelapse_rounded,
                       size: 14,
                       color: AppColors.neutral500,
                     ),
@@ -235,7 +235,7 @@ class ManagerAttendanceRecordCard extends StatelessWidget {
                   alignment: Alignment.centerRight,
                   child: OutlinedButton.icon(
                     onPressed: onViewEvidence,
-                    icon: const Icon(Icons.image_outlined, size: 18),
+                    icon: const Icon(Icons.image_rounded, size: 18),
                     label: const Text('Ver evidencia'),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: AppColors.primaryRed,
@@ -283,9 +283,9 @@ class ManagerAttendanceRecordCard extends StatelessWidget {
       case 'qr_fijo':
         return Icons.qr_code_2_rounded;
       case 'offline_sync':
-        return Icons.cloud_sync_outlined;
+        return Icons.cloud_sync_rounded;
       default:
-        return Icons.device_unknown;
+        return Icons.device_unknown_rounded;
     }
   }
 

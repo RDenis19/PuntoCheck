@@ -158,7 +158,7 @@ class _OrgAdminNewPersonViewState extends ConsumerState<OrgAdminNewPersonView> {
                     keyboardType: TextInputType.emailAddress,
                     decoration: const InputDecoration(
                       labelText: 'Correo',
-                      prefixIcon: Icon(Icons.email_outlined),
+                      prefixIcon: Icon(Icons.email_rounded),
                     ),
                     validator: (v) =>
                         v == null || v.trim().isEmpty ? 'Requerido' : null,
@@ -169,10 +169,10 @@ class _OrgAdminNewPersonViewState extends ConsumerState<OrgAdminNewPersonView> {
                     obscureText: _obscure,
                     decoration: InputDecoration(
                       labelText: 'Contraseña temporal',
-                      prefixIcon: const Icon(Icons.lock_outline),
+                      prefixIcon: const Icon(Icons.lock_outline_rounded),
                       suffixIcon: IconButton(
                         icon: Icon(
-                          _obscure ? Icons.visibility_off : Icons.visibility,
+                          _obscure ? Icons.visibility_off_rounded : Icons.visibility_rounded,
                           color: AppColors.neutral600,
                         ),
                         onPressed: () => setState(() => _obscure = !_obscure),
@@ -190,7 +190,7 @@ class _OrgAdminNewPersonViewState extends ConsumerState<OrgAdminNewPersonView> {
                           controller: _namesCtrl,
                           decoration: const InputDecoration(
                             labelText: 'Nombres',
-                            prefixIcon: Icon(Icons.person_outline),
+                            prefixIcon: Icon(Icons.person_outline_rounded),
                           ),
                           validator: (v) => v == null || v.trim().isEmpty
                               ? 'Requerido'
@@ -216,7 +216,7 @@ class _OrgAdminNewPersonViewState extends ConsumerState<OrgAdminNewPersonView> {
                     controller: _cedulaCtrl,
                     decoration: const InputDecoration(
                       labelText: 'Cédula (opcional)',
-                      prefixIcon: Icon(Icons.badge_outlined),
+                      prefixIcon: Icon(Icons.badge_rounded),
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -224,7 +224,7 @@ class _OrgAdminNewPersonViewState extends ConsumerState<OrgAdminNewPersonView> {
                     controller: _telCtrl,
                     decoration: const InputDecoration(
                       labelText: 'Teléfono',
-                      prefixIcon: Icon(Icons.phone_outlined),
+                      prefixIcon: Icon(Icons.phone_rounded),
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -232,7 +232,7 @@ class _OrgAdminNewPersonViewState extends ConsumerState<OrgAdminNewPersonView> {
                     controller: _cargoCtrl,
                     decoration: const InputDecoration(
                       labelText: 'Cargo',
-                      prefixIcon: Icon(Icons.work_outline),
+                      prefixIcon: Icon(Icons.work_outline_rounded),
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -241,7 +241,7 @@ class _OrgAdminNewPersonViewState extends ConsumerState<OrgAdminNewPersonView> {
                     initialValue: _role,
                     decoration: const InputDecoration(
                       labelText: 'Rol',
-                      prefixIcon: Icon(Icons.security_outlined),
+                      prefixIcon: Icon(Icons.security_rounded),
                     ),
                     items: const [
                       DropdownMenuItem(
@@ -281,7 +281,7 @@ class _OrgAdminNewPersonViewState extends ConsumerState<OrgAdminNewPersonView> {
                                 color: Colors.white,
                               ),
                             )
-                          : const Icon(Icons.person_add_alt_1),
+                          : const Icon(Icons.person_add_rounded),
                       label: Text(_isSaving ? 'Creando...' : 'Crear empleado'),
                       onPressed: _isSaving ? null : () => _submit(org),
                       style: ElevatedButton.styleFrom(

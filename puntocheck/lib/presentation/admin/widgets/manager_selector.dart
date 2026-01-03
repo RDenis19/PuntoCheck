@@ -143,7 +143,7 @@ class _ErrorManagersState extends StatelessWidget {
           decoration: InputDecoration(
             labelText: 'Jefe inmediato',
             hintText: 'Error al cargar',
-            prefixIcon: const Icon(Icons.error_outline),
+            prefixIcon: const Icon(Icons.error_outline_rounded),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
             ),
@@ -154,7 +154,7 @@ class _ErrorManagersState extends StatelessWidget {
         const SizedBox(height: 8),
         Row(
           children: [
-            const Icon(Icons.error_outline, size: 16, color: Colors.red),
+            const Icon(Icons.error_outline_rounded, size: 16, color: Colors.red),
             const SizedBox(width: 4),
             Expanded(
               child: Text(

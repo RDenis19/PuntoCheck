@@ -37,7 +37,7 @@ class EmployeeNotificationsAction extends ConsumerWidget {
       icon: Stack(
         clipBehavior: Clip.none,
         children: [
-          Icon(Icons.notifications_outlined, color: iconColor),
+          Icon(Icons.notifications_rounded, color: iconColor),
           if (unread > 0)
             Positioned(
               right: -1,

@@ -25,7 +25,7 @@ class ManagerNotificationsView extends ConsumerWidget {
             icon: Badge(
               isLabelVisible: (unreadCountAsync.valueOrNull ?? 0) > 0,
               label: Text('${unreadCountAsync.valueOrNull ?? 0}'),
-              child: const Icon(Icons.done_all),
+              child: const Icon(Icons.done_all_rounded),
             ),
             onPressed: () async {
               try {
@@ -46,7 +46,7 @@ class ManagerNotificationsView extends ConsumerWidget {
           ),
           IconButton(
             tooltip: 'Refrescar',
-            icon: const Icon(Icons.refresh),
+            icon: const Icon(Icons.refresh_rounded),
             onPressed: () => ref.invalidate(managerNotificationsProvider),
           ),
         ],
@@ -62,7 +62,7 @@ class ManagerNotificationsView extends ConsumerWidget {
             error: (error, _) => ListView(
               padding: const EdgeInsets.all(24),
               children: [
-                const Icon(Icons.error_outline, size: 56, color: AppColors.errorRed),
+                const Icon(Icons.error_outline_rounded, size: 56, color: AppColors.errorRed),
                 const SizedBox(height: 12),
                 const Text(
                   'Error cargando notificaciones',
@@ -83,7 +83,7 @@ class ManagerNotificationsView extends ConsumerWidget {
             data: (notifications) {
               if (notifications.isEmpty) {
                 return const EmptyState(
-                  icon: Icons.notifications_none_outlined,
+                  icon: Icons.notifications_none_rounded,
                   title: 'Sin notificaciones',
                   message: 'No tienes nuevas alertas o mensajes.',
                 );
@@ -126,7 +126,7 @@ class _NotificationTile extends ConsumerWidget {
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.only(right: 20),
         color: AppColors.neutral200,
-        child: const Icon(Icons.check, color: AppColors.neutral700),
+        child: const Icon(Icons.check_rounded, color: AppColors.neutral700),
       ),
       onDismissed: (_) {
         final id = notification['id']?.toString();
@@ -209,7 +209,7 @@ class _NotificationTile extends ConsumerWidget {
                               .read(managerNotificationControllerProvider.notifier)
                               .markRead(id);
                         },
-                        icon: const Icon(Icons.check, size: 18),
+                        icon: const Icon(Icons.check_rounded, size: 18),
                         label: const Text('Marcar leída'),
                       ),
                     ),
@@ -226,11 +226,11 @@ class _NotificationTile extends ConsumerWidget {
   static (IconData, Color) _iconForType(String type) {
     switch (type) {
       case 'permiso':
-        return (Icons.assignment_turned_in_outlined, AppColors.primaryRed);
+        return (Icons.assignment_turned_in_rounded, AppColors.primaryRed);
       case 'alerta_asistencia':
         return (Icons.warning_amber_rounded, AppColors.warningOrange);
       default:
-        return (Icons.info_outline, AppColors.infoBlue);
+        return (Icons.info_rounded, AppColors.infoBlue);
     }
   }
 

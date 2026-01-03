@@ -93,7 +93,7 @@ class _ManagerAssignScheduleSheetState
                         color: AppColors.primaryRed.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: const Icon(Icons.calendar_month_outlined,
+                      child: const Icon(Icons.calendar_month_rounded,
                           color: AppColors.primaryRed),
                     ),
                     const SizedBox(width: 12),
@@ -107,7 +107,7 @@ class _ManagerAssignScheduleSheetState
                     ),
                     const Spacer(),
                     IconButton(
-                      icon: const Icon(Icons.close),
+                      icon: const Icon(Icons.close_rounded),
                       onPressed: () => Navigator.pop(context),
                     ),
                   ],
@@ -131,7 +131,7 @@ class _ManagerAssignScheduleSheetState
                         child: Row(
                           children: [
                             const Icon(
-                              Icons.group_outlined,
+                              Icons.group_rounded,
                               color: AppColors.neutral700,
                             ),
                             const SizedBox(width: 10),
@@ -178,7 +178,7 @@ class _ManagerAssignScheduleSheetState
                             vertical: 12,
                           ),
                           prefixIcon: const Icon(
-                            Icons.store_mall_directory_outlined,
+                            Icons.store_mall_directory_rounded,
                             color: AppColors.neutral600,
                           ),
                         ),
@@ -225,7 +225,7 @@ class _ManagerAssignScheduleSheetState
                               child: Row(
                                 children: [
                                   const Icon(
-                                    Icons.people_alt_outlined,
+                                    Icons.people_alt_rounded,
                                     color: AppColors.neutral600,
                                   ),
                                   const SizedBox(width: 10),
@@ -255,7 +255,7 @@ class _ManagerAssignScheduleSheetState
                               ),
                               border: InputBorder.none,
                               prefixIcon: Icon(
-                                Icons.person_outline,
+                                Icons.person_rounded,
                                 color: AppColors.neutral600,
                               ),
                             ),
@@ -305,7 +305,7 @@ class _ManagerAssignScheduleSheetState
                             contentPadding: EdgeInsets.symmetric(
                                 horizontal: 16, vertical: 12),
                             border: InputBorder.none,
-                            prefixIcon: Icon(Icons.schedule_outlined,
+                            prefixIcon: Icon(Icons.schedule_rounded,
                                 color: AppColors.neutral600),
                           ),
                           hint: const Text('Seleccionar plantilla'),
@@ -370,7 +370,7 @@ class _ManagerAssignScheduleSheetState
                                   ),
                                   child: Row(
                                     children: [
-                                      const Icon(Icons.calendar_today,
+                                      const Icon(Icons.calendar_today_rounded,
                                           size: 18,
                                           color: AppColors.neutral600),
                                       const SizedBox(width: 8),
@@ -419,7 +419,7 @@ class _ManagerAssignScheduleSheetState
                                   ),
                                   child: Row(
                                     children: [
-                                      const Icon(Icons.event_available,
+                                      const Icon(Icons.event_available_rounded,
                                           size: 18,
                                           color: AppColors.neutral600),
                                       const SizedBox(width: 8),
@@ -432,7 +432,7 @@ class _ManagerAssignScheduleSheetState
                                         InkWell(
                                           onTap: () =>
                                               setState(() => _fechaFin = null),
-                                          child: const Icon(Icons.close,
+                                          child: const Icon(Icons.close_rounded,
                                               size: 16),
                                         ),
                                       ],

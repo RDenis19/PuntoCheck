@@ -21,7 +21,7 @@ class _OrgAdminHomeViewState extends ConsumerState<OrgAdminHomeView> {
 
   List<_QuickActionData> get _quickActions => const [
     _QuickActionData.route(
-      icon: Icons.edit,
+      icon: Icons.edit_rounded,
       label: 'Editar organizacion',
       route: AppRoutes.orgAdminEditOrg,
     ),
@@ -31,12 +31,12 @@ class _OrgAdminHomeViewState extends ConsumerState<OrgAdminHomeView> {
       route: AppRoutes.orgAdminBranches,
     ),
     _QuickActionData.route(
-      icon: Icons.receipt_long,
+      icon: Icons.receipt_long_rounded,
       label: 'Pagos y suscripcion',
       route: AppRoutes.orgAdminPayments,
     ),
     _QuickActionData.route(
-      icon: Icons.shield,
+      icon: Icons.shield_rounded,
       label: 'Alertas',
       route: AppRoutes.orgAdminAlerts,
     ),
@@ -155,11 +155,11 @@ class _OrgAdminHomeViewState extends ConsumerState<OrgAdminHomeView> {
                     decoration: BoxDecoration(
                       color: AppColors.primaryRed,
                       borderRadius: BorderRadius.circular(16),
-                      boxShadow: const [
+                      boxShadow: [
                         BoxShadow(
-                          color: Color(0x12000000),
+                          color: Colors.black.withValues(alpha: 0.07),
                           blurRadius: 10,
-                          offset: Offset(0, 4),
+                          offset: const Offset(0, 4),
                         ),
                       ],
                     ),
@@ -228,7 +228,7 @@ class _OrgAdminHomeViewState extends ConsumerState<OrgAdminHomeView> {
                       foregroundColor: Colors.white,
                       onPressed: () =>
                           setState(() => _showActions = !_showActions),
-                      child: Icon(_showActions ? Icons.close : Icons.add),
+                      child: Icon(_showActions ? Icons.close_rounded : Icons.add_rounded),
                     ),
                   ],
                 ),
@@ -310,11 +310,11 @@ class _QuickAction extends StatelessWidget {
             color: Colors.white,
             borderRadius: BorderRadius.circular(12),
             border: Border.all(color: AppColors.neutral200),
-            boxShadow: const [
+            boxShadow: [
               BoxShadow(
-                color: Color(0x11000000),
+                color: Colors.black.withValues(alpha: 0.07),
                 blurRadius: 6,
-                offset: Offset(0, 2),
+                offset: const Offset(0, 2),
               ),
             ],
           ),

@@ -139,7 +139,7 @@ class _ManagerPersonDetailViewState
             data: (perfil) => IconButton(
               tooltip: 'Editar cargo/teléfono',
               onPressed: () => _editEmployeeBasics(perfil),
-              icon: const Icon(Icons.edit_outlined),
+              icon: const Icon(Icons.edit_rounded),
             ),
             loading: () => const SizedBox.shrink(),
             error: (_, __) => const SizedBox.shrink(),
@@ -198,7 +198,7 @@ class _DetailContent extends StatelessWidget {
         // 1. Información Personal (Acordeón)
         _SectionAccordion(
           title: 'Información Personal',
-          icon: Icons.person_outline,
+          icon: Icons.person_rounded,
           initiallyExpanded: false,
           children: [_PersonalInfoContent(perfil: perfil)],
         ),
@@ -207,7 +207,7 @@ class _DetailContent extends StatelessWidget {
         // 2. Horario Asignado (Acordeón)
         _SectionAccordion(
           title: 'Horario Asignado',
-          icon: Icons.calendar_today_outlined,
+          icon: Icons.calendar_today_rounded,
           initiallyExpanded: true, // Relevante para el manager
           children: [
             _ScheduleContent(
@@ -502,7 +502,7 @@ class _ScheduleContent extends ConsumerWidget {
                 ),
                 child: const Row(
                   children: [
-                    Icon(Icons.event_busy, color: AppColors.neutral500),
+                    Icon(Icons.event_busy_rounded, color: AppColors.neutral500),
                     SizedBox(width: 12),
                     Expanded(
                       child: Text(
@@ -537,7 +537,7 @@ class _ScheduleContent extends ConsumerWidget {
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: const Icon(
-                        Icons.access_time_filled,
+                        Icons.access_time_filled_rounded,
                         color: AppColors.primaryRed,
                       ),
                     ),
@@ -566,14 +566,14 @@ class _ScheduleContent extends ConsumerWidget {
                 ),
                 const SizedBox(height: 16),
                 _InfoItem(
-                  icon: Icons.calendar_view_week,
+                  icon: Icons.calendar_view_week_rounded,
                   iconColor: AppColors.neutral600,
                   label: 'Días Laborales',
                   value: _formatDias(dias),
                 ),
                 const SizedBox(height: 8),
                 _InfoItem(
-                  icon: Icons.timer_outlined,
+                  icon: Icons.timer_rounded,
                   iconColor: AppColors.neutral600,
                   label: 'Tolerancia de entrada',
                   value: '$tolerancia min',

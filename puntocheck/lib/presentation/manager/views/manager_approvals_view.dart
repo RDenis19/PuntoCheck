@@ -91,7 +91,7 @@ class _ManagerApprovalsViewState extends ConsumerState<ManagerApprovalsView> {
                                 child: LeaveStatCard(
                                   label: 'Pendientes',
                                   value: stats['pendientes'].toString(),
-                                  icon: Icons.pending_outlined,
+                                  icon: Icons.pending_rounded,
                                   color: AppColors.warningOrange,
                                 ),
                               ),
@@ -101,7 +101,7 @@ class _ManagerApprovalsViewState extends ConsumerState<ManagerApprovalsView> {
                                 child: LeaveStatCard(
                                   label: 'Aprobados',
                                   value: stats['aprobados'].toString(),
-                                  icon: Icons.check_circle_outline,
+                                  icon: Icons.check_circle_outline_rounded,
                                   color: AppColors.successGreen,
                                 ),
                               ),
@@ -111,7 +111,7 @@ class _ManagerApprovalsViewState extends ConsumerState<ManagerApprovalsView> {
                                 child: LeaveStatCard(
                                   label: 'Rechazados',
                                   value: stats['rechazados'].toString(),
-                                  icon: Icons.cancel_outlined,
+                                  icon: Icons.cancel_rounded,
                                   color: AppColors.errorRed,
                                 ),
                               ),
@@ -121,7 +121,7 @@ class _ManagerApprovalsViewState extends ConsumerState<ManagerApprovalsView> {
                                 child: LeaveStatCard(
                                   label: 'Total Días',
                                   value: stats['diasTotales'].toString(),
-                                  icon: Icons.calendar_today_outlined,
+                                  icon: Icons.calendar_today_rounded,
                                   color: AppColors.infoBlue,
                                 ),
                               ),
@@ -154,7 +154,7 @@ class _ManagerApprovalsViewState extends ConsumerState<ManagerApprovalsView> {
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           const Icon(
-                            Icons.event_note_outlined,
+                            Icons.event_note_rounded,
                             size: 64,
                             color: AppColors.neutral400,
                           ),
@@ -297,7 +297,7 @@ class _ErrorState extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             const Icon(
-              Icons.error_outline,
+              Icons.error_outline_rounded,
               size: 48,
               color: AppColors.errorRed,
             ),
@@ -315,7 +315,7 @@ class _ErrorState extends StatelessWidget {
             const SizedBox(height: 16),
             OutlinedButton.icon(
               onPressed: onRetry,
-              icon: const Icon(Icons.refresh),
+              icon: const Icon(Icons.refresh_rounded),
               label: const Text('Reintentar'),
             ),
           ],

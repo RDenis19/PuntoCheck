@@ -299,7 +299,7 @@ class _RequestCardState extends State<RequestCard> {
       ),
       child: _employeePhotoUrl == null
           ? const Center(
-              child: Icon(Icons.person, color: AppColors.neutral400, size: 26),
+              child: Icon(Icons.person_rounded, color: AppColors.neutral400, size: 26),
             )
           : null,
     );
@@ -328,7 +328,7 @@ class _RequestCardState extends State<RequestCard> {
     } else if (estado == EstadoAprobacion.rechazado) {
       color = AppColors.errorRed;
       text = 'Rechazado';
-      icon = Icons.cancel_outlined;
+      icon = Icons.cancel_rounded;
     } else {
       color = AppColors.neutral500;
       text = 'Cancelado';

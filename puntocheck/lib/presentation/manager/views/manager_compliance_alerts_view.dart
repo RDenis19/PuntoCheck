@@ -36,7 +36,7 @@ class _ManagerComplianceAlertsViewState
         actions: [
           IconButton(
             tooltip: 'Filtros',
-            icon: const Icon(Icons.filter_alt_outlined),
+            icon: const Icon(Icons.filter_alt_rounded),
             onPressed: () => _openFilters(context),
           ),
         ],
@@ -61,7 +61,7 @@ class _ManagerComplianceAlertsViewState
                 final filtered = _applyFilters(alerts);
                 if (filtered.isEmpty) {
                   return const _EmptyState(
-                    icon: Icons.shield_outlined,
+                    icon: Icons.shield_rounded,
                     text: 'No hay alertas con estos filtros',
                   );
                 }
@@ -271,7 +271,7 @@ class _AlertCard extends StatelessWidget {
                       if (dateStr != null) ...[
                         const SizedBox(width: 12),
                         _SmallMeta(
-                          icon: Icons.calendar_today_outlined,
+                          icon: Icons.calendar_today_rounded,
                           text: dateStr,
                         ),
                       ],
@@ -364,7 +364,7 @@ class _AlertDetailSheetState extends ConsumerState<_AlertDetailSheet> {
                     color: severityColor.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(14),
                   ),
-                  child: Icon(Icons.shield_outlined, color: severityColor),
+                  child: Icon(Icons.shield_rounded, color: severityColor),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -567,7 +567,7 @@ class _AlertDetailSheetState extends ConsumerState<_AlertDetailSheet> {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: const [
-               Icon(Icons.attachment, size: 16, color: AppColors.infoBlue),
+               Icon(Icons.attachment_rounded, size: 16, color: AppColors.infoBlue),
                SizedBox(width: 8),
                Text('Ver evidencia/documento', style: TextStyle(color: AppColors.infoBlue, fontWeight: FontWeight.w600)),
             ],

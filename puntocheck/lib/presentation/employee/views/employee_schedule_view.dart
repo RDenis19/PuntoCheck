@@ -50,7 +50,7 @@ class EmployeeScheduleView extends ConsumerWidget {
             const SizedBox(height: 14),
             _InfoCard(
               title: 'Importante',
-              icon: Icons.info_outline,
+              icon: Icons.info_outline_rounded,
               child: const Text(
                 'Aquí solo puedes ver tu horario. Los horarios y turnos los asigna tu Manager/Org Admin.',
                 style: TextStyle(color: AppColors.neutral700),
@@ -77,7 +77,7 @@ class _ScheduleBody extends StatelessWidget {
         children: const [
           _InfoCard(
             title: 'Tu turno hoy',
-            icon: Icons.event_busy,
+            icon: Icons.event_busy_rounded,
             child: Text(
               'No tienes un horario asignado para hoy.',
               style: TextStyle(color: AppColors.neutral700),
@@ -104,7 +104,7 @@ class _ScheduleBody extends StatelessWidget {
       children: [
         _InfoCard(
           title: 'Tu turno hoy',
-          icon: Icons.schedule,
+          icon: Icons.schedule_rounded,
           trailing: isRotative
               ? Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
@@ -150,17 +150,17 @@ class _ScheduleBody extends StatelessWidget {
                 runSpacing: 10,
                 children: [
                   _MetaPill(
-                    icon: Icons.verified_outlined,
+                    icon: Icons.verified_rounded,
                     label: 'Vigencia',
                     value: '${dateFmt.format(asignacion.fechaInicio)} → $vigenciaFin',
                   ),
                   _MetaPill(
-                    icon: Icons.tag_outlined,
+                    icon: Icons.tag_rounded,
                     label: 'Plantilla',
                     value: _shortId(plantilla.id),
                   ),
                   _MetaPill(
-                    icon: Icons.timer_outlined,
+                    icon: Icons.timer_rounded,
                     label: 'Tolerancia',
                     value: tolerance == null ? '—' : '$tolerance min',
                   ),
@@ -172,7 +172,7 @@ class _ScheduleBody extends StatelessWidget {
         const SizedBox(height: 14),
         _InfoCard(
           title: 'Días laborables',
-          icon: Icons.calendar_month_outlined,
+          icon: Icons.calendar_month_rounded,
           child: SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: Row(
@@ -185,7 +185,7 @@ class _ScheduleBody extends StatelessWidget {
         const SizedBox(height: 14),
         _InfoCard(
           title: 'Turnos',
-          icon: Icons.view_timeline_outlined,
+          icon: Icons.view_timeline_rounded,
           child: turns.isEmpty
               ? const Text(
                   'Este horario no tiene turnos configurados.',
@@ -219,7 +219,7 @@ class _NextScheduleSection extends StatelessWidget {
         if (next == null) {
           return const _InfoCard(
             title: 'Próximo horario',
-            icon: Icons.next_plan_outlined,
+            icon: Icons.next_plan_rounded,
             child: Text(
               'No tienes horarios programados próximamente.',
               style: TextStyle(color: AppColors.neutral700),
@@ -238,7 +238,7 @@ class _NextScheduleSection extends StatelessWidget {
 
         return _InfoCard(
           title: 'Próximo horario',
-          icon: Icons.next_plan_outlined,
+          icon: Icons.next_plan_rounded,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -261,12 +261,12 @@ class _NextScheduleSection extends StatelessWidget {
                 runSpacing: 10,
                 children: [
                   _MetaPill(
-                    icon: Icons.verified_outlined,
+                    icon: Icons.verified_rounded,
                     label: 'Vigencia',
                     value: '${dateFmt.format(asignacion.fechaInicio)} → $fin',
                   ),
                   _MetaPill(
-                    icon: Icons.tag_outlined,
+                    icon: Icons.tag_rounded,
                     label: 'Plantilla',
                     value: _shortId(plantilla.id),
                   ),
@@ -278,7 +278,7 @@ class _NextScheduleSection extends StatelessWidget {
       },
       loading: () => const _InfoCard(
         title: 'Próximo horario',
-        icon: Icons.next_plan_outlined,
+        icon: Icons.next_plan_rounded,
         child: Center(
           child: Padding(
             padding: EdgeInsets.symmetric(vertical: 10),
@@ -288,7 +288,7 @@ class _NextScheduleSection extends StatelessWidget {
       ),
       error: (e, _) => _InfoCard(
         title: 'Próximo horario',
-        icon: Icons.next_plan_outlined,
+        icon: Icons.next_plan_rounded,
         child: Text(
           'No se pudo cargar el próximo horario.\n$e',
           style: const TextStyle(color: AppColors.errorRed),
@@ -325,7 +325,7 @@ class _TurnCard extends StatelessWidget {
               color: AppColors.infoBlue.withValues(alpha: 0.10),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: const Icon(Icons.access_time, color: AppColors.infoBlue),
+            child: const Icon(Icons.access_time_rounded, color: AppColors.infoBlue),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -348,7 +348,7 @@ class _TurnCard extends StatelessWidget {
             ),
           ),
           if (crosses)
-            const Icon(Icons.nights_stay_outlined, color: AppColors.neutral500),
+            const Icon(Icons.nights_stay_rounded, color: AppColors.neutral500),
         ],
       ),
     );
@@ -493,7 +493,7 @@ class _ErrorCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return _InfoCard(
       title: 'Tu turno hoy',
-      icon: Icons.error_outline,
+      icon: Icons.error_outline_rounded,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -504,7 +504,7 @@ class _ErrorCard extends StatelessWidget {
             height: 48,
             child: OutlinedButton.icon(
               onPressed: onRetry,
-              icon: const Icon(Icons.refresh),
+              icon: const Icon(Icons.refresh_rounded),
               label: const Text('Reintentar'),
             ),
           ),

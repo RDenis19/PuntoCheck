@@ -89,12 +89,12 @@ class _AuditorAttendanceViewState extends ConsumerState<AuditorAttendanceView> {
                       IconButton(
                         tooltip: 'Filtros',
                         onPressed: () => _openFilters(context, branchesAsync),
-                        icon: const Icon(Icons.tune),
+                        icon: const Icon(Icons.tune_rounded),
                       ),
                       IconButton(
                         tooltip: 'Actualizar',
                         onPressed: () => ref.invalidate(auditorAttendanceProvider),
-                        icon: const Icon(Icons.refresh),
+                        icon: const Icon(Icons.refresh_rounded),
                       ),
                     ],
                   ),
@@ -112,7 +112,7 @@ class _AuditorAttendanceViewState extends ConsumerState<AuditorAttendanceView> {
                   controller: _searchCtrl,
                   decoration: InputDecoration(
                     hintText: 'Buscar por empleado (nombre o cédula)',
-                    prefixIcon: const Icon(Icons.search),
+                    prefixIcon: const Icon(Icons.search_rounded),
                     suffixIcon: text.isEmpty
                         ? null
                         : IconButton(
@@ -123,7 +123,7 @@ class _AuditorAttendanceViewState extends ConsumerState<AuditorAttendanceView> {
                                   .read(auditorAttendanceFilterProvider.notifier)
                                   .state = filter.copyWith(query: '');
                             },
-                            icon: const Icon(Icons.close),
+                            icon: const Icon(Icons.close_rounded),
                           ),
                     border: const OutlineInputBorder(),
                   ),
@@ -156,7 +156,7 @@ class _AuditorAttendanceViewState extends ConsumerState<AuditorAttendanceView> {
                       title: 'Sin resultados',
                       message:
                           'Prueba ajustando fechas, sucursal o el texto de búsqueda.',
-                      icon: Icons.manage_search,
+                      icon: Icons.manage_search_rounded,
                     ),
                   );
                 }
@@ -251,22 +251,22 @@ class _ActiveFiltersBar extends StatelessWidget {
               runSpacing: 8,
               children: [
                 if (rangeLabel != null)
-                  _Chip(label: rangeLabel, icon: Icons.date_range_outlined),
+                  _Chip(label: rangeLabel, icon: Icons.date_range_rounded),
                 if (branchLabel != null)
-                  _Chip(label: branchLabel, icon: Icons.store_outlined),
+                  _Chip(label: branchLabel, icon: Icons.store_rounded),
                 if (filter.onlyGeofenceIssues)
                   const _Chip(
                     label: 'Fuera de geocerca',
-                    icon: Icons.location_off,
+                    icon: Icons.location_off_rounded,
                   ),
                 if (filter.onlyMockLocation)
-                  const _Chip(label: 'Mock location', icon: Icons.gps_off),
+                  const _Chip(label: 'Mock location', icon: Icons.gps_off_rounded),
               ],
             ),
           ),
           TextButton.icon(
             onPressed: onClear,
-            icon: const Icon(Icons.clear),
+            icon: const Icon(Icons.clear_rounded),
             label: const Text('Restablecer'),
           ),
         ],
@@ -322,7 +322,7 @@ class _ErrorState extends StatelessWidget {
       child: EmptyState(
         title: 'Error',
         message: message,
-        icon: Icons.error_outline,
+        icon: Icons.error_outline_rounded,
         onAction: onRetry,
         actionLabel: 'Reintentar',
       ),

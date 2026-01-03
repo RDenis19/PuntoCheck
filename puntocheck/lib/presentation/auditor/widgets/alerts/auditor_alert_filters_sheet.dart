@@ -58,7 +58,7 @@ class _AuditorAlertFiltersSheetState extends State<AuditorAlertFiltersSheet> {
             children: [
               Row(
                 children: [
-                  const Icon(Icons.tune),
+                  const Icon(Icons.tune_rounded),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
@@ -71,7 +71,7 @@ class _AuditorAlertFiltersSheetState extends State<AuditorAlertFiltersSheet> {
                   IconButton(
                     tooltip: 'Cerrar',
                     onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.close),
+                    icon: const Icon(Icons.close_rounded),
                   ),
                 ],
               ),
@@ -79,7 +79,7 @@ class _AuditorAlertFiltersSheetState extends State<AuditorAlertFiltersSheet> {
               InputDecorator(
                 decoration: const InputDecoration(
                   labelText: 'Estado',
-                  prefixIcon: Icon(Icons.flag_outlined),
+                  prefixIcon: Icon(Icons.flag_rounded),
                   border: OutlineInputBorder(),
                 ),
                 child: DropdownButtonHideUnderline(
@@ -107,7 +107,7 @@ class _AuditorAlertFiltersSheetState extends State<AuditorAlertFiltersSheet> {
               InputDecorator(
                 decoration: const InputDecoration(
                   labelText: 'Sucursal',
-                  prefixIcon: Icon(Icons.store_outlined),
+                  prefixIcon: Icon(Icons.store_rounded),
                   border: OutlineInputBorder(),
                 ),
                 child: DropdownButtonHideUnderline(
@@ -134,7 +134,7 @@ class _AuditorAlertFiltersSheetState extends State<AuditorAlertFiltersSheet> {
               InputDecorator(
                 decoration: const InputDecoration(
                   labelText: 'Gravedad',
-                  prefixIcon: Icon(Icons.priority_high),
+                  prefixIcon: Icon(Icons.priority_high_rounded),
                   border: OutlineInputBorder(),
                 ),
                 child: DropdownButtonHideUnderline(
@@ -169,7 +169,7 @@ class _AuditorAlertFiltersSheetState extends State<AuditorAlertFiltersSheet> {
                 decoration: const InputDecoration(
                   labelText: 'Tipo de alerta',
                   hintText: 'Ej: marcación fuera de geocerca',
-                  prefixIcon: Icon(Icons.search),
+                  prefixIcon: Icon(Icons.search_rounded),
                   border: OutlineInputBorder(),
                 ),
               ),

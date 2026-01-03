@@ -1,3 +1,4 @@
+// ignore_for_file: deprecated_member_use
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:puntocheck/models/plantillas_horarios.dart';
@@ -31,9 +32,9 @@ class _OrgAdminScheduleDetailViewState
   Widget build(BuildContext context) {
     final dias = _schedule.diasLaborales ?? [1, 2, 3, 4, 5];
 
-    return PopScope<bool>(
+    return PopScope(
       canPop: false,
-      onPopInvokedWithResult: (didPop, result) {
+      onPopInvoked: (didPop) {
         if (didPop) return;
         Navigator.of(context).pop(_changed);
       },
@@ -45,12 +46,12 @@ class _OrgAdminScheduleDetailViewState
           elevation: 0.5,
           actions: [
             IconButton(
-              icon: const Icon(Icons.edit_outlined),
+              icon: const Icon(Icons.edit_rounded),
               tooltip: 'Editar',
               onPressed: _edit,
             ),
             IconButton(
-              icon: const Icon(Icons.delete_outline),
+              icon: const Icon(Icons.delete_rounded),
               tooltip: 'Eliminar',
               onPressed: _confirmDelete,
             ),
@@ -125,7 +126,7 @@ class _OrgAdminScheduleDetailViewState
 
                 // Detalles
                 _DetailCard(
-                  icon: Icons.access_time_outlined,
+                  icon: Icons.access_time_rounded,
                   title: 'Horario',
                   child: Column(
                     children: [
@@ -219,10 +220,10 @@ class _OrgAdminScheduleDetailViewState
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF1A237E).withValues(alpha: 0.08),
+                      color: Color(0xFF1A237E).withValues(alpha: 0.08),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color: const Color(0xFF1A237E).withValues(alpha: 0.3),
+                        color: Color(0xFF1A237E).withValues(alpha: 0.3),
                         width: 1.5,
                       ),
                     ),

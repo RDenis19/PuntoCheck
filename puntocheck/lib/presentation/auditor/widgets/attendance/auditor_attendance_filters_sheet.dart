@@ -57,7 +57,7 @@ class _AuditorAttendanceFiltersSheetState
             children: [
               Row(
                 children: [
-                  const Icon(Icons.tune),
+                  const Icon(Icons.tune_rounded),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
@@ -70,7 +70,7 @@ class _AuditorAttendanceFiltersSheetState
                   IconButton(
                     tooltip: 'Cerrar',
                     onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.close),
+                    icon: const Icon(Icons.close_rounded),
                   ),
                 ],
               ),
@@ -78,14 +78,14 @@ class _AuditorAttendanceFiltersSheetState
               _FilterTile(
                 label: 'Rango de fechas',
                 value: rangeLabel,
-                icon: Icons.date_range,
+                icon: Icons.date_range_rounded,
                 onTap: _pickDateRange,
               ),
               const SizedBox(height: 10),
               InputDecorator(
                 decoration: const InputDecoration(
                   labelText: 'Sucursal',
-                  prefixIcon: Icon(Icons.store_outlined),
+                  prefixIcon: Icon(Icons.store_rounded),
                   border: OutlineInputBorder(),
                 ),
                 child: DropdownButtonHideUnderline(

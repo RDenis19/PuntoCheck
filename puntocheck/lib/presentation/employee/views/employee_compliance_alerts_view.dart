@@ -37,7 +37,7 @@ class _EmployeeComplianceAlertsViewState
           IconButton(
             tooltip: 'Recargar',
             onPressed: () => ref.invalidate(employeeComplianceAlertsProvider),
-            icon: const Icon(Icons.refresh),
+            icon: const Icon(Icons.refresh_rounded),
           ),
         ],
       ),
@@ -137,7 +137,7 @@ class _EmployeeComplianceAlertsViewState
                   Row(
                     children: [
                       Icon(
-                        Icons.shield_outlined,
+                        Icons.shield_rounded,
                         color: _severityColor(alert.gravedad),
                       ),
                       const SizedBox(width: 10),
@@ -161,14 +161,14 @@ class _EmployeeComplianceAlertsViewState
                         label: _severityLabel(alert.gravedad),
                         background: _severityColor(alert.gravedad).withValues(alpha: 0.12),
                         foreground: _severityColor(alert.gravedad),
-                        icon: Icons.priority_high,
+                        icon: Icons.priority_high_rounded,
                       ),
                       _Chip(
                         label: _statusLabel(alert.estado),
                         background:
                             _statusColor(alert.estado).withValues(alpha: 0.12),
                         foreground: _statusColor(alert.estado),
-                        icon: Icons.info_outline,
+                        icon: Icons.info_outline_rounded,
                       ),
                     ],
                   ),
@@ -176,7 +176,7 @@ class _EmployeeComplianceAlertsViewState
                     const SizedBox(height: 12),
                     Row(
                       children: [
-                        const Icon(Icons.schedule, size: 16, color: AppColors.neutral600),
+                        const Icon(Icons.schedule_rounded, size: 16, color: AppColors.neutral600),
                         const SizedBox(width: 8),
                         Text(
                           DateFormat('dd/MM/yyyy HH:mm')
@@ -325,7 +325,7 @@ class _SummaryCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Icon(Icons.shield_outlined, color: AppColors.neutral700),
+              const Icon(Icons.shield_rounded, color: AppColors.neutral700),
               const SizedBox(width: 10),
               const Expanded(
                 child: Text(
@@ -353,7 +353,7 @@ class _SummaryCard extends StatelessWidget {
                   label: 'Total',
                   value: total.toString(),
                   color: AppColors.neutral700,
-                  icon: Icons.list_alt,
+                  icon: Icons.list_alt_rounded,
                 ),
               ),
               const SizedBox(width: 10),
@@ -362,7 +362,7 @@ class _SummaryCard extends StatelessWidget {
                   label: 'Pendientes',
                   value: pending.toString(),
                   color: AppColors.warningOrange,
-                  icon: Icons.pending_actions,
+                  icon: Icons.pending_actions_rounded,
                 ),
               ),
             ],
@@ -515,20 +515,20 @@ class _AlertTile extends StatelessWidget {
                           label: _severityLabel(alert.gravedad),
                           background: severityColor.withValues(alpha: 0.10),
                           foreground: severityColor,
-                          icon: Icons.priority_high,
+                          icon: Icons.priority_high_rounded,
                         ),
                         _Chip(
                           label: status.isEmpty ? 'Estado: —' : 'Estado: $status',
                           background: statusColor.withValues(alpha: 0.10),
                           foreground: statusColor,
-                          icon: Icons.info_outline,
+                          icon: Icons.info_outline_rounded,
                         ),
                         if (hasDetail)
                           const _Chip(
                             label: 'Ver detalle',
                             background: AppColors.neutral100,
                             foreground: AppColors.neutral700,
-                            icon: Icons.article_outlined,
+                            icon: Icons.article_rounded,
                           ),
                       ],
                     ),
@@ -536,7 +536,7 @@ class _AlertTile extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 8),
-              const Icon(Icons.chevron_right, color: AppColors.neutral500),
+              const Icon(Icons.chevron_right_rounded, color: AppColors.neutral500),
             ],
           ),
         ),
@@ -631,7 +631,7 @@ class _EmptyState extends StatelessWidget {
       ),
       child: const Row(
         children: [
-          Icon(Icons.check_circle_outline, color: AppColors.successGreen),
+          Icon(Icons.check_circle_outline_rounded, color: AppColors.successGreen),
           SizedBox(width: 12),
           Expanded(
             child: Text(
@@ -659,7 +659,7 @@ class _ErrorState extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.error_outline, color: AppColors.errorRed, size: 40),
+            const Icon(Icons.error_outline_rounded, color: AppColors.errorRed, size: 40),
             const SizedBox(height: 10),
             Text(
               message,

@@ -1,4 +1,4 @@
-import 'dart:convert';
+
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -60,9 +60,7 @@ class _AuditorAlertDetailSheetState extends State<AuditorAlertDetailSheet> {
     final created = widget.alert.fechaDeteccion;
     final employee = widget.alert.empleadoNombreCompleto ?? 'Sin empleado';
 
-    final prettyJson = widget.alert.detalleTecnico == null
-        ? null
-        : const JsonEncoder.withIndent('  ').convert(widget.alert.detalleTecnico);
+
 
     return SafeArea(
       child: Container(
@@ -78,7 +76,7 @@ class _AuditorAlertDetailSheetState extends State<AuditorAlertDetailSheet> {
             children: [
               Row(
                 children: [
-                  Icon(Icons.shield_outlined, color: severityColor),
+                  Icon(Icons.shield_rounded, color: severityColor),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
@@ -91,7 +89,7 @@ class _AuditorAlertDetailSheetState extends State<AuditorAlertDetailSheet> {
                   IconButton(
                     tooltip: 'Cerrar',
                     onPressed: _saving ? null : () => Navigator.pop(context),
-                    icon: const Icon(Icons.close),
+                    icon: const Icon(Icons.close_rounded),
                   ),
                 ],
               ),
@@ -124,7 +122,7 @@ class _AuditorAlertDetailSheetState extends State<AuditorAlertDetailSheet> {
                       ),
                       child: Row(
                         children: [
-                          Icon(Icons.priority_high, color: severityColor, size: 18),
+                          Icon(Icons.priority_high_rounded, color: severityColor, size: 18),
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
@@ -145,7 +143,7 @@ class _AuditorAlertDetailSheetState extends State<AuditorAlertDetailSheet> {
               InputDecorator(
                 decoration: InputDecoration(
                   labelText: 'Estado',
-                  prefixIcon: const Icon(Icons.flag_outlined),
+                  prefixIcon: const Icon(Icons.flag_rounded),
                   border: const OutlineInputBorder(),
                   filled: true,
                   fillColor: AppColors.neutral100,
@@ -193,7 +191,7 @@ class _AuditorAlertDetailSheetState extends State<AuditorAlertDetailSheet> {
                     children: [
                        Row(
                          children: [
-                           Icon(Icons.info_outline, size: 16, color: AppColors.neutral600),
+                           Icon(Icons.info_rounded, size: 16, color: AppColors.neutral600),
                            const SizedBox(width: 6),
                            Text(
                              'Información del suceso',
@@ -257,7 +255,7 @@ class _AuditorAlertDetailSheetState extends State<AuditorAlertDetailSheet> {
                   Expanded(
                     child: OutlinedButton.icon(
                       onPressed: _saving ? null : widget.onOpenEmployeeAttendance,
-                      icon: const Icon(Icons.access_time),
+                      icon: const Icon(Icons.access_time_rounded),
                       label: const Text('Ver asistencia'),
                     ),
                   ),
@@ -265,7 +263,7 @@ class _AuditorAlertDetailSheetState extends State<AuditorAlertDetailSheet> {
                   Expanded(
                     child: OutlinedButton.icon(
                       onPressed: _saving ? null : widget.onOpenRecord,
-                      icon: const Icon(Icons.photo_outlined),
+                      icon: const Icon(Icons.photo_rounded),
                       label: Text(widget.recordLabel ?? 'Ver evidencia'),
                     ),
                   ),
@@ -285,7 +283,7 @@ class _AuditorAlertDetailSheetState extends State<AuditorAlertDetailSheet> {
                             color: Colors.white,
                           ),
                         )
-                      : const Icon(Icons.save_outlined),
+                      : const Icon(Icons.save_rounded),
                   label: const Text('Guardar cambios'),
                 ),
               ),

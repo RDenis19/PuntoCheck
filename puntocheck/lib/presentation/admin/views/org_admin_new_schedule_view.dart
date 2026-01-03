@@ -54,7 +54,7 @@ class _OrgAdminNewScheduleViewState
                   decoration: InputDecoration(
                     labelText: 'Nombre de la plantilla',
                     hintText: 'Ej: Turno Manana',
-                    prefixIcon: const Icon(Icons.badge_outlined),
+                    prefixIcon: const Icon(Icons.badge_rounded),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -97,7 +97,7 @@ class _OrgAdminNewScheduleViewState
                                   initialValue: turno.nombre,
                                   decoration: const InputDecoration(
                                     labelText: 'Nombre del turno',
-                                    prefixIcon: Icon(Icons.badge_outlined),
+                                    prefixIcon: Icon(Icons.badge_rounded),
                                   ),
                                   onChanged: (v) => turno.nombre = v,
                                 ),
@@ -106,7 +106,7 @@ class _OrgAdminNewScheduleViewState
                               if (_turnos.length > 1)
                                 IconButton(
                                   icon: const Icon(
-                                    Icons.delete_outline,
+                                    Icons.delete_rounded,
                                     color: AppColors.errorRed,
                                   ),
                                   onPressed: () {
@@ -159,7 +159,7 @@ class _OrgAdminNewScheduleViewState
                       );
                     });
                   },
-                  icon: const Icon(Icons.add),
+                  icon: const Icon(Icons.add_rounded),
                   label: const Text('Agregar turno'),
                 ),
 
@@ -170,7 +170,7 @@ class _OrgAdminNewScheduleViewState
                   controller: _toleranciaController,
                   decoration: InputDecoration(
                     labelText: 'Tolerancia de entrada (minutos)',
-                    prefixIcon: const Icon(Icons.timer_outlined),
+                    prefixIcon: const Icon(Icons.timer_rounded),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -412,7 +412,7 @@ class _TimePickerTile extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.access_time, size: 20),
+              const Icon(Icons.access_time_rounded, size: 20),
               const SizedBox(width: 8),
               Text(
                 time != null ? time!.format(context) : '--:--',

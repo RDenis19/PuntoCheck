@@ -56,31 +56,31 @@ class StatusBadge extends StatelessWidget {
       return _StatusConfig(
         label: 'Pendiente',
         color: AppColors.warningOrange,
-        icon: Icons.pending_outlined,
+        icon: Icons.pending_rounded,
       );
     } else if (estado == EstadoAprobacion.aprobadoManager) {
       return _StatusConfig(
         label: 'Aprobado',
         color: AppColors.successGreen,
-        icon: Icons.check_circle_outline,
+        icon: Icons.check_circle_outlined,
       );
     } else if (estado == EstadoAprobacion.aprobadoRrhh) {
       return _StatusConfig(
         label: 'Aprobado',
         color: AppColors.successGreen,
-        icon: Icons.check_circle_outline,
+        icon: Icons.check_circle_outlined,
       );
     } else if (estado == EstadoAprobacion.rechazado) {
       return _StatusConfig(
         label: 'Rechazado',
         color: AppColors.errorRed,
-        icon: Icons.cancel_outlined,
+        icon: Icons.cancel_rounded,
       );
     } else { // cancelado_usuario
       return _StatusConfig(
         label: 'Cancelado',
         color: AppColors.neutral600,
-        icon: Icons.block,
+        icon: Icons.block_rounded,
       );
     }
   }

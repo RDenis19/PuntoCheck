@@ -91,7 +91,7 @@ class _OrgAdminAttendanceViewState
           Stack(
             children: [
               IconButton(
-                icon: const Icon(Icons.filter_list_rounded),
+                icon: const Icon(Icons.tune),
                 tooltip: 'Filtros avanzados',
                 onPressed: _openFilters,
               ),

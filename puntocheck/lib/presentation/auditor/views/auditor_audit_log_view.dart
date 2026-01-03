@@ -41,12 +41,12 @@ class _AuditorAuditLogViewState extends ConsumerState<AuditorAuditLogView> {
           IconButton(
             tooltip: 'Filtros',
             onPressed: () => _openFilters(context, ref, branchesAsync),
-            icon: const Icon(Icons.tune),
+            icon: const Icon(Icons.tune_rounded),
           ),
           IconButton(
             tooltip: 'Actualizar',
             onPressed: () => ref.invalidate(auditorAuditLogProvider),
-            icon: const Icon(Icons.refresh),
+            icon: const Icon(Icons.refresh_rounded),
           ),
         ],
       ),
@@ -63,13 +63,13 @@ class _AuditorAuditLogViewState extends ConsumerState<AuditorAuditLogView> {
                     controller: _searchCtrl,
                     decoration: InputDecoration(
                       hintText: 'Buscar por acción, tabla, actor o IP',
-                      prefixIcon: const Icon(Icons.search),
+                      prefixIcon: const Icon(Icons.search_rounded),
                       suffixIcon: q.isEmpty
                           ? null
                           : IconButton(
                               tooltip: 'Limpiar',
                               onPressed: () => _searchCtrl.clear(),
-                              icon: const Icon(Icons.close),
+                              icon: const Icon(Icons.close_rounded),
                             ),
                       border: const OutlineInputBorder(),
                     ),
@@ -87,7 +87,7 @@ class _AuditorAuditLogViewState extends ConsumerState<AuditorAuditLogView> {
                   child: EmptyState(
                     title: 'Error',
                     message: 'No se pudo cargar el log.\n$e',
-                    icon: Icons.error_outline,
+                    icon: Icons.error_outline_rounded,
                     onAction: () => ref.invalidate(auditorAuditLogProvider),
                     actionLabel: 'Reintentar',
                   ),
@@ -115,7 +115,7 @@ class _AuditorAuditLogViewState extends ConsumerState<AuditorAuditLogView> {
                       child: EmptyState(
                         title: 'Sin resultados',
                         message: 'No hay coincidencias con la búsqueda/filtros.',
-                        icon: Icons.manage_search,
+                        icon: Icons.manage_search_rounded,
                       ),
                     );
                   }
@@ -197,7 +197,7 @@ class _ActiveFiltersBar extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
         child: Row(
           children: [
-            const Icon(Icons.filter_alt_outlined, color: AppColors.neutral700),
+            const Icon(Icons.filter_alt_rounded, color: AppColors.neutral700),
             const SizedBox(width: 10),
             const Expanded(
               child: Text(
@@ -207,7 +207,7 @@ class _ActiveFiltersBar extends StatelessWidget {
             ),
             TextButton.icon(
               onPressed: onClear,
-              icon: const Icon(Icons.clear),
+              icon: const Icon(Icons.clear_rounded),
               label: const Text('Restablecer'),
             ),
           ],

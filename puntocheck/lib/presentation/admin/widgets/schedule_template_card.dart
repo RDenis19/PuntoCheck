@@ -55,7 +55,7 @@ class ScheduleTemplateCard extends StatelessWidget {
                         vertical: 4,
                       ),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF1A237E).withValues(alpha: 0.12),
+                        color: Color(0xFF1A237E).withValues(alpha: 0.12),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Row(
@@ -134,7 +134,7 @@ class ScheduleTemplateCard extends StatelessWidget {
               Row(
                 children: [
                   Icon(
-                    Icons.timer_outlined,
+                    Icons.timer_rounded,
                     size: 16,
                     color: AppColors.neutral600,
                   ),
@@ -149,7 +149,7 @@ class ScheduleTemplateCard extends StatelessWidget {
                   const Spacer(),
                   if (assignedEmployees != null) ...[
                     Icon(
-                      Icons.people_outline,
+                      Icons.people_outline_rounded,
                       size: 16,
                       color: AppColors.neutral600,
                     ),

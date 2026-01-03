@@ -102,7 +102,7 @@ class _OrgAdminProfileViewState extends ConsumerState<OrgAdminProfileView> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Row(children: [
-          const Icon(Icons.check_circle, color: Colors.white),
+          const Icon(Icons.check_circle_rounded, color: Colors.white),
           const SizedBox(width: 12),
           Text(msg)
         ]),
@@ -116,7 +116,7 @@ class _OrgAdminProfileViewState extends ConsumerState<OrgAdminProfileView> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Row(children: [
-          const Icon(Icons.error_outline, color: Colors.white),
+          const Icon(Icons.error_outline_rounded, color: Colors.white),
           const SizedBox(width: 12),
           Expanded(child: Text(msg))
         ]),
@@ -154,13 +154,13 @@ class _OrgAdminProfileViewState extends ConsumerState<OrgAdminProfileView> {
             if (!_isEditing)
               IconButton(
                 onPressed: () => setState(() => _isEditing = true),
-                icon: const Icon(Icons.edit_outlined),
+                icon: const Icon(Icons.edit_rounded),
                 tooltip: 'Editar perfil',
               )
             else
               IconButton(
                 onPressed: () => setState(() => _isEditing = false),
-                icon: const Icon(Icons.close),
+                icon: const Icon(Icons.close_rounded),
                 tooltip: 'Cancelar',
               ),
           ],
@@ -170,13 +170,13 @@ class _OrgAdminProfileViewState extends ConsumerState<OrgAdminProfileView> {
               key: _formKey,
               child: ProfileSectionCard(
                 title: 'Información Personal',
-                icon: Icons.person_outline,
+                icon: Icons.person_outline_rounded,
                 children: [
                   ProfileTextField(
                     label: 'Nombres',
                     controller: _nombresCtrl,
                     enabled: _isEditing,
-                    icon: Icons.badge_outlined,
+                    icon: Icons.badge_rounded,
                     validator: (v) => v?.isEmpty ?? true ? 'Requerido' : null,
                   ),
                   const SizedBox(height: 16),
@@ -184,7 +184,7 @@ class _OrgAdminProfileViewState extends ConsumerState<OrgAdminProfileView> {
                     label: 'Apellidos',
                     controller: _apellidosCtrl,
                     enabled: _isEditing,
-                    icon: Icons.badge_outlined,
+                    icon: Icons.badge_rounded,
                     validator: (v) => v?.isEmpty ?? true ? 'Requerido' : null,
                   ),
                   const SizedBox(height: 16),
@@ -192,14 +192,14 @@ class _OrgAdminProfileViewState extends ConsumerState<OrgAdminProfileView> {
                     label: 'Cargo',
                     controller: _cargoCtrl,
                     enabled: _isEditing,
-                    icon: Icons.work_outline,
+                    icon: Icons.work_outline_rounded,
                   ),
                   const SizedBox(height: 16),
                   ProfileTextField(
                     label: 'Teléfono',
                     controller: _telefonoCtrl,
                     enabled: _isEditing,
-                    icon: Icons.phone_outlined,
+                    icon: Icons.phone_rounded,
                     keyboardType: TextInputType.phone,
                   ),
                   const SizedBox(height: 16),
@@ -256,7 +256,7 @@ class _OrgAdminProfileViewState extends ConsumerState<OrgAdminProfileView> {
             // 2. Organización (Solo lectura)
             ProfileSectionCard(
               title: 'Mi Organización',
-              icon: Icons.business_outlined,
+              icon: Icons.business_rounded,
               children: [
                 orgAsync.when(
                   data: (org) => Column(
@@ -264,19 +264,19 @@ class _OrgAdminProfileViewState extends ConsumerState<OrgAdminProfileView> {
                       ProfileInfoChip(
                         label: 'Nombre', 
                         value: org.razonSocial, 
-                        icon: Icons.apartment,
+                        icon: Icons.apartment_rounded,
                       ),
                       const SizedBox(height: 12),
                       ProfileInfoChip(
                         label: 'RUC', 
                         value: org.ruc, 
-                        icon: Icons.numbers,
+                        icon: Icons.numbers_rounded,
                       ),
                       const SizedBox(height: 12),
                       ProfileInfoChip(
                         label: 'Suscripción', 
                         value: org.estadoSuscripcion?.value ?? 'N/D', 
-                        icon: Icons.verified_outlined,
+                        icon: Icons.verified_rounded,
                         valueColor: AppColors.successGreen,
                       ),
                     ],
@@ -290,19 +290,19 @@ class _OrgAdminProfileViewState extends ConsumerState<OrgAdminProfileView> {
             // 3. Seguridad
             ProfileSectionCard(
               title: 'Seguridad',
-              icon: Icons.security_outlined,
+              icon: Icons.security_rounded,
               children: [
                 ProfileInfoChip(
                   label: 'Correo electrónico',
                   value: user?.email ?? '',
-                  icon: Icons.email_outlined,
+                  icon: Icons.email_rounded,
                 ),
                 const SizedBox(height: 16),
                 
                 // Botón Cambiar Contraseña
                 ElevatedButton.icon(
                   onPressed: _isSaving ? null : () => _showPasswordDialog(context),
-                  icon: const Icon(Icons.lock_reset),
+                  icon: const Icon(Icons.lock_reset_rounded),
                   label: const Text('Cambiar contraseña'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.neutral900,
@@ -319,7 +319,7 @@ class _OrgAdminProfileViewState extends ConsumerState<OrgAdminProfileView> {
                   onPressed: _isSaving
                       ? null
                       : () => ref.read(authControllerProvider.notifier).signOut(),
-                  icon: const Icon(Icons.logout),
+                  icon: const Icon(Icons.logout_rounded),
                   label: const Text('Cerrar sesión'),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: AppColors.errorRed,
@@ -348,7 +348,7 @@ class _OrgAdminProfileViewState extends ConsumerState<OrgAdminProfileView> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Row(
           children: [
-            Icon(Icons.lock_reset, color: AppColors.primaryRed),
+            Icon(Icons.lock_reset_rounded, color: AppColors.primaryRed),
             SizedBox(width: 12),
             Text('Cambiar contraseña', style: TextStyle(fontWeight: FontWeight.bold)),
           ],
@@ -363,7 +363,7 @@ class _OrgAdminProfileViewState extends ConsumerState<OrgAdminProfileView> {
                 obscureText: true,
                 decoration: InputDecoration(
                   labelText: 'Nueva contraseña',
-                  prefixIcon: const Icon(Icons.lock_outline),
+                  prefixIcon: const Icon(Icons.lock_outline_rounded),
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                 ),
                 validator: (v) => (v?.length ?? 0) < 6 ? 'Mínimo 6 caracteres' : null,

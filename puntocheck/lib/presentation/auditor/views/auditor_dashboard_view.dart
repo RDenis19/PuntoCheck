@@ -48,7 +48,7 @@ class AuditorDashboardView extends ConsumerWidget {
               child: _RedStatCard(
                 label: 'Alertas abiertas',
                 value: metricValue(metrics?.openAlerts),
-                icon: Icons.report_gmailerrorred_outlined,
+                icon: Icons.report_gmailerrorred_rounded,
               ),
             ),
             const SizedBox(width: 12),
@@ -56,7 +56,7 @@ class AuditorDashboardView extends ConsumerWidget {
               child: _RedStatCard(
                 label: 'Permisos pendientes',
                 value: metricValue(metrics?.pendingPermissions),
-                icon: Icons.event_note_outlined,
+                icon: Icons.event_note_rounded,
               ),
             ),
           ],
@@ -65,7 +65,7 @@ class AuditorDashboardView extends ConsumerWidget {
         _RedStatCard(
           label: 'Marcas observadas hoy',
           value: metricValue(metrics?.attendanceToday),
-          icon: Icons.fingerprint_outlined,
+          icon: Icons.fingerprint_rounded,
         ),
         const SizedBox(height: 16),
         SectionCard(
@@ -80,7 +80,7 @@ class AuditorDashboardView extends ConsumerWidget {
             error: (e, _) => EmptyState(
               title: 'No se pudo cargar',
               message: '$e',
-              icon: Icons.error_outline,
+              icon: Icons.error_outline_rounded,
               onAction: () => ref.invalidate(auditorDashboardRecentFindingsProvider),
               actionLabel: 'Reintentar',
             ),
@@ -89,7 +89,7 @@ class AuditorDashboardView extends ConsumerWidget {
                 return const EmptyState(
                   title: 'Sin hallazgos',
                   message: 'Cuando existan alertas aparecerán aquí.',
-                  icon: Icons.report_gmailerrorred_outlined,
+                  icon: Icons.report_gmailerrorred_rounded,
                 );
               }
 
@@ -113,7 +113,7 @@ class AuditorDashboardView extends ConsumerWidget {
                     child: OutlinedButton.icon(
                       onPressed: () =>
                           ref.read(auditorTabIndexProvider.notifier).state = 3,
-                      icon: const Icon(Icons.open_in_new),
+                      icon: const Icon(Icons.open_in_new_rounded),
                       label: const Text('Ver todas'),
                     ),
                   ),
@@ -134,7 +134,7 @@ class AuditorDashboardView extends ConsumerWidget {
             error: (e, _) => EmptyState(
               title: 'No se pudo cargar',
               message: '$e',
-              icon: Icons.error_outline,
+              icon: Icons.error_outline_rounded,
               onAction: () => ref.invalidate(auditorAuditLogRecentProvider),
               actionLabel: 'Reintentar',
             ),
@@ -143,7 +143,7 @@ class AuditorDashboardView extends ConsumerWidget {
                 return const EmptyState(
                   title: 'Sin eventos',
                   message: 'Aquí verás acciones sensibles con trazabilidad completa.',
-                  icon: Icons.history,
+                  icon: Icons.history_rounded,
                 );
               }
 
@@ -160,7 +160,7 @@ class AuditorDashboardView extends ConsumerWidget {
                     width: double.infinity,
                     child: OutlinedButton.icon(
                       onPressed: () => context.push('${AppRoutes.auditorHome}/auditoria'),
-                      icon: const Icon(Icons.open_in_new),
+                      icon: const Icon(Icons.open_in_new_rounded),
                       label: const Text('Ver todo'),
                     ),
                   ),

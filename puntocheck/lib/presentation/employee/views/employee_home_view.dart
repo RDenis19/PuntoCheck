@@ -54,7 +54,7 @@ class _EmployeeHomeViewState extends ConsumerState<EmployeeHomeView> {
         backgroundColor: AppColors.primaryRed,
         foregroundColor: Colors.white,
         onPressed: () => _openQuickActions(context),
-        child: const Icon(Icons.add),
+        child: const Icon(Icons.add_rounded),
       ),
       body: Column(
         children: [
@@ -106,7 +106,7 @@ class _EmployeeHomeViewState extends ConsumerState<EmployeeHomeView> {
                     children: [
                       Expanded(
                         child: _buildSummaryItem(
-                          icon: Icons.access_time_filled,
+                          icon: Icons.access_time_filled_rounded,
                           color: AppColors.infoBlue,
                           value: historyAsync.isLoading ? '—' : workedText,
                           label: 'Trabajadas hoy',
@@ -142,7 +142,7 @@ class _EmployeeHomeViewState extends ConsumerState<EmployeeHomeView> {
     final bool isEntry =
         lastRecord == null || lastRecord.tipoRegistro == 'salida';
     final String actionLabel = isEntry ? 'Marcar Entrada' : 'Marcar Salida';
-    final IconData actionIcon = isEntry ? Icons.login : Icons.logout;
+    final IconData actionIcon = isEntry ? Icons.login_rounded : Icons.logout_rounded;
     final Color actionColor = isEntry ? AppColors.successGreen : AppColors.primaryRed;
 
     return Container(
@@ -221,7 +221,7 @@ class _EmployeeHomeViewState extends ConsumerState<EmployeeHomeView> {
         ),
         child: const Row(
           children: [
-            Icon(Icons.event_busy, color: AppColors.neutral500),
+            Icon(Icons.event_busy_rounded, color: AppColors.neutral500),
             SizedBox(width: 12),
             Expanded(
               child: Text(
@@ -267,7 +267,7 @@ class _EmployeeHomeViewState extends ConsumerState<EmployeeHomeView> {
               color: Colors.blue.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: const Icon(Icons.schedule, color: AppColors.infoBlue),
+            child: const Icon(Icons.schedule_rounded, color: AppColors.infoBlue),
           ),
           const SizedBox(width: 16),
           Expanded(
@@ -365,7 +365,7 @@ class _EmployeeHomeViewState extends ConsumerState<EmployeeHomeView> {
     if (last == null) {
       return const _HomeStatus(
         label: 'Sin entrada',
-        icon: Icons.info_outline,
+        icon: Icons.info_outline_rounded,
         color: AppColors.neutral600,
       );
     }
@@ -385,31 +385,31 @@ class _EmployeeHomeViewState extends ConsumerState<EmployeeHomeView> {
       case 'entrada':
         return const _HomeStatus(
           label: 'En jornada',
-          icon: Icons.play_circle_fill,
+          icon: Icons.play_circle_fill_rounded,
           color: AppColors.infoBlue,
         );
       case 'inicio_break':
         return const _HomeStatus(
           label: 'En break',
-          icon: Icons.free_breakfast,
+          icon: Icons.free_breakfast_rounded,
           color: AppColors.warningOrange,
         );
       case 'fin_break':
         return const _HomeStatus(
           label: 'En jornada',
-          icon: Icons.play_circle_fill,
+          icon: Icons.play_circle_fill_rounded,
           color: AppColors.infoBlue,
         );
       case 'salida':
         return const _HomeStatus(
           label: 'Cerrado',
-          icon: Icons.check_circle,
+          icon: Icons.check_circle_rounded,
           color: AppColors.successGreen,
         );
       default:
         return const _HomeStatus(
           label: 'Estado',
-          icon: Icons.info_outline,
+          icon: Icons.info_outline_rounded,
           color: AppColors.neutral600,
         );
     }
@@ -447,7 +447,7 @@ class _EmployeeHomeViewState extends ConsumerState<EmployeeHomeView> {
                   ),
                   const SizedBox(height: 12),
                   _ActionTile(
-                    icon: Icons.schedule,
+                    icon: Icons.schedule_rounded,
                     title: 'Mi horario',
                     subtitle: 'Ver turnos, tolerancia y vigencia',
                     onTap: () {
@@ -459,7 +459,7 @@ class _EmployeeHomeViewState extends ConsumerState<EmployeeHomeView> {
                   ),
                   const SizedBox(height: 10),
                   _ActionTile(
-                    icon: Icons.account_balance_wallet_outlined,
+                    icon: Icons.account_balance_wallet_rounded,
                     title: 'Banco de horas',
                     subtitle: 'Horas acumuladas y días compensatorios',
                     onTap: () {
@@ -550,7 +550,7 @@ class _ActionTile extends StatelessWidget {
                 ],
               ),
             ),
-            const Icon(Icons.chevron_right, color: AppColors.neutral400),
+            const Icon(Icons.chevron_right_rounded, color: AppColors.neutral400),
           ],
         ),
       ),

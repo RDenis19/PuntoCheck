@@ -115,7 +115,7 @@ class _OrgAdminPersonDetailViewState
               final isOwnProfile = currentUserId == widget.userId;
 
               return PopupMenuButton<String>(
-                icon: const Icon(Icons.more_vert),
+                icon: const Icon(Icons.more_vert_rounded),
                 onSelected: (value) {
                   if (isOwnProfile &&
                       (value == 'delete' || value == 'toggle_active')) {
@@ -144,7 +144,7 @@ class _OrgAdminPersonDetailViewState
                     value: 'edit',
                     child: Row(
                       children: [
-                        Icon(Icons.edit, size: 20),
+                        Icon(Icons.edit_rounded, size: 20),
                         SizedBox(width: 12),
                         Text('Editar'),
                       ],
@@ -157,8 +157,8 @@ class _OrgAdminPersonDetailViewState
                         children: [
                           Icon(
                             perfil.activo == true
-                                ? Icons.block
-                                : Icons.check_circle,
+                                ? Icons.block_rounded
+                                : Icons.check_circle_rounded,
                             size: 20,
                           ),
                           const SizedBox(width: 12),
@@ -173,7 +173,7 @@ class _OrgAdminPersonDetailViewState
                       value: 'delete',
                       child: Row(
                         children: [
-                          Icon(Icons.delete_outline,
+                          Icon(Icons.delete_rounded,
                               size: 20, color: Colors.red),
                           SizedBox(width: 12),
                           Text(
@@ -662,8 +662,8 @@ class _AttendanceCard extends StatelessWidget {
               ),
               child: Icon(
                 log.estaDentroGeocerca!
-                    ? Icons.location_on
-                    : Icons.location_off,
+                    ? Icons.location_on_rounded
+                    : Icons.location_off_rounded,
                 color: log.estaDentroGeocerca! ? Colors.green : Colors.orange,
                 size: 18,
               ),

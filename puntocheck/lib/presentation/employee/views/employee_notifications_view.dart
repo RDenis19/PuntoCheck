@@ -44,10 +44,10 @@ class EmployeeNotificationsView extends ConsumerWidget {
                         );
                       }
                     },
-              icon: const Icon(Icons.done_all),
+              icon: const Icon(Icons.done_all_rounded),
             ),
           IconButton(
-            icon: const Icon(Icons.refresh),
+            icon: const Icon(Icons.refresh_rounded),
             tooltip: 'Actualizar',
             onPressed: () => ref.invalidate(employeeNotificationsProvider),
           ),
@@ -62,7 +62,7 @@ class EmployeeNotificationsView extends ConsumerWidget {
           data: (list) {
             if (list.isEmpty) {
               return const EmptyState(
-                icon: Icons.notifications_none_outlined,
+                icon: Icons.notifications_none_rounded,
                 title: 'Sin notificaciones',
                 message: 'Aquí aparecerán tus avisos y aprobaciones.',
               );
@@ -98,15 +98,15 @@ class _NotificationTile extends ConsumerWidget {
     Color color;
     switch (type) {
       case 'permiso':
-        icon = Icons.assignment_turned_in_outlined;
+        icon = Icons.assignment_turned_in_rounded;
         color = AppColors.primaryRed;
         break;
       case 'asistencia':
-        icon = Icons.access_time;
+        icon = Icons.access_time_rounded;
         color = AppColors.infoBlue;
         break;
       default:
-        icon = Icons.info_outline;
+        icon = Icons.info_outline_rounded;
         color = AppColors.neutral600;
     }
 
@@ -117,7 +117,7 @@ class _NotificationTile extends ConsumerWidget {
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.only(right: 20),
         color: AppColors.neutral200,
-        child: const Icon(Icons.check, color: AppColors.neutral700),
+        child: const Icon(Icons.check_rounded, color: AppColors.neutral700),
       ),
       confirmDismiss: (_) async {
         await ref.read(employeeNotificationControllerProvider.notifier).markRead(id);
@@ -189,7 +189,7 @@ class _NotificationTile extends ConsumerWidget {
                     style: const TextStyle(fontSize: 12, color: AppColors.neutral500),
                   ),
                   const SizedBox(height: 6),
-                  const Icon(Icons.chevron_right, color: AppColors.neutral400),
+                  const Icon(Icons.chevron_right_rounded, color: AppColors.neutral400),
                 ],
               ),
             ],
@@ -238,7 +238,7 @@ void _openNotificationDetail(BuildContext context, Map<String, dynamic> n) {
                     ),
                     const Spacer(),
                     IconButton(
-                      icon: const Icon(Icons.close),
+                      icon: const Icon(Icons.close_rounded),
                       onPressed: () => Navigator.pop(context),
                     ),
                   ],

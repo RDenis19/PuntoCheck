@@ -101,7 +101,7 @@ class _LeavesTab extends ConsumerWidget {
                 child: TextField(
                   decoration: InputDecoration(
                     hintText: 'Buscar empleado...',
-                    prefixIcon: const Icon(Icons.search, size: 18),
+                    prefixIcon: const Icon(Icons.search_rounded, size: 18),
                     contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 12),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
@@ -129,7 +129,7 @@ class _LeavesTab extends ConsumerWidget {
                   value: filter.status,
                   underline: const SizedBox(),
                   hint: const Text('Estado'),
-                  icon: const Icon(Icons.arrow_drop_down, color: AppColors.neutral500),
+                  icon: const Icon(Icons.arrow_drop_down_rounded, color: AppColors.neutral500),
                   items: [
                     const DropdownMenuItem(value: null, child: Text('Todos')),
                      ...EstadoAprobacion.values.map(
@@ -156,7 +156,7 @@ class _LeavesTab extends ConsumerWidget {
                 return const EmptyState(
                   title: 'Sin solicitudes',
                   message: 'No se encontraron permisos con estos filtros.',
-                  icon: Icons.event_busy,
+                  icon: Icons.event_busy_rounded,
                 );
               }
               return ListView.builder(
@@ -195,7 +195,7 @@ class _HoursBankTab extends ConsumerWidget {
           child: TextField(
              decoration: InputDecoration(
               hintText: 'Buscar empleado por nombre o cédula...',
-              prefixIcon: const Icon(Icons.search),
+              prefixIcon: const Icon(Icons.search_rounded),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
                 borderSide: const BorderSide(color: AppColors.neutral300),
@@ -218,7 +218,7 @@ class _HoursBankTab extends ConsumerWidget {
                 return const EmptyState(
                   title: 'Sin registros',
                   message: 'No hay movimientos en el banco de horas.',
-                  icon: Icons.hourglass_empty,
+                  icon: Icons.hourglass_empty_rounded,
                 );
               }
               return ListView.separated(
@@ -255,7 +255,7 @@ class _HoursBankCard extends StatelessWidget {
         border: Border.all(color: AppColors.neutral200),
         boxShadow: [
           BoxShadow(
-            color: AppColors.neutral900.withOpacity(0.04),
+            color: AppColors.neutral900.withValues(alpha: 0.04),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -269,12 +269,12 @@ class _HoursBankCard extends StatelessWidget {
             height: 44,
             decoration: BoxDecoration(
               color: isPositive
-                  ? AppColors.successGreen.withOpacity(0.1)
-                  : AppColors.errorRed.withOpacity(0.1),
+                  ? AppColors.successGreen.withValues(alpha: 0.1)
+                  : AppColors.errorRed.withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
             child: Icon(
-              isPositive ? Icons.add_circle_outline : Icons.remove_circle_outline,
+              isPositive ? Icons.add_circle_outline_rounded : Icons.remove_circle_outline_rounded,
               color: isPositive ? AppColors.successGreen : AppColors.errorRed,
             ),
           ),

@@ -33,7 +33,7 @@ class AuditorHeader extends StatelessWidget {
                 isLabelVisible: unread > 0,
                 label: Text(unread > 99 ? '99+' : '$unread'),
                 child: const Icon(
-                  Icons.notifications_none_outlined,
+                  Icons.notifications_none_rounded,
                   color: AppColors.secondaryWhite,
                 ),
               ),

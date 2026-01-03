@@ -79,7 +79,7 @@ class SuperAdminOrgPaymentsView extends ConsumerWidget {
                     ),
                   ),
                   child: const Icon(
-                    Icons.receipt_long,
+                    Icons.receipt_long_rounded,
                     color: AppColors.primaryRed,
                   ),
                 ),
@@ -157,7 +157,7 @@ class SuperAdminOrgPaymentsView extends ConsumerWidget {
                               if (context.mounted) Navigator.of(context).pop();
                             },
                       icon: const Icon(
-                        Icons.close,
+                        Icons.close_rounded,
                         color: AppColors.primaryRed,
                       ),
                       label: const Text(
@@ -186,7 +186,7 @@ class SuperAdminOrgPaymentsView extends ConsumerWidget {
                                   .approve(pago.id);
                               if (context.mounted) Navigator.of(context).pop();
                             },
-                      icon: const Icon(Icons.check_circle, color: Colors.white),
+                      icon: const Icon(Icons.check_circle_rounded, color: Colors.white),
                       label: const Text('Aprobar'),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.successGreen,
@@ -392,7 +392,7 @@ class _PaymentCard extends StatelessWidget {
                 ),
               ),
               child: const Center(
-                child: Icon(Icons.receipt_long, color: AppColors.primaryRed),
+                child: Icon(Icons.receipt_long_rounded, color: AppColors.primaryRed),
               ),
             ),
             const SizedBox(width: 14),
@@ -437,12 +437,12 @@ class _PaymentCard extends StatelessWidget {
                   IconButton(
                     tooltip: 'Aprobar',
                     onPressed: isProcessing ? null : onApprove,
-                    icon: const Icon(Icons.check_circle, color: Colors.green),
+                    icon: const Icon(Icons.check_circle_rounded, color: Colors.green),
                   ),
                   IconButton(
                     tooltip: 'Rechazar',
                     onPressed: isProcessing ? null : onReject,
-                    icon: const Icon(Icons.close, color: AppColors.primaryRed),
+                    icon: const Icon(Icons.close_rounded, color: AppColors.primaryRed),
                   ),
                 ],
               )

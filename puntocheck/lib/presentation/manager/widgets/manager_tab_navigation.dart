@@ -22,23 +22,23 @@ class ManagerTabNavigation extends StatelessWidget {
       elevation: 8,
       items: const [
         BottomNavigationBarItem(
-          icon: Icon(Icons.dashboard_outlined),
+          icon: Icon(Icons.dashboard_rounded),
           label: 'Inicio',
         ),
         BottomNavigationBarItem(
-          icon: Icon(Icons.people_outline),
+          icon: Icon(Icons.people_rounded),
           label: 'Equipo',
         ),
         BottomNavigationBarItem(
-          icon: Icon(Icons.access_time_outlined),
+          icon: Icon(Icons.access_time_rounded),
           label: 'Asistencia',
         ),
         BottomNavigationBarItem(
-          icon: Icon(Icons.calendar_today_outlined),
+          icon: Icon(Icons.calendar_today_rounded),
           label: 'Horarios',
         ),
         BottomNavigationBarItem(
-          icon: Icon(Icons.person_outline),
+          icon: Icon(Icons.person_rounded),
           label: 'Perfil',
         ),
       ],

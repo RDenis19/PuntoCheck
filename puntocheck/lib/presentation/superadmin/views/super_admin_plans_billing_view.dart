@@ -308,7 +308,7 @@ class _MetricCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: gradient.first.withOpacity(0.3),
+            color: gradient.first.withValues(alpha: 0.3),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -425,7 +425,7 @@ class _PlanCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -437,7 +437,7 @@ class _PlanCard extends StatelessWidget {
             leading: Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: AppColors.primaryRed.withOpacity(0.1),
+                color: AppColors.primaryRed.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: const Icon(
@@ -539,9 +539,9 @@ class _StatusChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: resColor.withOpacity(0.1),
+        color: resColor.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: resColor.withOpacity(0.2)),
+        border: Border.all(color: resColor.withValues(alpha: 0.2)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -684,7 +684,7 @@ class _PaymentTile extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 5),
+          BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 5),
         ],
       ),
       child: ListTile(
@@ -708,12 +708,12 @@ class _PaymentTile extends StatelessWidget {
                 children: [
                   IconButton(
                     onPressed: isValidating ? null : onReject,
-                    icon: const Icon(Icons.close, color: AppColors.errorRed),
+                    icon: const Icon(Icons.close_rounded, color: AppColors.errorRed),
                   ),
                   IconButton(
                     onPressed: isValidating ? null : onApprove,
                     icon: const Icon(
-                      Icons.check_circle,
+                      Icons.check_circle_rounded,
                       color: AppColors.successGreen,
                     ),
                   ),

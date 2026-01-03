@@ -158,7 +158,7 @@ class _SuperAdminOrganizationsViewState
                   Text(
                     'Gestión centralizada de clientes.',
                     style: TextStyle(
-                      color: AppColors.neutral700.withOpacity(0.8),
+                      color: AppColors.neutral700.withValues(alpha: 0.8),
                       fontSize: 15,
                     ),
                   ),
@@ -246,7 +246,7 @@ class _MetricGradientCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: AppColors.primaryRed.withOpacity(0.3),
+            color: AppColors.primaryRed.withValues(alpha: 0.3),
             blurRadius: 15,
             offset: const Offset(0, 8),
           ),
@@ -257,7 +257,7 @@ class _MetricGradientCard extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
+              color: Colors.white.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(16),
             ),
             child: const Icon(
@@ -283,7 +283,7 @@ class _MetricGradientCard extends StatelessWidget {
                 Text(
                   '$count por validar • \$${total.toStringAsFixed(2)}',
                   style: TextStyle(
-                    color: Colors.white.withOpacity(0.9),
+                    color: Colors.white.withValues(alpha: 0.9),
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
                   ),
@@ -311,7 +311,7 @@ class _SearchBar extends StatelessWidget {
         borderRadius: BorderRadius.circular(18),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.03),
+            color: Colors.black.withValues(alpha: 0.03),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -322,7 +322,9 @@ class _SearchBar extends StatelessWidget {
         onChanged: (_) => onChanged(),
         decoration: InputDecoration(
           hintText: 'Buscar por nombre o RUC...',
-          hintStyle: TextStyle(color: AppColors.neutral700.withOpacity(0.5)),
+          hintStyle: TextStyle(
+            color: AppColors.neutral700.withValues(alpha: 0.5),
+          ),
           prefixIcon: const Icon(
             Icons.search_rounded,
             color: AppColors.primaryRed,
@@ -399,7 +401,7 @@ class _TabBar extends StatelessWidget {
                       ),
                       decoration: BoxDecoration(
                         color: isSelected
-                            ? Colors.white.withOpacity(0.2)
+                            ? Colors.white.withValues(alpha: 0.2)
                             : AppColors.neutral100,
                         borderRadius: BorderRadius.circular(6),
                       ),
@@ -439,7 +441,7 @@ class _PaymentCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(18),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.02),
+            color: Colors.black.withValues(alpha: 0.02),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -463,7 +465,7 @@ class _PaymentCard extends StatelessWidget {
                 Text(
                   'ID Org: ${pago.organizacionId}',
                   style: TextStyle(
-                    color: AppColors.neutral700.withOpacity(0.7),
+                    color: AppColors.neutral700.withValues(alpha: 0.7),
                     fontSize: 13,
                   ),
                 ),

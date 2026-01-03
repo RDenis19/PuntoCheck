@@ -49,12 +49,12 @@ class _EmployeeProfileViewState extends ConsumerState<EmployeeProfileView> {
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
-              leading: const Icon(Icons.photo_library_outlined),
+              leading: const Icon(Icons.photo_library_rounded),
               title: const Text('Galería'),
               onTap: () => Navigator.pop(context, ImageSource.gallery),
             ),
             ListTile(
-              leading: const Icon(Icons.photo_camera_outlined),
+              leading: const Icon(Icons.photo_camera_rounded),
               title: const Text('Cámara'),
               onTap: () => Navigator.pop(context, ImageSource.camera),
             ),
@@ -139,7 +139,7 @@ class _EmployeeProfileViewState extends ConsumerState<EmployeeProfileView> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Row(
           children: [
-            Icon(Icons.lock_reset, color: AppColors.primaryRed),
+            Icon(Icons.lock_reset_rounded, color: AppColors.primaryRed),
             SizedBox(width: 12),
             Text('Cambiar contraseña', style: TextStyle(fontWeight: FontWeight.bold)),
           ],
@@ -154,7 +154,7 @@ class _EmployeeProfileViewState extends ConsumerState<EmployeeProfileView> {
                 obscureText: true,
                 decoration: InputDecoration(
                   labelText: 'Nueva contraseña',
-                  prefixIcon: const Icon(Icons.lock_outline),
+                  prefixIcon: const Icon(Icons.lock_outline_rounded),
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                 ),
                 validator: (v) => (v?.length ?? 0) < 6 ? 'Mínimo 6 caracteres' : null,
@@ -165,7 +165,7 @@ class _EmployeeProfileViewState extends ConsumerState<EmployeeProfileView> {
                 obscureText: true,
                 decoration: InputDecoration(
                   labelText: 'Confirmar contraseña',
-                  prefixIcon: const Icon(Icons.lock_outline),
+                  prefixIcon: const Icon(Icons.lock_outline_rounded),
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                 ),
                 validator: (v) => v != ctrl.text ? 'No coinciden' : null,
@@ -262,13 +262,13 @@ class _EmployeeProfileViewState extends ConsumerState<EmployeeProfileView> {
             if (!_isEditing)
               IconButton(
                 tooltip: 'Editar',
-                icon: const Icon(Icons.edit_outlined),
+                icon: const Icon(Icons.edit_rounded),
                 onPressed: () => setState(() => _isEditing = true),
               )
             else
               IconButton(
                 tooltip: 'Cancelar',
-                icon: const Icon(Icons.close),
+                icon: const Icon(Icons.close_rounded),
                 onPressed: _isSaving ? null : () => setState(() {
                   _isEditing = false;
                   _newPhotoFile = null;
@@ -283,12 +283,12 @@ class _EmployeeProfileViewState extends ConsumerState<EmployeeProfileView> {
               key: _formKey,
               child: ProfileSectionCard(
                 title: 'Mis Datos',
-                icon: Icons.person_outline,
+                icon: Icons.person_rounded,
                 children: [
                    ProfileInfoChip(
                     label: 'Cédula',
                     value: profile.cedula ?? 'No registrada',
-                    icon: Icons.badge_outlined,
+                    icon: Icons.badge_rounded,
                   ),
                   const SizedBox(height: 12),
                   
@@ -297,7 +297,7 @@ class _EmployeeProfileViewState extends ConsumerState<EmployeeProfileView> {
                     label: 'Teléfono',
                     controller: _phoneController,
                     enabled: _isEditing,
-                    icon: Icons.phone_outlined,
+                    icon: Icons.phone_rounded,
                     keyboardType: TextInputType.phone,
                     validator: (v) => (v?.length ?? 0) > 0 && (v!.length < 7) ? 'Inválido' : null,
                   ),
@@ -306,14 +306,14 @@ class _EmployeeProfileViewState extends ConsumerState<EmployeeProfileView> {
                   ProfileInfoChip(
                     label: 'Sucursal',
                     value: branchName ?? 'Sin asignar',
-                    icon: Icons.store_mall_directory_outlined,
+                    icon: Icons.store_mall_directory_rounded,
                   ),
                   const SizedBox(height: 12),
                   
                   ProfileInfoChip(
                     label: 'Organización',
                     value: orgName,
-                    icon: Icons.apartment_outlined,
+                    icon: Icons.apartment_rounded,
                   ),
 
                   // Botón Guardar
@@ -343,7 +343,7 @@ class _EmployeeProfileViewState extends ConsumerState<EmployeeProfileView> {
             // 2. Cumplimiento (Solo Empleado)
             ProfileSectionCard(
               title: 'Cumplimiento',
-              icon: Icons.shield_outlined,
+              icon: Icons.shield_rounded,
               trailing: _TinyBadge(
                 count: complianceAsync.valueOrNull
                       ?.where((a) => (a.estado ?? '').toLowerCase() == 'pendiente')
@@ -354,7 +354,7 @@ class _EmployeeProfileViewState extends ConsumerState<EmployeeProfileView> {
                   contentPadding: EdgeInsets.zero,
                   title: const Text('Alertas de auditoría', style: TextStyle(fontWeight: FontWeight.bold)),
                   subtitle: const Text('Revisar si tienes llamados de atención pendientes.'),
-                  trailing: const Icon(Icons.arrow_forward_ios, size: 16, color: AppColors.neutral500),
+                  trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 16, color: AppColors.neutral500),
                   onTap: () {
                      Navigator.of(context).push(
                           MaterialPageRoute(
@@ -369,19 +369,19 @@ class _EmployeeProfileViewState extends ConsumerState<EmployeeProfileView> {
             // 3. Seguridad (Nueva sección con Cambio de Password y Logout)
             ProfileSectionCard(
               title: 'Seguridad',
-              icon: Icons.security_outlined,
+              icon: Icons.security_rounded,
               children: [
                 ProfileInfoChip(
                   label: 'Correo electrónico',
                   value: currentUserEmail,
-                  icon: Icons.email_outlined,
+                  icon: Icons.email_rounded,
                 ),
                 const SizedBox(height: 16),
                 
                 // Botón Cambiar Contraseña
                 ElevatedButton.icon(
                   onPressed: _isSaving ? null : () => _showPasswordDialog(context),
-                  icon: const Icon(Icons.lock_reset),
+                  icon: const Icon(Icons.lock_reset_rounded),
                   label: const Text('Cambiar contraseña'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.neutral900,
@@ -396,7 +396,7 @@ class _EmployeeProfileViewState extends ConsumerState<EmployeeProfileView> {
                 // Botón Cerrar Sesión
                 OutlinedButton.icon(
                   onPressed: _isSaving ? null : _signOut,
-                  icon: const Icon(Icons.logout),
+                  icon: const Icon(Icons.logout_rounded),
                   label: const Text('Cerrar sesión'),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: AppColors.errorRed,

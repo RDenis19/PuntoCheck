@@ -92,7 +92,7 @@ class _ManagerShiftsViewState extends ConsumerState<ManagerShiftsView>
                         ? 'Buscar por empleado o plantilla...'
                         : 'Buscar por plantilla...',
                     prefixIcon: const Icon(
-                      Icons.search,
+                      Icons.search_rounded,
                       color: AppColors.neutral500,
                     ),
                     contentPadding: const EdgeInsets.symmetric(horizontal: 16),
@@ -110,7 +110,7 @@ class _ManagerShiftsViewState extends ConsumerState<ManagerShiftsView>
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh),
+            icon: const Icon(Icons.refresh_rounded),
             onPressed: () {
               if (_tabIndex == 0) {
                 ref.invalidate(managerTeamSchedulesProvider(null));
@@ -135,7 +135,7 @@ class _ManagerShiftsViewState extends ConsumerState<ManagerShiftsView>
 
                 if (displayList.isEmpty) {
                   return const EmptyState(
-                    icon: Icons.calendar_today_outlined,
+                    icon: Icons.calendar_today_rounded,
                     title: 'Sin resultados',
                     message: 'No se encontraron asignaciones con ese criterio.',
                   );
@@ -167,7 +167,7 @@ class _ManagerShiftsViewState extends ConsumerState<ManagerShiftsView>
 
                 if (displayList.isEmpty) {
                   return const EmptyState(
-                    icon: Icons.view_timeline_outlined,
+                    icon: Icons.view_timeline_rounded,
                     title: 'Sin resultados',
                     message: 'No se encontraron plantillas con ese criterio.',
                   );
@@ -191,7 +191,7 @@ class _ManagerShiftsViewState extends ConsumerState<ManagerShiftsView>
           ? FloatingActionButton(
               onPressed: () => _openAssignSheet(context, ref),
               backgroundColor: AppColors.primaryRed,
-              child: const Icon(Icons.add, color: Colors.white),
+              child: const Icon(Icons.add_rounded, color: Colors.white),
             )
           : null,
     );
@@ -313,7 +313,7 @@ class _ScheduleCard extends StatelessWidget {
             children: [
               Expanded(
                 child: _InfoItem(
-                  icon: Icons.access_time,
+                  icon: Icons.access_time_rounded,
                   label: 'Turnos',
                   value: _formatTurnosFromMap(turnos),
                 ),
@@ -321,7 +321,7 @@ class _ScheduleCard extends StatelessWidget {
               const SizedBox(width: 12),
               Expanded(
                 child: _InfoItem(
-                  icon: Icons.calendar_month,
+                  icon: Icons.calendar_month_rounded,
                   label: 'Vigencia',
                   value: 'Desde: ${DateFormat('dd/MM/yyyy').format(startDate)}',
                 ),
@@ -334,7 +334,7 @@ class _ScheduleCard extends StatelessWidget {
             children: [
               Expanded(
                 child: _InfoItem(
-                  icon: Icons.view_week_outlined,
+                  icon: Icons.view_week_rounded,
                   label: 'Días',
                   value: _formatDiasLaboralesFromMap(dias),
                 ),
@@ -342,7 +342,7 @@ class _ScheduleCard extends StatelessWidget {
               const SizedBox(width: 12),
               Expanded(
                 child: _InfoItem(
-                  icon: Icons.timer_outlined,
+                  icon: Icons.timer_rounded,
                   label: 'Tol.',
                   value: '${tolerancia}m',
                 ),
@@ -509,19 +509,19 @@ class _TemplateCard extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           _InfoItem(
-            icon: Icons.view_week_outlined,
+            icon: Icons.view_week_rounded,
             label: 'Días',
             value: _formatDiasLaborales(dias),
           ),
           const SizedBox(height: 8),
           _InfoItem(
-            icon: Icons.timer_outlined,
+            icon: Icons.timer_rounded,
             label: 'Tolerancia',
             value: '${template.toleranciaEntradaMinutos ?? 10} min',
           ),
           const SizedBox(height: 8),
           _InfoItem(
-            icon: Icons.access_time,
+            icon: Icons.access_time_rounded,
             label: 'Turnos',
             value: _formatTurnos(turnos),
           ),

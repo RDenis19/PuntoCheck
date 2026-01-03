@@ -73,7 +73,7 @@ class _AuditorAuditFiltersSheetState extends State<AuditorAuditFiltersSheet> {
             children: [
               Row(
                 children: [
-                  const Icon(Icons.tune),
+                  const Icon(Icons.tune_rounded),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
@@ -84,7 +84,7 @@ class _AuditorAuditFiltersSheetState extends State<AuditorAuditFiltersSheet> {
                   IconButton(
                     tooltip: 'Cerrar',
                     onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.close),
+                    icon: const Icon(Icons.close_rounded),
                   ),
                 ],
               ),
@@ -92,7 +92,7 @@ class _AuditorAuditFiltersSheetState extends State<AuditorAuditFiltersSheet> {
               _FilterTile(
                 label: 'Rango de fechas',
                 value: rangeLabel(_range),
-                icon: Icons.date_range,
+                icon: Icons.date_range_rounded,
                 onTap: _pickDateRange,
               ),
               const SizedBox(height: 10),
@@ -101,7 +101,7 @@ class _AuditorAuditFiltersSheetState extends State<AuditorAuditFiltersSheet> {
                 decoration: const InputDecoration(
                   labelText: 'Acción contiene',
                   hintText: 'Ej: crear perfil, borrar sucursal...',
-                  prefixIcon: Icon(Icons.search),
+                  prefixIcon: Icon(Icons.search_rounded),
                   border: OutlineInputBorder(),
                 ),
               ),
@@ -114,7 +114,7 @@ class _AuditorAuditFiltersSheetState extends State<AuditorAuditFiltersSheet> {
                 decoration: InputDecoration(
                   labelText: 'Tabla afectada',
                   hintText: 'Ej: perfiles, sucursales...',
-                  prefixIcon: const Icon(Icons.table_chart_outlined),
+                  prefixIcon: const Icon(Icons.table_chart_rounded),
                   border: const OutlineInputBorder(),
                   suffixIcon: _table == null
                       ? null
@@ -124,7 +124,7 @@ class _AuditorAuditFiltersSheetState extends State<AuditorAuditFiltersSheet> {
                             _table = null;
                             _tableCtrl.clear();
                           }),
-                          icon: const Icon(Icons.close),
+                          icon: const Icon(Icons.close_rounded),
                         ),
                 ),
               ),
@@ -137,7 +137,7 @@ class _AuditorAuditFiltersSheetState extends State<AuditorAuditFiltersSheet> {
                 decoration: InputDecoration(
                   labelText: 'Actor ID (opcional)',
                   hintText: 'UUID de perfiles/auth.users',
-                  prefixIcon: const Icon(Icons.person_outline),
+                  prefixIcon: const Icon(Icons.person_rounded),
                   border: const OutlineInputBorder(),
                   suffixIcon: _actorId == null
                       ? null
@@ -147,7 +147,7 @@ class _AuditorAuditFiltersSheetState extends State<AuditorAuditFiltersSheet> {
                             _actorId = null;
                             _actorCtrl.clear();
                           }),
-                          icon: const Icon(Icons.close),
+                          icon: const Icon(Icons.close_rounded),
                         ),
                 ),
               ),
@@ -155,7 +155,7 @@ class _AuditorAuditFiltersSheetState extends State<AuditorAuditFiltersSheet> {
               InputDecorator(
                 decoration: const InputDecoration(
                   labelText: 'Sucursal (si aplica)',
-                  prefixIcon: Icon(Icons.store_outlined),
+                  prefixIcon: Icon(Icons.store_rounded),
                   border: OutlineInputBorder(),
                 ),
                 child: DropdownButtonHideUnderline(
@@ -182,7 +182,7 @@ class _AuditorAuditFiltersSheetState extends State<AuditorAuditFiltersSheet> {
               InputDecorator(
                 decoration: const InputDecoration(
                   labelText: 'Rol del actor',
-                  prefixIcon: Icon(Icons.badge_outlined),
+                  prefixIcon: Icon(Icons.badge_rounded),
                   border: OutlineInputBorder(),
                 ),
                 child: DropdownButtonHideUnderline(

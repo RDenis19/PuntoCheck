@@ -97,7 +97,7 @@ class _Header extends StatelessWidget {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
           decoration: BoxDecoration(
-            color: AppColors.primaryRed.withOpacity(0.1),
+            color: AppColors.primaryRed.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(8),
           ),
           child: const Text(
@@ -183,7 +183,7 @@ class _ActionCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: colors.first.withOpacity(0.3),
+            color: colors.first.withValues(alpha: 0.3),
             blurRadius: 10,
             offset: const Offset(0, 5),
           ),
@@ -208,7 +208,7 @@ class _ActionCard extends StatelessWidget {
               Text(
                 badge,
                 style: TextStyle(
-                  color: Colors.white.withOpacity(0.8),
+                  color: Colors.white.withValues(alpha: 0.8),
                   fontSize: 11,
                   fontWeight: FontWeight.w500,
                 ),
@@ -267,7 +267,7 @@ class _LogsCard extends StatelessWidget {
             borderRadius: BorderRadius.circular(20),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.04),
+                color: Colors.black.withValues(alpha: 0.04),
                 blurRadius: 15,
                 offset: const Offset(0, 8),
               ),
@@ -292,7 +292,7 @@ class _LogsCard extends StatelessWidget {
                         shape: BoxShape.circle,
                       ),
                       child: const Icon(
-                        Icons.history,
+                        Icons.history_rounded,
                         color: Colors.blue,
                         size: 20,
                       ),

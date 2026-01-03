@@ -244,7 +244,7 @@ class _AuditorAttendanceDetailViewState
                             color: Colors.white,
                           ),
                         )
-                      : const Icon(Icons.save_outlined),
+                      : const Icon(Icons.save_rounded),
                   label: const Text('Guardar notas'),
                 ),
               ),
@@ -394,13 +394,13 @@ class _ErrorState extends StatelessWidget {
       child: Center(
         child: Column(
           children: [
-            const Icon(Icons.error_outline, size: 44, color: AppColors.errorRed),
+            const Icon(Icons.error_outline_rounded, size: 44, color: AppColors.errorRed),
             const SizedBox(height: 10),
             Text(message, textAlign: TextAlign.center),
             const SizedBox(height: 10),
             FilledButton.icon(
               onPressed: onRetry,
-              icon: const Icon(Icons.refresh),
+              icon: const Icon(Icons.refresh_rounded),
               label: const Text('Reintentar'),
             ),
           ],
@@ -420,14 +420,14 @@ class _ErrorInline extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        const Icon(Icons.broken_image_outlined, color: AppColors.neutral700),
+        const Icon(Icons.broken_image_rounded, color: AppColors.neutral700),
         const SizedBox(height: 8),
         Text(message, textAlign: TextAlign.center),
         if (onRetry != null) ...[
           const SizedBox(height: 8),
           TextButton.icon(
             onPressed: onRetry,
-            icon: const Icon(Icons.refresh),
+            icon: const Icon(Icons.refresh_rounded),
             label: const Text('Reintentar'),
           ),
         ],

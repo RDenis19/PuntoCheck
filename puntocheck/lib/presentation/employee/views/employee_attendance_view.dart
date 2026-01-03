@@ -50,12 +50,12 @@ class _EmployeeAttendanceViewState extends ConsumerState<EmployeeAttendanceView>
               if (!mounted || next == null) return;
               setState(() => _filters = next);
             },
-            icon: const Icon(Icons.tune),
+            icon: const Icon(Icons.tune_rounded),
           ),
           IconButton(
             tooltip: 'Actualizar',
             onPressed: () => ref.invalidate(employeeAttendanceHistoryProvider),
-            icon: const Icon(Icons.refresh),
+            icon: const Icon(Icons.refresh_rounded),
           ),
         ],
       ),
@@ -71,7 +71,7 @@ class _EmployeeAttendanceViewState extends ConsumerState<EmployeeAttendanceView>
           data: (history) {
             if (history.isEmpty) {
               return const EmptyState(
-                icon: Icons.history,
+                icon: Icons.history_rounded,
                 title: 'Sin registros',
                 message: 'Tu historial de asistencia aparecerá aquí.',
               );

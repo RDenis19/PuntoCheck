@@ -19,13 +19,13 @@ class NotificationCard extends StatelessWidget {
       case 'alerta':
         return Icons.warning_amber;
       case 'aprobacion':
-        return Icons.check_circle_outline;
+        return Icons.check_circle_outlined;
       case 'rechazo':
-        return Icons.cancel_outlined;
+        return Icons.cancel_rounded;
       case 'info':
-        return Icons.info_outline;
+        return Icons.info_outline_rounded;
       default:
-        return Icons.notifications_outlined;
+        return Icons.notifications_rounded;
     }
   }
 

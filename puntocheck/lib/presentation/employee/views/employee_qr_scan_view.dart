@@ -154,7 +154,7 @@ class _EmployeeQrScanViewState extends State<EmployeeQrScanView>
                   // ignore
                 }
               },
-              icon: const Icon(Icons.flash_on, color: Colors.white),
+              icon: const Icon(Icons.flash_on_rounded, color: Colors.white),
               style: IconButton.styleFrom(
                 backgroundColor: Colors.black.withValues(alpha: 0.35),
               ),

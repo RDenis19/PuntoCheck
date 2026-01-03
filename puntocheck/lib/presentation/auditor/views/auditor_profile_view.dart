@@ -23,6 +23,7 @@ class AuditorProfileView extends ConsumerStatefulWidget {
 class _AuditorProfileViewState extends ConsumerState<AuditorProfileView> {
   final _imagePicker = SafeImagePicker();
   bool _isSaving = false;
+  bool _isEditing = false;
   File? _newPhotoFile; // En auditor el perfil solo permite cambiar foto
 
   // --- LÓGICA DE FOTOS ---
@@ -36,12 +37,12 @@ class _AuditorProfileViewState extends ConsumerState<AuditorProfileView> {
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
-              leading: const Icon(Icons.photo_library_outlined),
+              leading: const Icon(Icons.photo_library_rounded),
               title: const Text('Galería'),
               onTap: () => Navigator.pop(context, ImageSource.gallery),
             ),
             ListTile(
-              leading: const Icon(Icons.photo_camera_outlined),
+              leading: const Icon(Icons.photo_camera_rounded),
               title: const Text('Cámara'),
               onTap: () => Navigator.pop(context, ImageSource.camera),
             ),
@@ -100,7 +101,7 @@ class _AuditorProfileViewState extends ConsumerState<AuditorProfileView> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Row(
           children: [
-            Icon(Icons.lock_reset, color: AppColors.primaryRed),
+            Icon(Icons.lock_reset_rounded, color: AppColors.primaryRed),
             SizedBox(width: 12),
             Text('Cambiar contraseña', style: TextStyle(fontWeight: FontWeight.bold)),
           ],
@@ -115,7 +116,7 @@ class _AuditorProfileViewState extends ConsumerState<AuditorProfileView> {
                 obscureText: true,
                 decoration: InputDecoration(
                   labelText: 'Nueva contraseña',
-                  prefixIcon: const Icon(Icons.lock_outline),
+                  prefixIcon: const Icon(Icons.lock_outline_rounded),
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                 ),
                 validator: (v) => (v?.length ?? 0) < 6 ? 'Mínimo 6 caracteres' : null,
@@ -126,7 +127,7 @@ class _AuditorProfileViewState extends ConsumerState<AuditorProfileView> {
                 obscureText: true,
                 decoration: InputDecoration(
                   labelText: 'Confirmar contraseña',
-                  prefixIcon: const Icon(Icons.lock_outline),
+                  prefixIcon: const Icon(Icons.lock_outline_rounded),
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                 ),
                 validator: (v) => v != newCtrl.text ? 'No coinciden' : null,
@@ -239,8 +240,29 @@ class _AuditorProfileViewState extends ConsumerState<AuditorProfileView> {
           userEmail: user?.email ?? '',
           initials: initials,
           photoUrl: _newPhotoFile != null ? null : profile.fotoPerfilUrl, // TODO: FileImage si hay nuevo archivo
-          isEditing: true, // Esto habilita el botón de cámara en el scaffold
+          isEditing: _isEditing, // Esto habilita el botón de cámara en el scaffold
           onEditPhoto: _pickProfilePhoto, 
+          actions: [
+            if (!_isEditing)
+              IconButton(
+                onPressed: () => setState(() => _isEditing = true),
+                icon: const Icon(Icons.edit_rounded),
+                tooltip: 'Editar perfil',
+              )
+            else
+              IconButton(
+                onPressed: _isSaving
+                    ? null
+                    : () {
+                        setState(() {
+                          _isEditing = false;
+                          _newPhotoFile = null;
+                        });
+                      },
+                icon: const Icon(Icons.close_rounded),
+                tooltip: 'Cancelar',
+              ),
+          ], 
           
           children: [
             // Botón guardar foto si hay una seleccionada
@@ -283,30 +305,30 @@ class _AuditorProfileViewState extends ConsumerState<AuditorProfileView> {
             // 1. Datos
             ProfileSectionCard(
               title: 'Mis Datos',
-              icon: Icons.person_outline,
+              icon: Icons.person_rounded,
               children: [
                 ProfileInfoChip(
                   label: 'Rol', 
                   value: 'Auditor', 
-                  icon: Icons.verified_user_outlined
+                  icon: Icons.verified_user_rounded
                 ),
                 const SizedBox(height: 12),
                 ProfileInfoChip(
                   label: 'Cédula', 
                   value: profile.cedula ?? 'No registrada', 
-                  icon: Icons.badge_outlined
+                  icon: Icons.badge_rounded
                 ),
                 const SizedBox(height: 12),
                 ProfileInfoChip(
                   label: 'Sucursal', 
                   value: branchName ?? 'No asignada', 
-                  icon: Icons.store_outlined
+                  icon: Icons.store_rounded
                 ),
                 const SizedBox(height: 12),
                 ProfileInfoChip(
                   label: 'Organización', 
                   value: orgName, 
-                  icon: Icons.apartment_outlined
+                  icon: Icons.apartment_rounded
                 ),
               ],
             ),
@@ -314,11 +336,11 @@ class _AuditorProfileViewState extends ConsumerState<AuditorProfileView> {
             // 2. Seguridad
             ProfileSectionCard(
               title: 'Seguridad',
-              icon: Icons.security_outlined,
+              icon: Icons.security_rounded,
               children: [
                 ElevatedButton.icon(
                   onPressed: _isSaving ? null : _showChangePasswordDialog,
-                  icon: const Icon(Icons.lock_reset),
+                  icon: const Icon(Icons.lock_reset_rounded),
                   label: const Text('Cambiar contraseña'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.neutral900,
@@ -332,7 +354,7 @@ class _AuditorProfileViewState extends ConsumerState<AuditorProfileView> {
                 
                 OutlinedButton.icon(
                   onPressed: _isSaving ? null : _signOut,
-                  icon: const Icon(Icons.logout),
+                  icon: const Icon(Icons.logout_rounded),
                   label: const Text('Cerrar sesión'),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: AppColors.errorRed,

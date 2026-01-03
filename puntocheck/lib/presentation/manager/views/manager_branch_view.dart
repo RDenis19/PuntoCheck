@@ -124,7 +124,7 @@ class _BranchInfoCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return _CardShell(
       title: 'Información de sucursal',
-      icon: Icons.store_mall_directory_outlined,
+      icon: Icons.store_mall_directory_rounded,
       child: Column(
         children: [
           _InfoRow(label: 'Nombre', value: branch.nombre),
@@ -166,7 +166,7 @@ class _ManagersCard extends ConsumerWidget {
 
     return _CardShell(
       title: 'Encargados de esta sucursal',
-      icon: Icons.verified_user_outlined,
+      icon: Icons.verified_user_rounded,
       trailing: IconButton(
         tooltip: 'Actualizar',
         onPressed: () =>
@@ -238,7 +238,7 @@ class _ManagerRow extends StatelessWidget {
             color: AppColors.primaryRed.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(12),
           ),
-          child: const Icon(Icons.person_outline, color: AppColors.primaryRed),
+          child: const Icon(Icons.person_outline_rounded, color: AppColors.primaryRed),
         ),
         const SizedBox(width: 12),
         Expanded(
@@ -401,7 +401,7 @@ class _EmptyState extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
-              Icons.store_mall_directory_outlined,
+              Icons.store_mall_directory_rounded,
               size: 56,
               color: AppColors.neutral500,
             ),
@@ -442,7 +442,7 @@ class _ErrorState extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             const Icon(
-              Icons.error_outline,
+              Icons.error_outline_rounded,
               size: 48,
               color: AppColors.errorRed,
             ),
@@ -460,7 +460,7 @@ class _ErrorState extends StatelessWidget {
             const SizedBox(height: 12),
             ElevatedButton.icon(
               onPressed: onRetry,
-              icon: const Icon(Icons.refresh),
+              icon: const Icon(Icons.refresh_rounded),
               label: const Text('Reintentar'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primaryRed,

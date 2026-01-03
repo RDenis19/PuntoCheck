@@ -48,7 +48,7 @@ class AuditorAuditDetailSheet extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    const Icon(Icons.history),
+                    const Icon(Icons.history_rounded),
                     const SizedBox(width: 10),
                     const Expanded(
                       child: Text(
@@ -59,12 +59,12 @@ class AuditorAuditDetailSheet extends StatelessWidget {
                     IconButton(
                       tooltip: 'Copiar',
                       onPressed: () => _copy(context),
-                      icon: const Icon(Icons.copy),
+                      icon: const Icon(Icons.copy_rounded),
                     ),
                     IconButton(
                       tooltip: 'Cerrar',
                       onPressed: () => Navigator.pop(context),
-                      icon: const Icon(Icons.close),
+                      icon: const Icon(Icons.close_rounded),
                     ),
                   ],
                 ),

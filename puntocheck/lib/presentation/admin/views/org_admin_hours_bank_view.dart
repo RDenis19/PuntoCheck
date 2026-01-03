@@ -50,7 +50,7 @@ class OrgAdminHoursBankView extends ConsumerWidget {
             data: (records) {
               if (records.isEmpty) {
                 return EmptyState(
-                  icon: Icons.access_time_outlined,
+                  icon: Icons.access_time_rounded,
                   title: 'Sin registros',
                   subtitle: 'Aún no hay horas registradas en el banco',
                   primaryLabel: 'Agregar Registro',
@@ -126,7 +126,7 @@ class OrgAdminHoursBankView extends ConsumerWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     const Icon(
-                      Icons.error_outline,
+                      Icons.error_outline_rounded,
                       size: 48,
                       color: AppColors.errorRed,
                     ),
@@ -147,7 +147,7 @@ class OrgAdminHoursBankView extends ConsumerWidget {
                     const SizedBox(height: 16),
                     OutlinedButton.icon(
                       onPressed: () => ref.invalidate(_hoursBankProvider),
-                      icon: const Icon(Icons.refresh),
+                      icon: const Icon(Icons.refresh_rounded),
                       label: const Text('Reintentar'),
                     ),
                   ],
@@ -161,7 +161,7 @@ class OrgAdminHoursBankView extends ConsumerWidget {
         onPressed: () => _navigateToNew(context),
         backgroundColor: AppColors.primaryRed,
         foregroundColor: Colors.white,
-        icon: const Icon(Icons.add),
+        icon: const Icon(Icons.add_rounded),
         label: const Text('Nuevo Registro'),
       ),
     );

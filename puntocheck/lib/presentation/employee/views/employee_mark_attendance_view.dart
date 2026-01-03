@@ -690,11 +690,11 @@ class _ModeToggle extends StatelessWidget {
       children: const [
         Padding(
           padding: EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-          child: Row(children: [Icon(Icons.my_location, size: 18), SizedBox(width: 8), Text('GPS')]),
+          child: Row(children: [Icon(Icons.my_location_rounded, size: 18), SizedBox(width: 8), Text('GPS')]),
         ),
         Padding(
           padding: EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-          child: Row(children: [Icon(Icons.qr_code_scanner, size: 18), SizedBox(width: 8), Text('QR')]),
+          child: Row(children: [Icon(Icons.qr_code_scanner_rounded, size: 18), SizedBox(width: 8), Text('QR')]),
         ),
       ],
     );
@@ -750,7 +750,7 @@ class _LocationCard extends StatelessWidget {
           children: [
             Row(
               children: [
-                Icon(Icons.location_on, color: statusColor),
+                Icon(Icons.location_on_rounded, color: statusColor),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
@@ -763,7 +763,7 @@ class _LocationCard extends StatelessWidget {
                 ),
                 IconButton(
                   onPressed: onRefresh,
-                  icon: const Icon(Icons.refresh),
+                  icon: const Icon(Icons.refresh_rounded),
                 ),
               ],
             ),
@@ -779,7 +779,7 @@ class _LocationCard extends StatelessWidget {
               Row(
                 children: [
                   Icon(
-                    match.isInside ? Icons.verified : Icons.warning_amber_rounded,
+                    match.isInside ? Icons.verified_rounded : Icons.warning_amber_rounded,
                     color: match.isInside ? AppColors.successGreen : AppColors.warningOrange,
                   ),
                   const SizedBox(width: 8),
@@ -796,7 +796,7 @@ class _LocationCard extends StatelessWidget {
               const SizedBox(height: 10),
               OutlinedButton.icon(
                 onPressed: onOpenSettings,
-                icon: const Icon(Icons.settings),
+                icon: const Icon(Icons.settings_rounded),
                 label: const Text('Abrir ajustes'),
               ),
             ],
@@ -967,7 +967,7 @@ class _EvidenceCard extends StatelessWidget {
                   Expanded(
                     child: FilledButton.icon(
                       onPressed: isSubmitting ? null : onTakePhoto,
-                      icon: const Icon(Icons.refresh),
+                      icon: const Icon(Icons.refresh_rounded),
                       label: const Text('Repetir'),
                       style: FilledButton.styleFrom(
                         backgroundColor: AppColors.primaryRed,

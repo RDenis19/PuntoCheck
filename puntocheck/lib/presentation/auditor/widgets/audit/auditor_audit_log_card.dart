@@ -96,7 +96,7 @@ class AuditorAuditLogCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 10),
-              const Icon(Icons.chevron_right, color: AppColors.neutral600),
+              const Icon(Icons.chevron_right_rounded, color: AppColors.neutral600),
             ],
           ),
         ),
@@ -106,10 +106,10 @@ class AuditorAuditLogCard extends StatelessWidget {
 
   static IconData _iconForAction(String action) {
     final a = action.toUpperCase();
-    if (a.contains('INSERT') || a.contains('CREATE')) return Icons.add_circle_outline;
-    if (a.contains('UPDATE') || a.contains('EDIT')) return Icons.edit_outlined;
-    if (a.contains('DELETE') || a.contains('REMOVE')) return Icons.delete_outline;
-    return Icons.sync_alt;
+    if (a.contains('INSERT') || a.contains('CREATE')) return Icons.add_circle_outline_rounded;
+    if (a.contains('UPDATE') || a.contains('EDIT')) return Icons.edit_rounded;
+    if (a.contains('DELETE') || a.contains('REMOVE')) return Icons.delete_outline_rounded;
+    return Icons.sync_alt_rounded;
   }
 
   static Color _colorForAction(String action) {

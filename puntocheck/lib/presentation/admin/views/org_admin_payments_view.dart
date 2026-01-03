@@ -30,7 +30,7 @@ class _OrgAdminPaymentsViewState extends ConsumerState<OrgAdminPaymentsView> {
       floatingActionButton: FloatingActionButton(
         onPressed: _saving ? null : () => _showCreateDialog(context, orgAsync),
         backgroundColor: AppColors.primaryRed,
-        child: const Icon(Icons.add, color: Colors.white),
+        child: const Icon(Icons.add_rounded, color: Colors.white),
       ),
       body: orgAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
@@ -67,7 +67,7 @@ class _OrgAdminPaymentsViewState extends ConsumerState<OrgAdminPaymentsView> {
                   const SizedBox(height: 8),
                   if (list.isEmpty)
                     const EmptyState(
-                      icon: Icons.receipt_long_outlined,
+                      icon: Icons.receipt_long_rounded,
                       title: 'Sin pagos registrados',
                       subtitle: 'Registra un pago para esta organización.',
                     )
@@ -91,7 +91,7 @@ class _OrgAdminPaymentsViewState extends ConsumerState<OrgAdminPaymentsView> {
                             contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                             leading: CircleAvatar(
                               backgroundColor: AppColors.primaryRed.withValues(alpha: 0.12),
-                              child: const Icon(Icons.receipt_long, color: AppColors.primaryRed),
+                              child: const Icon(Icons.receipt_long_rounded, color: AppColors.primaryRed),
                             ),
                             title: Text(
                               planName,
@@ -152,7 +152,7 @@ class _OrgAdminPaymentsViewState extends ConsumerState<OrgAdminPaymentsView> {
                 controller: amountCtrl,
                 decoration: const InputDecoration(
                   labelText: 'Monto',
-                  prefixIcon: Icon(Icons.attach_money),
+                  prefixIcon: Icon(Icons.attach_money_rounded),
                 ),
                 keyboardType: TextInputType.number,
               ),
@@ -160,21 +160,21 @@ class _OrgAdminPaymentsViewState extends ConsumerState<OrgAdminPaymentsView> {
                 controller: planCtrl,
                 decoration: const InputDecoration(
                   labelText: 'Plan ID',
-                  prefixIcon: Icon(Icons.layers_outlined),
+                  prefixIcon: Icon(Icons.layers_rounded),
                 ),
               ),
               TextField(
                 controller: comprobanteCtrl,
                 decoration: const InputDecoration(
                   labelText: 'URL comprobante',
-                  prefixIcon: Icon(Icons.link),
+                  prefixIcon: Icon(Icons.link_rounded),
                 ),
               ),
               TextField(
                 controller: refCtrl,
                 decoration: const InputDecoration(
                   labelText: 'Referencia bancaria',
-                  prefixIcon: Icon(Icons.receipt),
+                  prefixIcon: Icon(Icons.receipt_rounded),
                 ),
               ),
             ],
@@ -236,7 +236,7 @@ class _OrgAdminPaymentsViewState extends ConsumerState<OrgAdminPaymentsView> {
             children: [
               Row(
                 children: [
-                  const Icon(Icons.receipt_long, color: AppColors.primaryRed),
+                  const Icon(Icons.receipt_long_rounded, color: AppColors.primaryRed),
                   const SizedBox(width: 8),
                   Text(
                     'Pago ${pago.id.substring(0, 8)}',
@@ -331,7 +331,7 @@ class _PlanCard extends StatelessWidget {
           const SizedBox(height: 6),
           Row(
             children: [
-              const Icon(Icons.layers_outlined, size: 18, color: Colors.white),
+              const Icon(Icons.layers_rounded, size: 18, color: Colors.white),
               const SizedBox(width: 6),
               Text('Plan: $planName', style: const TextStyle(color: Colors.white)),
             ],
@@ -340,7 +340,7 @@ class _PlanCard extends StatelessWidget {
             const SizedBox(height: 4),
             Row(
               children: [
-                const Icon(Icons.event_available_outlined, size: 18, color: Colors.white),
+                const Icon(Icons.event_available_rounded, size: 18, color: Colors.white),
                 const SizedBox(width: 6),
                 Text(
                   'Vence: ${_fmtDate(fechaFin!)}',
@@ -355,19 +355,19 @@ class _PlanCard extends StatelessWidget {
             runSpacing: 8,
             children: [
               _PlanInfoChip(
-                icon: Icons.people_alt_outlined,
+                icon: Icons.people_alt_rounded,
                 label: '${plan?.maxUsuarios ?? '--'} usuarios',
               ),
               _PlanInfoChip(
-                icon: Icons.store_mall_directory_outlined,
+                icon: Icons.store_mall_directory_rounded,
                 label: '${plan?.maxSucursales ?? '--'} sucursales',
               ),
               _PlanInfoChip(
-                icon: Icons.cloud_outlined,
+                icon: Icons.cloud_rounded,
                 label: '${plan?.almacenamientoGb ?? '--'} GB',
               ),
               _PlanInfoChip(
-                icon: Icons.payments_outlined,
+                icon: Icons.payments_rounded,
                 label: plan != null
                     ? '\$${plan!.precioMensual.toStringAsFixed(2)}/mes'
                     : 'Consultar plan',
@@ -439,7 +439,7 @@ class _PlanStatusPill extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(isActive ? Icons.check_circle : Icons.pause_circle_outline, size: 16, color: fg),
+          Icon(isActive ? Icons.check_circle_rounded : Icons.pause_circle_rounded, size: 16, color: fg),
           const SizedBox(width: 6),
           Text(
             status.isEmpty ? 'sin estado' : status,

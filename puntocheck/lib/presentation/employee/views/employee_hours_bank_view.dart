@@ -38,7 +38,7 @@ class _EmployeeHoursBankViewState extends ConsumerState<EmployeeHoursBankView> {
         actions: [
           IconButton(
             tooltip: 'Actualizar',
-            icon: const Icon(Icons.refresh),
+            icon: const Icon(Icons.refresh_rounded),
             onPressed: () => ref.invalidate(employeeHoursBankProvider),
           ),
         ],
@@ -205,13 +205,13 @@ class _FilterBar extends StatelessWidget {
             controller: searchCtrl,
             onChanged: onChanged,
             decoration: InputDecoration(
-              prefixIcon: const Icon(Icons.search),
+              prefixIcon: const Icon(Icons.search_rounded),
               suffixIcon: searchCtrl.text.trim().isEmpty
                   ? null
                   : IconButton(
                       tooltip: 'Limpiar búsqueda',
                       onPressed: onClear,
-                      icon: const Icon(Icons.close),
+                      icon: const Icon(Icons.close_rounded),
                     ),
               hintText: 'Buscar por concepto...',
               border: OutlineInputBorder(
@@ -290,7 +290,7 @@ class _SummaryCard extends StatelessWidget {
               color: color.withValues(alpha: 0.12),
               shape: BoxShape.circle,
             ),
-            child: Icon(Icons.account_balance_wallet_outlined, color: color),
+            child: Icon(Icons.account_balance_wallet_rounded, color: color),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -360,7 +360,7 @@ class _HoursBankDetailSheet extends StatelessWidget {
                   ),
                   const Spacer(),
                   IconButton(
-                    icon: const Icon(Icons.close),
+                    icon: const Icon(Icons.close_rounded),
                     onPressed: () => Navigator.pop(context),
                   ),
                 ],
@@ -382,7 +382,7 @@ class _HoursBankDetailSheet extends StatelessWidget {
                         shape: BoxShape.circle,
                       ),
                       child: Icon(
-                        isPositive ? Icons.add : Icons.remove,
+                        isPositive ? Icons.add_rounded : Icons.remove_rounded,
                         color: color,
                       ),
                     ),
@@ -518,7 +518,7 @@ class _NoResultsView extends StatelessWidget {
                 height: 48,
                 child: OutlinedButton.icon(
                   onPressed: onClear,
-                  icon: const Icon(Icons.close),
+                  icon: const Icon(Icons.close_rounded),
                   label: const Text('Quitar filtros'),
                 ),
               ),
@@ -566,7 +566,7 @@ class _ErrorView extends StatelessWidget {
                 height: 48,
                 child: OutlinedButton.icon(
                   onPressed: onRetry,
-                  icon: const Icon(Icons.refresh),
+                  icon: const Icon(Icons.refresh_rounded),
                   label: const Text('Reintentar'),
                 ),
               ),

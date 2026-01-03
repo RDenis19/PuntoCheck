@@ -23,28 +23,28 @@ class AuditorTabNavigation extends StatelessWidget {
       unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500, fontSize: 12),
       items: const [
         BottomNavigationBarItem(
-          icon: Icon(Icons.home_outlined),
-          activeIcon: Icon(Icons.home),
+          icon: Icon(Icons.home_rounded),
+          activeIcon: Icon(Icons.home_rounded),
           label: 'Inicio',
         ),
         BottomNavigationBarItem(
-          icon: Icon(Icons.access_time),
-          activeIcon: Icon(Icons.access_time_filled),
+          icon: Icon(Icons.access_time_rounded),
+          activeIcon: Icon(Icons.access_time_filled_rounded),
           label: 'Asistencia',
         ),
         BottomNavigationBarItem(
-          icon: Icon(Icons.event_note_outlined),
-          activeIcon: Icon(Icons.event_note),
+          icon: Icon(Icons.event_note_rounded),
+          activeIcon: Icon(Icons.event_note_rounded),
           label: 'Permisos',
         ),
         BottomNavigationBarItem(
-          icon: Icon(Icons.notifications_none),
-          activeIcon: Icon(Icons.notifications),
+          icon: Icon(Icons.notifications_none_rounded),
+          activeIcon: Icon(Icons.notifications_rounded),
           label: 'Alertas',
         ),
         BottomNavigationBarItem(
-          icon: Icon(Icons.person_outline),
-          activeIcon: Icon(Icons.person),
+          icon: Icon(Icons.person_rounded),
+          activeIcon: Icon(Icons.person_rounded),
           label: 'Perfil',
         ),
       ],

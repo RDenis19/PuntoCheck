@@ -103,12 +103,12 @@ class _AuditorAlertsViewState extends ConsumerState<AuditorAlertsView> {
                       IconButton(
                         tooltip: 'Filtros',
                         onPressed: () => _openFilters(context, branchesAsync),
-                        icon: const Icon(Icons.tune),
+                        icon: const Icon(Icons.tune_rounded),
                       ),
                       IconButton(
                         tooltip: 'Actualizar',
                         onPressed: () => ref.invalidate(auditorAlertsProvider),
-                        icon: const Icon(Icons.refresh),
+                        icon: const Icon(Icons.refresh_rounded),
                       ),
                     ],
                   ),
@@ -126,7 +126,7 @@ class _AuditorAlertsViewState extends ConsumerState<AuditorAlertsView> {
                   controller: _searchCtrl,
                   decoration: InputDecoration(
                     hintText: 'Buscar por empleado o cédula',
-                    prefixIcon: const Icon(Icons.search),
+                    prefixIcon: const Icon(Icons.search_rounded),
                     suffixIcon: text.isEmpty
                         ? null
                         : IconButton(
@@ -137,7 +137,7 @@ class _AuditorAlertsViewState extends ConsumerState<AuditorAlertsView> {
                                   .read(auditorAlertsFilterProvider.notifier)
                                   .state = filter.copyWith(query: '');
                             },
-                            icon: const Icon(Icons.close),
+                            icon: const Icon(Icons.close_rounded),
                           ),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -168,7 +168,7 @@ class _AuditorAlertsViewState extends ConsumerState<AuditorAlertsView> {
                 child: EmptyState(
                   title: 'Error',
                   message: 'No se pudieron cargar las alertas.\n$e',
-                  icon: Icons.error_outline,
+                  icon: Icons.error_outline_rounded,
                   onAction: () => ref.invalidate(auditorAlertsProvider),
                   actionLabel: 'Reintentar',
                 ),
@@ -180,7 +180,7 @@ class _AuditorAlertsViewState extends ConsumerState<AuditorAlertsView> {
                     child: EmptyState(
                       title: 'Sin alertas',
                       message: 'No hay alertas con los filtros actuales.',
-                      icon: Icons.shield_outlined,
+                      icon: Icons.shield_rounded,
                     ),
                   );
                 }
@@ -325,13 +325,13 @@ class _ActiveFiltersBar extends StatelessWidget {
       if (filter.status != null)
         _Chip(
           label: 'Estado: ${AuditorAlertConstants.statusLabel(filter.status)}',
-          icon: Icons.flag_outlined,
+          icon: Icons.flag_rounded,
         ),
-      if (branchLabel != null) _Chip(label: branchLabel, icon: Icons.store_outlined),
+      if (branchLabel != null) _Chip(label: branchLabel, icon: Icons.store_rounded),
       if (filter.severity != null)
-        _Chip(label: filter.severity!.value, icon: Icons.priority_high),
+        _Chip(label: filter.severity!.value, icon: Icons.priority_high_rounded),
       if ((filter.typeQuery ?? '').trim().isNotEmpty)
-        _Chip(label: filter.typeQuery!.trim(), icon: Icons.category_outlined),
+        _Chip(label: filter.typeQuery!.trim(), icon: Icons.category_rounded),
     ];
 
     if (chips.isEmpty) return const SizedBox.shrink();
@@ -349,7 +349,7 @@ class _ActiveFiltersBar extends StatelessWidget {
           ),
           TextButton.icon(
             onPressed: onClear,
-            icon: const Icon(Icons.clear),
+            icon: const Icon(Icons.clear_rounded),
             label: const Text('Restablecer'),
           ),
         ],

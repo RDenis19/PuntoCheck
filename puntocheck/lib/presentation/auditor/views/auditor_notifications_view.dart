@@ -43,7 +43,7 @@ class AuditorNotificationsView extends ConsumerWidget {
                         );
                       }
                     },
-              icon: const Icon(Icons.done_all),
+              icon: const Icon(Icons.done_all_rounded),
             ),
           IconButton(
             tooltip: 'Actualizar',
@@ -52,7 +52,7 @@ class AuditorNotificationsView extends ConsumerWidget {
                 ..invalidate(auditorNotificationsProvider)
                 ..invalidate(auditorUnreadNotificationsCountProvider);
             },
-            icon: const Icon(Icons.refresh),
+            icon: const Icon(Icons.refresh_rounded),
           ),
         ],
       ),
@@ -66,7 +66,7 @@ class AuditorNotificationsView extends ConsumerWidget {
             child: EmptyState(
               title: 'Error',
               message: 'No se pudieron cargar tus notificaciones.\n$e',
-              icon: Icons.error_outline,
+              icon: Icons.error_outline_rounded,
               onAction: () => ref.invalidate(auditorNotificationsProvider),
               actionLabel: 'Reintentar',
             ),
@@ -74,7 +74,7 @@ class AuditorNotificationsView extends ConsumerWidget {
           data: (list) {
             if (list.isEmpty) {
               return const EmptyState(
-                icon: Icons.notifications_none_outlined,
+                icon: Icons.notifications_none_rounded,
                 title: 'Sin notificaciones',
                 message: 'Aquí aparecerán avisos sobre alertas y recordatorios.',
               );

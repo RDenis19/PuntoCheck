@@ -40,7 +40,7 @@ class OrgAdminBranchItem extends StatelessWidget {
                 color: AppColors.primaryRed.withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: const Icon(Icons.store_mall_directory, color: AppColors.primaryRed),
+              child: const Icon(Icons.store_mall_directory_rounded, color: AppColors.primaryRed),
             ),
             const SizedBox(width: 12),
             Expanded(

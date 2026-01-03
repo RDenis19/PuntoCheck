@@ -204,7 +204,7 @@ class _ManagerLeaveDetailViewState
             child: _employeePhotoUrl == null
                 ? const Center(
                     child: Icon(
-                      Icons.person,
+                      Icons.person_rounded,
                       color: Colors.white,
                       size: 32,
                     ),
@@ -258,7 +258,7 @@ class _ManagerLeaveDetailViewState
             padding: const EdgeInsets.all(16),
             child: Row(
               children: const [
-                Icon(Icons.event_note, color: AppColors.neutral700),
+                Icon(Icons.event_note_rounded, color: AppColors.neutral700),
                 SizedBox(width: 12),
                 Text(
                   'Detalles del Permiso',
@@ -396,7 +396,7 @@ class _ManagerLeaveDetailViewState
                         mainAxisSize: MainAxisSize.min,
                         children: const [
                           Icon(
-                            Icons.attach_file,
+                            Icons.attach_file_rounded,
                             size: 18,
                             color: AppColors.infoBlue,
                           ),
@@ -520,7 +520,7 @@ class _ManagerLeaveDetailViewState
         Expanded(
           child: OutlinedButton.icon(
             onPressed: isProcessing ? null : () => _handleReject(controller),
-            icon: const Icon(Icons.close),
+            icon: const Icon(Icons.close_rounded),
             label: const Text('Rechazar'),
             style: OutlinedButton.styleFrom(
               foregroundColor: AppColors.errorRed,
@@ -536,7 +536,7 @@ class _ManagerLeaveDetailViewState
         Expanded(
           child: ElevatedButton.icon(
             onPressed: isProcessing ? null : () => _handleApprove(controller),
-            icon: const Icon(Icons.check_circle),
+            icon: const Icon(Icons.check_circle_rounded),
             label: Text(isProcessing ? 'Procesando...' : 'Aprobar'),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.successGreen,
@@ -645,18 +645,18 @@ class _ManagerLeaveDetailViewState
   }
 
   IconData _getIcon() {
-    if (widget.request.estado == null) return Icons.help_outline;
+    if (widget.request.estado == null) return Icons.help_outline_rounded;
 
     if (widget.request.estado == EstadoAprobacion.pendiente) {
-      return Icons.pending_outlined;
+      return Icons.pending_rounded;
     } else if (widget.request.estado == EstadoAprobacion.aprobadoManager ||
         widget.request.estado == EstadoAprobacion.aprobadoRrhh) {
-      return Icons.check_circle;
+      return Icons.check_circle_rounded;
     } else if (widget.request.estado == EstadoAprobacion.rechazado) {
-      return Icons.cancel;
+      return Icons.cancel_rounded;
     } else {
       // cancelado_usuario
-      return Icons.block;
+      return Icons.block_rounded;
     }
   }
 

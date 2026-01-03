@@ -49,7 +49,7 @@ class AuditorAlertCard extends StatelessWidget {
                   color: severity.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Icon(Icons.shield_outlined, color: severity),
+                child: Icon(Icons.shield_rounded, color: severity),
               ),
               const SizedBox(width: 12),
               Expanded(

@@ -42,7 +42,7 @@ class _SuperAdminOrgDetailViewState
         children: [
           if (_showActions) ...[
             _MiniFab(
-              icon: Icons.receipt_long,
+              icon: Icons.receipt_long_rounded,
               label: 'Pagos',
               onTap: () {
                 _closeActions();
@@ -53,7 +53,7 @@ class _SuperAdminOrgDetailViewState
             ),
             const SizedBox(height: 10),
             _MiniFab(
-              icon: Icons.person_add_alt_1,
+              icon: Icons.person_add_rounded,
               label: 'Crear admin',
               onTap: () {
                 _closeActions();
@@ -67,7 +67,7 @@ class _SuperAdminOrgDetailViewState
             ),
             const SizedBox(height: 10),
             _MiniFab(
-              icon: Icons.edit,
+              icon: Icons.edit_rounded,
               label: 'Editar organizacion',
               onTap: () {
                 final currentOrg = orgAsync.asData?.value;
@@ -86,7 +86,7 @@ class _SuperAdminOrgDetailViewState
             backgroundColor: AppColors.primaryRed,
             foregroundColor: Colors.white,
             onPressed: () => setState(() => _showActions = !_showActions),
-            child: Icon(_showActions ? Icons.close : Icons.more_horiz),
+            child: Icon(_showActions ? Icons.close_rounded : Icons.more_horiz_rounded),
           ),
         ],
       ),

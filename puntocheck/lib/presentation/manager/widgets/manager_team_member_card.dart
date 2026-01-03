@@ -183,7 +183,7 @@ class ManagerTeamMemberCard extends StatelessWidget {
                       Row(
                         children: [
                           const Icon(
-                            Icons.work_outline,
+                            Icons.work_rounded,
                             size: 14,
                             color: AppColors.neutral600,
                           ),
@@ -209,7 +209,7 @@ class ManagerTeamMemberCard extends StatelessWidget {
                       Row(
                         children: [
                           const Icon(
-                            Icons.phone_outlined,
+                            Icons.phone_rounded,
                             size: 14,
                             color: AppColors.neutral600,
                           ),
@@ -229,7 +229,7 @@ class ManagerTeamMemberCard extends StatelessWidget {
 
               // Icono de flecha
               const SizedBox(width: 8),
-              Icon(Icons.chevron_right, color: AppColors.neutral400, size: 20),
+              Icon(Icons.chevron_right_rounded, color: AppColors.neutral400, size: 20),
             ],
           ),
         ),

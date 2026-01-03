@@ -111,7 +111,7 @@ class _SuperAdminCreateOrgViewState
                     borderRadius: BorderRadius.circular(20),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.04),
+                        color: Colors.black.withValues(alpha: 0.04),
                         blurRadius: 10,
                         offset: const Offset(0, 4),
                       ),
@@ -205,9 +205,8 @@ class _SuperAdminCreateOrgViewState
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primaryRed,
                     foregroundColor: Colors.white,
-                    disabledBackgroundColor: AppColors.primaryRed.withOpacity(
-                      0.5,
-                    ),
+                    disabledBackgroundColor:
+                        AppColors.primaryRed.withValues(alpha: 0.5),
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     elevation: 0,
                     shape: RoundedRectangleBorder(

@@ -50,7 +50,7 @@ class _ManagerHoursBankViewState extends ConsumerState<ManagerHoursBankView> {
             },
           ),
           IconButton(
-            icon: const Icon(Icons.add_circle_outline),
+            icon: const Icon(Icons.add_circle_outline_rounded),
             tooltip: 'Nuevo movimiento',
             onPressed: () => _openNewMovementSheet(context),
           ),
@@ -212,7 +212,7 @@ class _ManagerHoursBankViewState extends ConsumerState<ManagerHoursBankView> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         const Icon(
-                          Icons.error_outline,
+                          Icons.error_outline_rounded,
                           size: 48,
                           color: AppColors.errorRed,
                         ),
@@ -235,7 +235,7 @@ class _ManagerHoursBankViewState extends ConsumerState<ManagerHoursBankView> {
                           onPressed: () {
                             ref.invalidate(managerTeamHoursBankProvider);
                           },
-                          icon: const Icon(Icons.refresh),
+                          icon: const Icon(Icons.refresh_rounded),
                           label: const Text('Reintentar'),
                         ),
                       ],
@@ -312,7 +312,7 @@ class _SummaryCard extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(
-                isPositive ? Icons.trending_up : Icons.trending_down,
+                isPositive ? Icons.trending_up_rounded : Icons.trending_down_rounded,
                 color: Colors.white,
                 size: 32,
               ),
@@ -408,7 +408,7 @@ class _HoursBankDetailSheet extends StatelessWidget {
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Icon(
-                      isPositive ? Icons.add : Icons.remove,
+                      isPositive ? Icons.add_rounded : Icons.remove_rounded,
                       color: color,
                     ),
                   ),
@@ -427,7 +427,7 @@ class _HoursBankDetailSheet extends StatelessWidget {
                   ),
                   IconButton(
                     onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.close),
+                    icon: const Icon(Icons.close_rounded),
                   ),
                 ],
               ),
@@ -444,7 +444,7 @@ class _HoursBankDetailSheet extends StatelessWidget {
                   child: Row(
                     children: [
                       Icon(
-                        Icons.verified_user_outlined,
+                        Icons.verified_user_rounded,
                         size: 16,
                         color: AppColors.successGreen,
                       ),
@@ -583,7 +583,7 @@ class _HoursBankEntrySheetState extends ConsumerState<_HoursBankEntrySheet> {
                     onPressed: controllerState.isLoading
                         ? null
                         : () => Navigator.pop(context),
-                    icon: const Icon(Icons.close),
+                    icon: const Icon(Icons.close_rounded),
                   ),
                 ],
               ),

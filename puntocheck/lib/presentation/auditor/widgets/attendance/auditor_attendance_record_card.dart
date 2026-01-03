@@ -88,10 +88,10 @@ class AuditorAttendanceRecordCard extends StatelessWidget {
                             ? AppColors.successGreen
                             : AppColors.errorRed),
                     icon: geofenceOk == null
-                        ? Icons.location_searching
+                        ? Icons.location_searching_rounded
                         : (geofenceOk
-                            ? Icons.location_on
-                            : Icons.location_off),
+                            ? Icons.location_on_rounded
+                            : Icons.location_off_rounded),
                     tooltip: geofenceOk == null
                         ? 'Geocerca: desconocido'
                         : (geofenceOk
@@ -101,7 +101,7 @@ class AuditorAttendanceRecordCard extends StatelessWidget {
                   const SizedBox(height: 8),
                   _StatusDot(
                     color: isMock ? AppColors.warningOrange : AppColors.neutral300,
-                    icon: isMock ? Icons.gps_off : Icons.gps_fixed,
+                    icon: isMock ? Icons.gps_off_rounded : Icons.gps_fixed_rounded,
                     tooltip: isMock ? 'Mock location detectado' : 'GPS OK',
                   ),
                 ],
@@ -116,15 +116,15 @@ class AuditorAttendanceRecordCard extends StatelessWidget {
   static IconData _typeIcon(String type) {
     switch (type) {
       case 'entrada':
-        return Icons.login;
+        return Icons.login_rounded;
       case 'salida':
-        return Icons.logout;
+        return Icons.logout_rounded;
       case 'inicio_break':
-        return Icons.coffee_outlined;
+        return Icons.coffee_rounded;
       case 'fin_break':
-        return Icons.coffee;
+        return Icons.coffee_rounded;
       default:
-        return Icons.access_time;
+        return Icons.access_time_rounded;
     }
   }
 

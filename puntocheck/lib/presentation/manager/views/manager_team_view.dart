@@ -74,7 +74,7 @@ class _ManagerTeamViewState extends ConsumerState<ManagerTeamView> {
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: const Icon(
-                          Icons.people,
+                          Icons.people_rounded,
                           color: AppColors.primaryRed,
                           size: 24,
                         ),
@@ -113,10 +113,10 @@ class _ManagerTeamViewState extends ConsumerState<ManagerTeamView> {
                      onChanged: (_) => _onSearchChanged(),
                      decoration: InputDecoration(
                        hintText: 'Buscar por nombre o apellido...',
-                       prefixIcon: const Icon(Icons.search, size: 20),
+                       prefixIcon: const Icon(Icons.search_rounded, size: 20),
                       suffixIcon: _searchController.text.isNotEmpty
                           ? IconButton(
-                              icon: const Icon(Icons.clear, size: 20),
+                              icon: const Icon(Icons.clear_rounded, size: 20),
                               onPressed: () {
                                 _searchController.clear();
                                 _onSearchChanged();
@@ -186,7 +186,7 @@ class _ManagerTeamViewState extends ConsumerState<ManagerTeamView> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         const Icon(
-                          Icons.error_outline,
+                          Icons.error_outline_rounded,
                           size: 64,
                           color: AppColors.errorRed,
                         ),
@@ -218,7 +218,7 @@ class _ManagerTeamViewState extends ConsumerState<ManagerTeamView> {
                       title: 'Sin empleados',
                       message:
                           'No tienes empleados asignados a tu cargo.\nContacta al administrador.',
-                      icon: Icons.people_outline,
+                          icon: Icons.people_outline_rounded,
                     );
                   }
 

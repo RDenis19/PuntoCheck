@@ -87,7 +87,7 @@ class _ManagerAttendanceFilterSheetState
                     const Spacer(),
                     IconButton(
                       onPressed: () => Navigator.pop(context),
-                      icon: const Icon(Icons.close),
+                      icon: const Icon(Icons.close_rounded),
                     ),
                   ],
                 ),
@@ -149,7 +149,7 @@ class _ManagerAttendanceFilterSheetState
                       data: (branches) => _PickerField(
                         label: 'Sucursal',
                         valueText: _branchLabel(branches, _branchId),
-                        icon: Icons.store_mall_directory_outlined,
+                        icon: Icons.store_mall_directory_rounded,
                         onTap: () async {
                           final picked = await _pickBranch(context, branches);
                           if (picked != null) {
@@ -162,11 +162,11 @@ class _ManagerAttendanceFilterSheetState
                       ),
                       loading: () => const _PickerField.loading(
                         label: 'Sucursal',
-                        icon: Icons.store_mall_directory_outlined,
+                        icon: Icons.store_mall_directory_rounded,
                       ),
                       error: (e, _) => _PickerField.error(
                         label: 'Sucursal',
-                        icon: Icons.store_mall_directory_outlined,
+                        icon: Icons.store_mall_directory_rounded,
                         message: '$e',
                       ),
                     ),
@@ -175,7 +175,7 @@ class _ManagerAttendanceFilterSheetState
                       data: (employees) => _PickerField(
                         label: 'Empleado',
                         valueText: _employeeLabel(employees, _employeeId),
-                        icon: Icons.person_outline,
+                        icon: Icons.person_rounded,
                         onTap: () async {
                           final picked = await _pickEmployee(
                             context,
@@ -191,11 +191,11 @@ class _ManagerAttendanceFilterSheetState
                       ),
                       loading: () => const _PickerField.loading(
                         label: 'Empleado',
-                        icon: Icons.person_outline,
+                        icon: Icons.person_rounded,
                       ),
                       error: (e, _) => _PickerField.error(
                         label: 'Empleado',
-                        icon: Icons.person_outline,
+                        icon: Icons.person_rounded,
                         message: '$e',
                       ),
                     ),
@@ -452,7 +452,7 @@ class _DateField extends StatelessWidget {
         ),
         child: Row(
           children: [
-            const Icon(Icons.calendar_today_outlined, size: 18),
+            const Icon(Icons.calendar_today_rounded, size: 18),
             const SizedBox(width: 10),
             Expanded(
               child: Column(
@@ -583,7 +583,7 @@ class _PickerField extends StatelessWidget {
             if (onClear != null)
               IconButton(
                 onPressed: onClear,
-                icon: const Icon(Icons.clear, size: 18),
+                icon: const Icon(Icons.clear_rounded, size: 18),
                 splashRadius: 18,
               )
             else
@@ -738,7 +738,7 @@ class _SelectionSheetState<T> extends State<_SelectionSheet<T>> {
                   ),
                   IconButton(
                     onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.close),
+                    icon: const Icon(Icons.close_rounded),
                   ),
                 ],
               ),
@@ -750,7 +750,7 @@ class _SelectionSheetState<T> extends State<_SelectionSheet<T>> {
                 onChanged: (v) => setState(() => _query = v.trim()),
                 decoration: InputDecoration(
                   hintText: 'Buscar...',
-                  prefixIcon: const Icon(Icons.search),
+                  prefixIcon: const Icon(Icons.search_rounded),
                   filled: true,
                   fillColor: AppColors.neutral100,
                   border: OutlineInputBorder(
@@ -779,7 +779,7 @@ class _SelectionSheetState<T> extends State<_SelectionSheet<T>> {
                     ),
                     trailing: selected
                         ? const Icon(
-                            Icons.check_circle,
+                            Icons.check_circle_rounded,
                             color: AppColors.primaryRed,
                           )
                         : null,

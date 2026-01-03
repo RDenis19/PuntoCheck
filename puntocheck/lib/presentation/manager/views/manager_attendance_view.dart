@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:puntocheck/models/registros_asistencia.dart';
-import 'package:puntocheck/presentation/admin/widgets/attendance_stats_card.dart';
 import 'package:puntocheck/presentation/manager/widgets/manager_attendance_filter_sheet.dart';
 import 'package:puntocheck/presentation/manager/widgets/manager_attendance_record_card.dart';
 import 'package:puntocheck/presentation/shared/models/attendance_filters.dart';
@@ -174,7 +173,7 @@ class _ManagerAttendanceViewState extends ConsumerState<ManagerAttendanceView> {
 
                     if (filteredRecords.isEmpty) {
                       return EmptyState(
-                        icon: Icons.access_time_outlined,
+                        icon: Icons.access_time_rounded,
                         title: 'Sin registros',
                         message: _filters.hasActiveFilters
                             ? 'No hay registros que coincidan con los filtros'
@@ -293,7 +292,7 @@ class _ManagerAttendanceViewState extends ConsumerState<ManagerAttendanceView> {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           const Icon(
-                            Icons.error_outline,
+                            Icons.error_outline_rounded,
                             size: 48,
                             color: AppColors.errorRed,
                           ),
@@ -316,7 +315,7 @@ class _ManagerAttendanceViewState extends ConsumerState<ManagerAttendanceView> {
                             onPressed: () {
                               ref.invalidate(managerTeamAttendanceProvider);
                             },
-                            icon: const Icon(Icons.refresh),
+                            icon: const Icon(Icons.refresh_rounded),
                             label: const Text('Reintentar'),
                           ),
                         ],
@@ -368,7 +367,7 @@ class _ManagerAttendanceViewState extends ConsumerState<ManagerAttendanceView> {
                 right: 8,
                 child: IconButton(
                   onPressed: () => Navigator.pop(ctx),
-                  icon: const Icon(Icons.close, color: Colors.white),
+                  icon: const Icon(Icons.close_rounded, color: Colors.white),
                   style: IconButton.styleFrom(
                     backgroundColor: Colors.black.withValues(alpha: 0.45),
                   ),

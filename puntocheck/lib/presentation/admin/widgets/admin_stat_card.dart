@@ -32,11 +32,11 @@ class AdminStatCard extends StatelessWidget {
         color: AppColors.secondaryWhite,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: AppColors.neutral200),
-        boxShadow: const [
+        boxShadow: [
           BoxShadow(
-            color: Colors.black12,
+            color: Colors.black.withValues(alpha: 0.12),
             blurRadius: 6,
-            offset: Offset(0, 3),
+            offset: const Offset(0, 3),
           ),
         ],
       ),

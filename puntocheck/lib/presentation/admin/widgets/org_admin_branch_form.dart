@@ -91,7 +91,7 @@ class _OrgAdminBranchFormState extends State<OrgAdminBranchForm> {
             controller: _addressCtrl,
             decoration: const InputDecoration(
               labelText: 'Direccion',
-              prefixIcon: Icon(Icons.place_outlined),
+              prefixIcon: Icon(Icons.place_rounded),
             ),
           ),
           const SizedBox(height: 10),
@@ -102,7 +102,7 @@ class _OrgAdminBranchFormState extends State<OrgAdminBranchForm> {
                   controller: _latCtrl,
                   decoration: const InputDecoration(
                     labelText: 'Latitud',
-                    prefixIcon: Icon(Icons.my_location_outlined),
+                    prefixIcon: Icon(Icons.my_location_rounded),
                   ),
                   keyboardType: TextInputType.number,
                 ),
@@ -113,7 +113,7 @@ class _OrgAdminBranchFormState extends State<OrgAdminBranchForm> {
                   controller: _lonCtrl,
                   decoration: const InputDecoration(
                     labelText: 'Longitud',
-                    prefixIcon: Icon(Icons.my_location_outlined),
+                    prefixIcon: Icon(Icons.my_location_rounded),
                   ),
                   keyboardType: TextInputType.number,
                 ),
@@ -125,7 +125,7 @@ class _OrgAdminBranchFormState extends State<OrgAdminBranchForm> {
             controller: _radioCtrl,
             decoration: const InputDecoration(
               labelText: 'Radio (m)',
-              prefixIcon: Icon(Icons.radar_outlined),
+              prefixIcon: Icon(Icons.radar_rounded),
             ),
             keyboardType: TextInputType.number,
             validator: (v) => v == null || v.isEmpty ? 'Radio requerido' : null,
@@ -143,7 +143,7 @@ class _OrgAdminBranchFormState extends State<OrgAdminBranchForm> {
               controller: _deviceIdCtrl,
               decoration: const InputDecoration(
                 labelText: 'Device ID (PuntoCheck) asignado (opcional)',
-                prefixIcon: Icon(Icons.phone_android_outlined),
+                prefixIcon: Icon(Icons.phone_android_rounded),
                 helperText:
                     'Es un ID generado por la app (no es IMEI). Si lo asignas, puedes amarrar el QR fijo a un equipo especifico.',
               ),
@@ -162,7 +162,7 @@ class _OrgAdminBranchFormState extends State<OrgAdminBranchForm> {
                             height: 16,
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
-                        : const Icon(Icons.smartphone_outlined),
+                        : const Icon(Icons.smartphone_rounded),
                     label: const Text('Usar mi Device ID'),
                   ),
                 ),
@@ -199,7 +199,7 @@ class _OrgAdminBranchFormState extends State<OrgAdminBranchForm> {
               const SizedBox(width: 10),
               Expanded(
                 child: ElevatedButton.icon(
-                  icon: const Icon(Icons.save, color: Colors.white),
+                  icon: const Icon(Icons.save_rounded, color: Colors.white),
                   onPressed: widget.isSaving ? null : _submit,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primaryRed,

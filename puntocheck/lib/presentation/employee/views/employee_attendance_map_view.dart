@@ -118,7 +118,7 @@ class _EmployeeAttendanceMapViewState extends State<EmployeeAttendanceMapView> {
                 Row(
                   children: [
                     Icon(
-                      inside ? Icons.verified : Icons.warning_amber_rounded,
+                      inside ? Icons.verified_rounded : Icons.warning_amber_rounded,
                       color: statusColor,
                     ),
                     const SizedBox(width: 8),
@@ -132,7 +132,7 @@ class _EmployeeAttendanceMapViewState extends State<EmployeeAttendanceMapView> {
                     const Spacer(),
                     OutlinedButton.icon(
                       onPressed: _fitBounds,
-                      icon: const Icon(Icons.center_focus_strong),
+                      icon: const Icon(Icons.center_focus_strong_rounded),
                       label: const Text('Ajustar'),
                     ),
                   ],

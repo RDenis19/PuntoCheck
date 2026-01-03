@@ -68,7 +68,7 @@ class _OrgAdminPeopleViewState extends ConsumerState<OrgAdminPeopleView> {
                   TextField(
                     decoration: const InputDecoration(
                       hintText: 'Buscar por nombre o apellido',
-                      prefixIcon: Icon(Icons.search),
+                      prefixIcon: Icon(Icons.search_rounded),
                     ),
                     onChanged: (value) => setState(
                       () => _search = value.trim().isEmpty ? null : value,
@@ -143,7 +143,7 @@ class _OrgAdminPeopleViewState extends ConsumerState<OrgAdminPeopleView> {
                 data: (staff) {
                   if (staff.isEmpty) {
                     return const EmptyState(
-                      icon: Icons.groups_outlined,
+                      icon: Icons.groups_rounded,
                       title: 'No hay personas en la organizacion',
                       subtitle: 'Agrega colaboradores, managers o auditores.',
                     );
@@ -201,7 +201,7 @@ class _OrgAdminPeopleViewState extends ConsumerState<OrgAdminPeopleView> {
             heroTag: 'fab-people',
             backgroundColor: AppColors.primaryRed,
             foregroundColor: Colors.white,
-            child: const Icon(Icons.person_add_alt_1),
+            child: const Icon(Icons.person_add_rounded),
             onPressed: () async {
               final created = await Navigator.of(context).push<bool>(
                 MaterialPageRoute(
