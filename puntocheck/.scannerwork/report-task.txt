@@ -1,0 +1,6 @@
+projectKey=PuntoCheck
+serverUrl=http://localhost:9000
+serverVersion=26.1.0.118079
+dashboardUrl=http://localhost:9000/dashboard?id=PuntoCheck
+ceTaskId=0dbe8dbb-187a-4bb3-b766-e9a51e06719c
+ceTaskUrl=http://localhost:9000/api/ce/task?id=0dbe8dbb-187a-4bb3-b766-e9a51e06719c
