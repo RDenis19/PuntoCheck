@@ -229,7 +229,7 @@ class ManagerTeamMemberCard extends StatelessWidget {
 
               // Icono de flecha
               const SizedBox(width: 8),
-              Icon(Icons.chevron_right_rounded, color: AppColors.neutral400, size: 20),
+              const Icon(Icons.chevron_right_rounded, color: AppColors.neutral400, size: 20),
             ],
           ),
         ),

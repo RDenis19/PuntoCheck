@@ -48,10 +48,10 @@ class EmployeeScheduleView extends ConsumerWidget {
               _NextScheduleSection(nextAsync: ref.watch(employeeNextScheduleProvider)),
             ],
             const SizedBox(height: 14),
-            _InfoCard(
+            const _InfoCard(
               title: 'Importante',
               icon: Icons.info_outline_rounded,
-              child: const Text(
+              child: Text(
                 'Aquí solo puedes ver tu horario. Los horarios y turnos los asigna tu Manager/Org Admin.',
                 style: TextStyle(color: AppColors.neutral700),
               ),
@@ -73,8 +73,8 @@ class _ScheduleBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (schedule == null) {
-      return Column(
-        children: const [
+      return const Column(
+        children: [
           _InfoCard(
             title: 'Tu turno hoy',
             icon: Icons.event_busy_rounded,

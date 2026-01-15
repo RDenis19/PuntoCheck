@@ -501,7 +501,7 @@ class _ErrorState extends StatelessWidget {
         children: [
           const Icon(Icons.error_outline, size: 48, color: AppColors.errorRed),
           const SizedBox(height: 16),
-          Text(
+          const Text(
             'Error al cargar datos',
             style: TextStyle(
               fontWeight: FontWeight.bold,
@@ -514,7 +514,7 @@ class _ErrorState extends StatelessWidget {
             child: Text(
               error,
               textAlign: TextAlign.center,
-              style: TextStyle(color: AppColors.neutral700, fontSize: 12),
+              style: const TextStyle(color: AppColors.neutral700, fontSize: 12),
             ),
           ),
         ],

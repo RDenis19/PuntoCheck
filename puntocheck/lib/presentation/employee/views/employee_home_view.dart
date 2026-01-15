@@ -190,7 +190,7 @@ class _EmployeeHomeViewState extends ConsumerState<EmployeeHomeView> {
            const SizedBox(height: 20),
            Text(
              actionLabel,
-             style: TextStyle(
+             style: const TextStyle(
                fontSize: 20,
                fontWeight: FontWeight.bold,
                color: AppColors.neutral900,

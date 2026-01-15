@@ -17,6 +17,7 @@ import 'package:puntocheck/presentation/employee/views/employee_qr_scan_view.dar
 import 'package:puntocheck/services/attendance_helper.dart';
 import 'package:puntocheck/utils/safe_image_picker.dart';
 import 'package:puntocheck/utils/theme/app_colors.dart';
+import 'package:puntocheck/utils/location_helper.dart';
 
 class EmployeeMarkAttendanceView extends ConsumerStatefulWidget {
   final String actionType; // 'entrada' o 'salida'
@@ -99,7 +100,7 @@ class _EmployeeMarkAttendanceViewState
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          _SectionTitle('Tipo'),
+          const _SectionTitle('Tipo'),
           const SizedBox(height: 8),
           Wrap(
             spacing: 8,
@@ -130,7 +131,7 @@ class _EmployeeMarkAttendanceViewState
             ),
           ],
           const SizedBox(height: 16),
-          _SectionTitle('Modo'),
+          const _SectionTitle('Modo'),
           const SizedBox(height: 8),
           _ModeToggle(
             mode: _mode,
@@ -146,7 +147,7 @@ class _EmployeeMarkAttendanceViewState
           ),
           const SizedBox(height: 16),
           if (_mode == _AttendanceMode.gps) ...[
-            _SectionTitle('Ubicación'),
+            const _SectionTitle('Ubicación'),
             const SizedBox(height: 8),
             _LocationCard(
               isLocating: _isLocating,
@@ -166,7 +167,7 @@ class _EmployeeMarkAttendanceViewState
               onOpenFullMap: _openFullMap,
             ),
           ] else ...[
-            _SectionTitle('QR'),
+            const _SectionTitle('QR'),
             const SizedBox(height: 8),
             _QrCard(
               qrInfo: _qrInfo,
@@ -180,7 +181,7 @@ class _EmployeeMarkAttendanceViewState
             ),
           ],
           const SizedBox(height: 16),
-          _SectionTitle('Evidencia (foto)'),
+          const _SectionTitle('Evidencia (foto)'),
           const SizedBox(height: 8),
           _EvidenceCard(
             photo: _evidencePhoto,
@@ -356,33 +357,16 @@ class _EmployeeMarkAttendanceViewState
     });
 
     try {
-      final serviceEnabled = await Geolocator.isLocationServiceEnabled();
-      if (!serviceEnabled) {
-        throw Exception('Activa el GPS para marcar asistencia.');
+      // AQUÍ ESTÁ EL CAMBIO MÁGICO:
+      // En lugar de escribir 20 líneas para chequear permisos y usar 'desiredAccuracy',
+      // llamamos a nuestro Helper que ya lo hace de la forma moderna.
+      final pos = await LocationHelper.getCurrentLocation();
+
+      if (pos == null) {
+        throw Exception('No se pudo obtener la ubicación precisa.');
       }
 
-      var perm = await Geolocator.checkPermission();
-      if (perm == LocationPermission.denied) {
-        perm = await Geolocator.requestPermission();
-      }
-      if (perm == LocationPermission.denied) {
-        throw Exception('Permiso de ubicación denegado.');
-      }
-      if (perm == LocationPermission.deniedForever) {
-        throw Exception(
-          'Permiso de ubicación denegado permanentemente. Actívalo en Ajustes.',
-        );
-      }
-
-      final lastKnown = await Geolocator.getLastKnownPosition();
-      if (lastKnown != null && mounted) {
-        setState(() => _position = lastKnown);
-      }
-
-      final pos = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
-      );
-
+      // El resto de tu lógica de negocio sigue igual
       final branches = await ref.read(employeeBranchesProvider.future);
       final match = _computeNearestBranch(pos, branches);
 
@@ -393,7 +377,9 @@ class _EmployeeMarkAttendanceViewState
       });
     } catch (e) {
       if (!mounted) return;
-      setState(() => _locationError = e.toString());
+      // Limpiamos el mensaje de error para que sea legible al usuario
+      final msg = e.toString().replaceAll('Exception: ', '');
+      setState(() => _locationError = msg);
     } finally {
       if (mounted) {
         setState(() => _isLocating = false);
@@ -741,7 +727,7 @@ class _LocationCard extends StatelessWidget {
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(14),
-        side: BorderSide(color: AppColors.neutral200),
+        side: const BorderSide(color: AppColors.neutral200),
       ),
       child: Padding(
         padding: const EdgeInsets.all(14),
@@ -830,7 +816,7 @@ class _QrCard extends StatelessWidget {
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(14),
-        side: BorderSide(color: AppColors.neutral200),
+        side: const BorderSide(color: AppColors.neutral200),
       ),
       child: Padding(
         padding: const EdgeInsets.all(14),
@@ -903,7 +889,7 @@ class _EvidenceCard extends StatelessWidget {
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(14),
-        side: BorderSide(color: AppColors.neutral200),
+        side: const BorderSide(color: AppColors.neutral200),
       ),
       child: Padding(
         padding: const EdgeInsets.all(14),
@@ -981,7 +967,7 @@ class _EvidenceCard extends StatelessWidget {
                     label: const Text('Quitar'),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: AppColors.errorRed,
-                      side: BorderSide(color: AppColors.neutral300),
+                      side: const BorderSide(color: AppColors.neutral300),
                     ),
                   ),
                 ],
@@ -1079,7 +1065,7 @@ class _MapPreviewCard extends StatelessWidget {
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(14),
-        side: BorderSide(color: AppColors.neutral200),
+        side: const BorderSide(color: AppColors.neutral200),
       ),
       child: InkWell(
         borderRadius: BorderRadius.circular(14),
@@ -1148,7 +1134,7 @@ class _MapPlaceholder extends StatelessWidget {
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(14),
-        side: BorderSide(color: AppColors.neutral200),
+        side: const BorderSide(color: AppColors.neutral200),
       ),
       child: InkWell(
         borderRadius: BorderRadius.circular(14),
@@ -1212,7 +1198,7 @@ class _BreakQuickActions extends StatelessWidget {
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(14),
-        side: BorderSide(color: AppColors.neutral200),
+        side: const BorderSide(color: AppColors.neutral200),
       ),
       child: Padding(
         padding: const EdgeInsets.all(14),

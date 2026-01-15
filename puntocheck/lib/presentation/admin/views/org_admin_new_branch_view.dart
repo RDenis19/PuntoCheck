@@ -126,12 +126,12 @@ class _OrgAdminNewBranchViewState extends ConsumerState<OrgAdminNewBranchView> {
                           ? Align(
                               alignment: Alignment.bottomCenter,
                               child: Container(
-                                decoration: BoxDecoration(
+                                decoration: const BoxDecoration(
                                   color: Colors.white,
-                                  borderRadius: const BorderRadius.vertical(
+                                  borderRadius: BorderRadius.vertical(
                                     top: Radius.circular(20),
                                   ),
-                                  boxShadow: const [
+                                  boxShadow: [
                                     BoxShadow(
                                       color: Color(0x1A000000),
                                       blurRadius: 12,

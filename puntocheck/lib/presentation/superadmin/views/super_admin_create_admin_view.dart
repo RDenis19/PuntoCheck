@@ -37,7 +37,9 @@ class _SuperAdminCreateAdminViewState
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
+
     setState(() => _isSaving = true);
+
     try {
       final auth = ref.read(authServiceProvider);
 
@@ -52,13 +54,17 @@ class _SuperAdminCreateAdminViewState
         },
       );
 
+      if (!mounted) return;
+
       showAppSnack(context, 'Admin creado con éxito');
-      // Refresca equipo/org para que aparezca de inmediato.
+
       ref
         ..invalidate(organizationStaffProvider(widget.orgId))
         ..invalidate(superAdminDashboardProvider);
-      if (mounted) Navigator.of(context).pop();
+
+      Navigator.of(context).pop();
     } catch (e) {
+      if (!mounted) return;
       showAppSnack(context, 'Error creando admin: $e', isError: true);
     } finally {
       if (mounted) setState(() => _isSaving = false);

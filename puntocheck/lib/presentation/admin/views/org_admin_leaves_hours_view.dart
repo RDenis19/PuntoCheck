@@ -61,7 +61,7 @@ class _OrgAdminLeavesAndHoursViewState
                           padding: const EdgeInsets.symmetric(horizontal: 20),
                           child: Text(
                             'Resumen'.toUpperCase(),
-                            style: TextStyle(
+                            style: const TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w700,
                               color: AppColors.neutral500,
@@ -143,7 +143,7 @@ class _OrgAdminLeavesAndHoursViewState
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(
+                          const Icon(
                             Icons.event_note_rounded,
                             size: 64,
                             color: AppColors.neutral400,

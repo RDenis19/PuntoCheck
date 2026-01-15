@@ -33,7 +33,7 @@ class ManagerAttendanceRecordCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 12),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: AppColors.neutral200, width: 1.5),
+        side: const BorderSide(color: AppColors.neutral200, width: 1.5),
       ),
       child: InkWell(
         onTap: onTap,

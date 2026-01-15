@@ -2,20 +2,20 @@ include: package:flutter_lints/flutter.yaml
 
 linter:
   rules:
-    # --- Reglas de Limpieza (Código Muerto) ---
-    unnecessary_import: true            # Marca imports que no se usan
-    unnecessary_this: true              # Quita los 'this.' innecesarios
-    unnecessary_const: true             # Quita const donde es redundante
-    unnecessary_new: true               # Quita 'new' (viejo Dart)
+    # --- Reglas de Limpieza ---
+    unnecessary_this: true
+    unnecessary_const: true
+    unnecessary_new: true
     unnecessary_null_in_if_null_operators: true
     
-    # --- Mejores Prácticas & Rendimiento ---
-    prefer_const_constructors: true     # CRÍTICO para rendimiento en Flutter
-    prefer_final_locals: true           # Ayuda a evitar reasignaciones accidentales
-    prefer_relative_imports: true       # Mantiene los imports limpios
-    always_declare_return_types: true   # Evita errores de tipos 'dynamic'
-    avoid_print: true                   # Te avisará si dejaste un print() olvidado (usar log en su lugar)
-    use_build_context_synchronously: true # Evita crasheos al cambiar de pantalla
+    # --- Mejores Prácticas ---
+    prefer_const_constructors: true
+    prefer_final_locals: true
+    # DESACTIVAMOS ESTA para que no te moleste con cambiar las rutas de los archivos
+    prefer_relative_imports: false 
+    always_declare_return_types: true
+    avoid_print: true
+    use_build_context_synchronously: true
     
     # --- Estilo ---
-    prefer_single_quotes: true          # Estandariza comillas simples 'texto'
+    prefer_single_quotes: true

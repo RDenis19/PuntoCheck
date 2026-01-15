@@ -19,7 +19,7 @@ class ManagerComplianceAlertsView extends ConsumerStatefulWidget {
 class _ManagerComplianceAlertsViewState
     extends ConsumerState<ManagerComplianceAlertsView> {
   bool _pendingOnly = true;
-  String? _branchId;
+
   String? _employeeId;
   String? _severity; // leve | moderada | grave_legal
 
@@ -120,7 +120,7 @@ class _ManagerComplianceAlertsViewState
 
     if (result == null) return;
     setState(() {
-      _branchId = result.branchId;
+
       _employeeId = result.employeeId;
       _severity = result.severity;
     });
@@ -564,9 +564,9 @@ class _AlertDetailSheetState extends ConsumerState<_AlertDetailSheet> {
              borderRadius: BorderRadius.circular(8),
              border: Border.all(color: AppColors.infoBlue.withValues(alpha: 0.3)),
           ),
-          child: Row(
+          child: const Row(
             mainAxisSize: MainAxisSize.min,
-            children: const [
+            children: [
                Icon(Icons.attachment_rounded, size: 16, color: AppColors.infoBlue),
                SizedBox(width: 8),
                Text('Ver evidencia/documento', style: TextStyle(color: AppColors.infoBlue, fontWeight: FontWeight.w600)),
@@ -593,7 +593,6 @@ class _AlertFiltersSheet extends StatefulWidget {
 }
 
 class _AlertFiltersSheetState extends State<_AlertFiltersSheet> {
-  String? _branchId;
   String? _employeeId;
   String? _severity;
 

@@ -494,7 +494,7 @@ class _AttendanceSection extends StatelessWidget {
             padding: EdgeInsets.all(32),
             child: Center(child: CircularProgressIndicator()),
           ),
-          error: (e, _) => _ErrorView(message: 'Error cargando asistencia'),
+          error: (e, _) => const _ErrorView(message: 'Error cargando asistencia'),
         ),
       ],
     );
@@ -734,7 +734,7 @@ class _EmptyAttendance extends StatelessWidget {
         children: [
           Container(
             padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
+            decoration: const BoxDecoration(
               shape: BoxShape.circle,
               color: AppColors.neutral200,
             ),

@@ -317,7 +317,7 @@ class _CardShell extends StatelessWidget {
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: AppColors.neutral200, width: 1.5),
+        side: const BorderSide(color: AppColors.neutral200, width: 1.5),
       ),
       child: Padding(
         padding: const EdgeInsets.all(16),

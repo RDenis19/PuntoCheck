@@ -235,10 +235,10 @@ class _OrgAdminLeaveDetailViewState
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Header
-          Padding(
-            padding: const EdgeInsets.all(16),
+          const Padding(
+            padding: EdgeInsets.all(16),
             child: Row(
-              children: const [
+              children: [
                 Icon(Icons.event_note, color: AppColors.neutral700),
                 SizedBox(width: 12),
                 Text(
@@ -363,9 +363,9 @@ class _OrgAdminLeaveDetailViewState
                            }
                         }
                       },
-                      child: Row(
+                      child: const Row(
                         mainAxisSize: MainAxisSize.min,
-                        children: const [
+                        children: [
                           Icon(
                             Icons.attach_file,
                             size: 18,

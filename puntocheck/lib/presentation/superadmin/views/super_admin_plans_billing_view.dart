@@ -128,8 +128,6 @@ class _SuperAdminPlansBillingViewState
     );
   }
 
-  // --- MÉTODOS DE DIÁLOGOS (LÓGICA PRESERVADA) ---
-
   Future<void> _openCreatePlanDialog(
     BuildContext context,
     WidgetRef ref,
@@ -139,8 +137,12 @@ class _SuperAdminPlansBillingViewState
       builder: (_) => const _CreatePlanDialog(),
     );
     if (plan == null) return;
+    
     try {
       await ref.read(planEditorControllerProvider.notifier).createPlan(plan);
+      
+      if (!context.mounted) return;
+
       final state = ref.read(planEditorControllerProvider);
       if (state.hasError) {
         showAppSnack(
@@ -152,6 +154,7 @@ class _SuperAdminPlansBillingViewState
         showAppSnack(context, 'Plan creado correctamente');
       }
     } catch (e) {
+      if (!context.mounted) return;
       showAppSnack(context, 'Error: $e', isError: true);
     }
   }
@@ -211,9 +214,9 @@ class _Header extends StatelessWidget {
   const _Header();
   @override
   Widget build(BuildContext context) {
-    return Column(
+    return const Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      children: const [
+      children: [
         Text(
           'Planes y Facturación',
           style: TextStyle(
@@ -726,7 +729,6 @@ class _PaymentTile extends StatelessWidget {
 }
 
 // --- DETALLES DE PAGO ---
-
 void _openPaymentDetail(
   BuildContext context,
   WidgetRef ref,
@@ -741,8 +743,8 @@ void _openPaymentDetail(
   final statusColor = status == EstadoPago.aprobado
       ? AppColors.successGreen
       : (status == EstadoPago.rechazado
-            ? AppColors.errorRed
-            : AppColors.warningOrange);
+          ? AppColors.errorRed
+          : AppColors.warningOrange);
 
   showModalBottomSheet(
     context: context,
@@ -824,6 +826,7 @@ void _openPaymentDetail(
             ),
           ),
           const SizedBox(height: 24),
+          
           if (status == EstadoPago.pendiente)
             Row(
               children: [
@@ -837,6 +840,8 @@ void _openPaymentDetail(
                                   paymentValidationControllerProvider.notifier,
                                 )
                                 .reject(pago.id);
+                            
+                            if (!context.mounted) return;
                             Navigator.pop(context);
                           },
                     child: const Text(
@@ -856,6 +861,8 @@ void _openPaymentDetail(
                                   paymentValidationControllerProvider.notifier,
                                 )
                                 .approve(pago.id);
+
+                            if (!context.mounted) return;
                             Navigator.pop(context);
                           },
                     style: ElevatedButton.styleFrom(

@@ -156,10 +156,10 @@ class _ErrorManagersState extends StatelessWidget {
           children: [
             const Icon(Icons.error_outline_rounded, size: 16, color: Colors.red),
             const SizedBox(width: 4),
-            Expanded(
+            const Expanded(
               child: Text(
                 'Error cargando managers',
-                style: const TextStyle(fontSize: 12, color: Colors.red),
+                style: TextStyle(fontSize: 12, color: Colors.red),
               ),
             ),
             TextButton(

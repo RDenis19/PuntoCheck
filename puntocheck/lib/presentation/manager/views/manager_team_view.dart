@@ -191,9 +191,9 @@ class _ManagerTeamViewState extends ConsumerState<ManagerTeamView> {
                           color: AppColors.errorRed,
                         ),
                         const SizedBox(height: 16),
-                        Text(
+                        const Text(
                           'Error al cargar el equipo',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w700,
                             color: AppColors.neutral900,
@@ -263,9 +263,9 @@ class _ManagerTeamViewState extends ConsumerState<ManagerTeamView> {
                                       ),
                                       borderRadius: BorderRadius.circular(8),
                                     ),
-                                    child: Text(
+                                    child: const Text(
                                       'Filtrado',
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         fontSize: 11,
                                         fontWeight: FontWeight.w600,
                                         color: AppColors.primaryRed,

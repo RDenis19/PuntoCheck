@@ -97,10 +97,10 @@ class _OrgAdminBranchLocationPickerViewState extends State<OrgAdminBranchLocatio
           Align(
             alignment: Alignment.bottomCenter,
             child: Container(
-              decoration: BoxDecoration(
+              decoration: const BoxDecoration(
                 color: Colors.white,
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
-                boxShadow: const [
+                borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
+                boxShadow: [
                   BoxShadow(
                     color: Color(0x1A000000),
                     blurRadius: 10,

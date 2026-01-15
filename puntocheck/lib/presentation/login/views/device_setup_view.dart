@@ -81,7 +81,7 @@ class _DeviceSetupViewState extends State<DeviceSetupView> {
                   const Text(
                     'Este Device ID lo genera y guarda PuntoCheck en este dispositivo. '
                     'No es IMEI. Si amarras una sucursal a este ID, solo este equipo '
-                    'deberia poder usar el QR fijo de esa sucursal.',
+                    'debería poder usar el QR fijo de esa sucursal.',
                     style: TextStyle(color: AppColors.neutral700),
                   ),
                   const SizedBox(height: 16),
@@ -110,7 +110,7 @@ class _DeviceSetupViewState extends State<DeviceSetupView> {
                             prefixIcon: Icon(Icons.phonelink_setup_outlined),
                             hintText: 'Ej: UTPL-RECEP-01 o un UUID',
                             helperText:
-                                'Usa letras/numeros y guiones. Debe ser unico por tablet.',
+                                'Usa letras/números y guiones. Debe ser único por tablet.',
                           ),
                           textCapitalization: TextCapitalization.characters,
                         ),
@@ -127,7 +127,7 @@ class _DeviceSetupViewState extends State<DeviceSetupView> {
                                         await Clipboard.setData(
                                           ClipboardData(text: id),
                                         );
-                                        if (!mounted) return;
+                                        if (!context.mounted) return;
                                         ScaffoldMessenger.of(
                                           context,
                                         ).showSnackBar(
@@ -188,7 +188,6 @@ class _DeviceSetupViewState extends State<DeviceSetupView> {
       ),
     );
   }
-
   Future<void> _save() async {
     final id = _idCtrl.text.trim();
     final normalized = id.toUpperCase();

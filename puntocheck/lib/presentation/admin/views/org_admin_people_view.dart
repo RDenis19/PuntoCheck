@@ -42,10 +42,10 @@ class _OrgAdminPeopleViewState extends ConsumerState<OrgAdminPeopleView> {
 
     final roles = <MapEntry<String, RolUsuario?>>[
       const MapEntry('Todas', null),
-      MapEntry('Admin', RolUsuario.orgAdmin),
-      MapEntry('Manager', RolUsuario.manager),
-      MapEntry('Auditor', RolUsuario.auditor),
-      MapEntry('Empleado', RolUsuario.employee),
+      const MapEntry('Admin', RolUsuario.orgAdmin),
+      const MapEntry('Manager', RolUsuario.manager),
+      const MapEntry('Auditor', RolUsuario.auditor),
+      const MapEntry('Empleado', RolUsuario.employee),
     ];
 
     return Stack(
@@ -163,7 +163,7 @@ class _OrgAdminPeopleViewState extends ConsumerState<OrgAdminPeopleView> {
                         margin: EdgeInsets.zero,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
-                          side: BorderSide(color: AppColors.neutral200),
+                          side: const BorderSide(color: AppColors.neutral200),
                         ),
                         child: OrgAdminPersonItem(
                           perfil: perfil,

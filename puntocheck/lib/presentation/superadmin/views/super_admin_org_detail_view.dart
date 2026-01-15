@@ -317,8 +317,8 @@ class _OrgStatusAndPlanSection extends ConsumerWidget {
                     borderRadius: BorderRadius.circular(999),
                     border: Border.all(color: AppColors.neutral200),
                   ),
-                  child: Row(
-                    children: const [
+                  child: const Row(
+                    children: [
                       Icon(
                         Icons.sync_rounded,
                         size: 18,
@@ -762,8 +762,11 @@ class _EditOrgDialogState extends ConsumerState<_EditOrgDialog> {
                 : _logoCtrl.text.trim(),
             planId: _selectedPlan?.id ?? widget.org.planId,
           );
+
+      if (!context.mounted) return;
+
       final state = ref.read(organizationEditControllerProvider);
-      if (!mounted) return;
+      
       if (state.hasError) {
         showAppSnack(context, 'Error: ${state.error}', isError: true);
       } else {

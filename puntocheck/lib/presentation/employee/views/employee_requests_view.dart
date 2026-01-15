@@ -271,7 +271,7 @@ class _RequestDetailSheet extends StatelessWidget {
                 _DetailRow(label: 'Comentario', value: request.comentarioResolucion!.trim()),
               if (doc.isNotEmpty) ...[
                 const SizedBox(height: 10),
-                _DetailRow(label: 'Documento', value: 'Adjunto'),
+                const _DetailRow(label: 'Documento', value: 'Adjunto'),
                 const SizedBox(height: 8),
                 SizedBox(
                   width: double.infinity,

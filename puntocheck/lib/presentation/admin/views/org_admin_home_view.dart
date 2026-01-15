@@ -166,14 +166,14 @@ class _OrgAdminHomeViewState extends ConsumerState<OrgAdminHomeView> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Row(
+                        const Row(
                           children: [
-                            const Icon(Icons.rule, color: Colors.white),
-                            const SizedBox(width: 8),
+                            Icon(Icons.rule, color: Colors.white),
+                            SizedBox(width: 8),
                             Expanded(
                               child: Text(
                                 'Configuracion legal',
-                                style: const TextStyle(
+                                style: TextStyle(
                                   color: Colors.white,
                                   fontWeight: FontWeight.w800,
                                   fontSize: 16,
@@ -463,34 +463,34 @@ class _SubscriptionBannerStyle {
           title: 'Suscripcion vencida',
         );
       case SubscriptionStatus.expiresToday:
-        return _SubscriptionBannerStyle(
+        return const _SubscriptionBannerStyle(
           icon: Icons.warning_amber_rounded,
           iconColor: AppColors.warningOrange,
-          backgroundColor: const Color(0xFFFFF4E6),
-          borderColor: const Color(0xFFFFD699),
-          textColor: const Color(0xFF996600),
+          backgroundColor: Color(0xFFFFF4E6),
+          borderColor: Color(0xFFFFD699),
+          textColor: Color(0xFF996600),
           title: 'Suscripcion vence hoy',
         );
       case SubscriptionStatus.expiringIn7Days:
-        return _SubscriptionBannerStyle(
+        return const _SubscriptionBannerStyle(
           icon: Icons.warning_amber_rounded,
           iconColor: AppColors.warningOrange,
-          backgroundColor: const Color(0xFFFFF4E6),
-          borderColor: const Color(0xFFFFD699),
-          textColor: const Color(0xFF996600),
+          backgroundColor: Color(0xFFFFF4E6),
+          borderColor: Color(0xFFFFD699),
+          textColor: Color(0xFF996600),
           title: 'Suscripcion por vencer',
         );
       case SubscriptionStatus.expiringIn15Days:
-        return _SubscriptionBannerStyle(
+        return const _SubscriptionBannerStyle(
           icon: Icons.info_outline,
           iconColor: AppColors.infoBlue,
-          backgroundColor: const Color(0xFFE3F2FD),
-          borderColor: const Color(0xFF90CAF9),
-          textColor: const Color(0xFF0D47A1),
+          backgroundColor: Color(0xFFE3F2FD),
+          borderColor: Color(0xFF90CAF9),
+          textColor: Color(0xFF0D47A1),
           title: 'Renovacion proxima',
         );
       case SubscriptionStatus.active:
-        return _SubscriptionBannerStyle(
+        return const _SubscriptionBannerStyle(
           icon: Icons.check_circle_outline,
           iconColor: AppColors.successGreen,
           backgroundColor: Colors.transparent,

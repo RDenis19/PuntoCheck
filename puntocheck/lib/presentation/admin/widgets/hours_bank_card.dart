@@ -24,7 +24,7 @@ class HoursBankCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 12),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: BorderSide(
+        side: const BorderSide(
           color: AppColors.neutral200,
           width: 1.5,
         ),
@@ -118,8 +118,8 @@ class HoursBankCard extends StatelessWidget {
 
               if (record.aceptaRenunciaPago == true) ...[
                 const SizedBox(height: 8),
-                Row(
-                  children: const [
+                const Row(
+                  children: [
                     Icon(
                       Icons.verified_user_outlined,
                       size: 14,

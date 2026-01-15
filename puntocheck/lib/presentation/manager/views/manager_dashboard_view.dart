@@ -77,7 +77,7 @@ class _ManagerDashboardViewState extends ConsumerState<ManagerDashboardView> {
                   padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
                   children: [
                     // Título Resumen
-                    Text(
+                    const Text(
                       'RESUMEN',
                       style: TextStyle(
                         fontSize: 14,
@@ -134,7 +134,7 @@ class _ManagerDashboardViewState extends ConsumerState<ManagerDashboardView> {
 
                     // Título Solicitudes Recientes
                     if (summary.recentPermissions.isNotEmpty) ...[
-                      Text(
+                      const Text(
                         'SOLICITUDES RECIENTES',
                          style: TextStyle(
                           fontSize: 14,

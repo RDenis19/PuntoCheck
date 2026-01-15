@@ -318,7 +318,7 @@ class _LogsCard extends StatelessWidget {
         );
       },
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, _) => Center(
+      error: (e, _) => const Center(
         child: Text(
           'Error al cargar logs',
           style: TextStyle(color: AppColors.errorRed),

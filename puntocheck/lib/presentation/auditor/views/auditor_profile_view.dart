@@ -307,7 +307,7 @@ class _AuditorProfileViewState extends ConsumerState<AuditorProfileView> {
               title: 'Mis Datos',
               icon: Icons.person_rounded,
               children: [
-                ProfileInfoChip(
+                const ProfileInfoChip(
                   label: 'Rol', 
                   value: 'Auditor', 
                   icon: Icons.verified_user_rounded

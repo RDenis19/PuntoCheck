@@ -220,15 +220,15 @@ class _OrgAdminScheduleDetailViewState
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: Color(0xFF1A237E).withValues(alpha: 0.08),
+                      color: const Color(0xFF1A237E).withValues(alpha: 0.08),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color: Color(0xFF1A237E).withValues(alpha: 0.3),
+                        color: const Color(0xFF1A237E).withValues(alpha: 0.3),
                         width: 1.5,
                       ),
                     ),
-                    child: Row(
-                      children: const [
+                    child: const Row(
+                      children: [
                         Icon(Icons.rotate_right, color: Color(0xFF1A237E)),
                         SizedBox(width: 12),
                         Expanded(
@@ -252,7 +252,7 @@ class _OrgAdminScheduleDetailViewState
   }
 
   String _formatTime(String? time) {
-    if (time == null || time.isEmpty) return "--";
+    if (time == null || time.isEmpty) return '--';
     if (time.length >= 5) {
       return time.substring(0, 5);
     }

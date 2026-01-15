@@ -92,7 +92,7 @@ class _EmployeeAttendanceMapViewState extends State<EmployeeAttendanceMapView> {
           Container(
             width: double.infinity,
             padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
-            decoration: BoxDecoration(
+            decoration: const BoxDecoration(
               color: Colors.white,
               border: Border(top: BorderSide(color: AppColors.neutral200)),
             ),

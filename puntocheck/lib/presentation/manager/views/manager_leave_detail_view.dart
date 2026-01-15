@@ -9,7 +9,7 @@ import 'package:puntocheck/utils/theme/app_colors.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 /// Vista de detalle completo de una solicitud de permiso para Manager.
-/// 
+///
 /// Reutiliza estructura de OrgAdminLeaveDetailView pero usa providers del Manager.
 /// El Manager puede:
 /// - Ver información completa del permiso
@@ -18,10 +18,7 @@ import 'package:url_launcher/url_launcher.dart';
 class ManagerLeaveDetailView extends ConsumerStatefulWidget {
   final SolicitudesPermisos request;
 
-  const ManagerLeaveDetailView({
-    super.key,
-    required this.request,
-  });
+  const ManagerLeaveDetailView({super.key, required this.request});
 
   @override
   ConsumerState<ManagerLeaveDetailView> createState() =>
@@ -136,20 +133,13 @@ class _ManagerLeaveDetailViewState
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [
-            _getColor(),
-            _getColor().withValues(alpha: 0.8),
-          ],
+          colors: [_getColor(), _getColor().withValues(alpha: 0.8)],
         ),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
         children: [
-          Icon(
-            _getIcon(),
-            size: 48,
-            color: Colors.white,
-          ),
+          Icon(_getIcon(), size: 48, color: Colors.white),
           const SizedBox(height: 12),
           if (widget.request.estado != null)
             Container(
@@ -254,10 +244,10 @@ class _ManagerLeaveDetailViewState
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Header
-          Padding(
-            padding: const EdgeInsets.all(16),
+          const Padding(
+            padding: EdgeInsets.all(16),
             child: Row(
-              children: const [
+              children: [
                 Icon(Icons.event_note_rounded, color: AppColors.neutral700),
                 SizedBox(width: 12),
                 Text(
@@ -296,8 +286,10 @@ class _ManagerLeaveDetailViewState
                 _DetailRow(
                   label: 'Días totales',
                   value: Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
                     decoration: BoxDecoration(
                       color: AppColors.primaryRed.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(8),
@@ -353,48 +345,63 @@ class _ManagerLeaveDetailViewState
                         if (url == null || url.isEmpty) return;
 
                         try {
-                           Uri? uri;
-                           if (url.startsWith('http')) {
-                             uri = Uri.parse(url);
-                           } else {
-                             // Intentar generar link firmado en varios buckets
-                             final buckets = ['documentos_legales', 'justificativos', 'evidencias'];
-                             for (final bucket in buckets) {
-                               try {
-                                 final signed = await supabase.storage.from(bucket).createSignedUrl(url, 60);
-                                 uri = Uri.parse(signed);
-                                 break;
-                               } catch (_) {
-                                 continue;
-                               }
-                             }
-                           }
-                           
-                           if (uri != null) {
-                             if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
-                               if (context.mounted) {
-                                 ScaffoldMessenger.of(context).showSnackBar(
-                                   const SnackBar(content: Text('No se pudo abrir el documento')),
-                                 );
-                               }
-                             }
-                           } else {
-                              throw 'Archivo no encontrado';
-                           }
-                        } catch(e) {
-                           if (context.mounted) {
-                             ScaffoldMessenger.of(context).showSnackBar(
-                               const SnackBar(
-                                 content: Text('No se pudo abrir el documento. Es posible que no exista.'),
-                                 backgroundColor: AppColors.errorRed,
-                               ),
-                             );
-                           }
+                          Uri? uri;
+                          if (url.startsWith('http')) {
+                            uri = Uri.parse(url);
+                          } else {
+                            // Intentar generar link firmado en varios buckets
+                            final buckets = [
+                              'documentos_legales',
+                              'justificativos',
+                              'evidencias',
+                            ];
+                            for (final bucket in buckets) {
+                              try {
+                                final signed = await supabase.storage
+                                    .from(bucket)
+                                    .createSignedUrl(url, 60);
+                                uri = Uri.parse(signed);
+                                break;
+                              } catch (_) {
+                                continue;
+                              }
+                            }
+                          }
+
+                          if (uri != null) {
+                            if (!await launchUrl(
+                              uri,
+                              mode: LaunchMode.externalApplication,
+                            )) {
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text(
+                                      'No se pudo abrir el documento',
+                                    ),
+                                  ),
+                                );
+                              }
+                            }
+                          } else {
+                            throw 'Archivo no encontrado';
+                          }
+                        } catch (e) {
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                  'No se pudo abrir el documento. Es posible que no exista.',
+                                ),
+                                backgroundColor: AppColors.errorRed,
+                              ),
+                            );
+                          }
                         }
                       },
-                      child: Row(
+                      child: const Row(
                         mainAxisSize: MainAxisSize.min,
-                        children: const [
+                        children: [
                           Icon(
                             Icons.attach_file_rounded,
                             size: 18,
@@ -471,10 +478,7 @@ class _ManagerLeaveDetailViewState
             const SizedBox(height: 8),
             Text(
               'Por: $_approverName',
-              style: TextStyle(
-                fontSize: 14,
-                color: _getColor(),
-              ),
+              style: TextStyle(fontSize: 14, color: _getColor()),
             ),
           ],
           if (widget.request.fechaResolucion != null) ...[
@@ -503,10 +507,7 @@ class _ManagerLeaveDetailViewState
             const SizedBox(height: 4),
             Text(
               widget.request.comentarioResolucion!,
-              style: const TextStyle(
-                fontSize: 14,
-                color: AppColors.neutral900,
-              ),
+              style: const TextStyle(fontSize: 14, color: AppColors.neutral900),
             ),
           ],
         ],
@@ -555,7 +556,7 @@ class _ManagerLeaveDetailViewState
   Future<void> _handleApprove(controller) async {
     final comment = await showDialog<String>(
       context: context,
-      builder: (context) => _ApprovalDialog(
+      builder: (context) => const _ApprovalDialog(
         title: '¿Aprobar permiso?',
         message: '¿Estás seguro que deseas aprobar esta solicitud de permiso?',
         confirmLabel: 'Aprobar',
@@ -563,7 +564,6 @@ class _ManagerLeaveDetailViewState
       ),
     );
 
-    // Si canceló el diálogo, comment será null
     if (comment == null) return;
 
     try {
@@ -572,24 +572,23 @@ class _ManagerLeaveDetailViewState
         comment: comment.isEmpty ? 'Aprobado por el manager' : comment,
       );
 
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Solicitud aprobada exitosamente'),
-            backgroundColor: AppColors.successGreen,
-          ),
-        );
-        Navigator.pop(context, true); // Retornar true para indicar cambio
-      }
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Solicitud aprobada exitosamente'),
+          backgroundColor: AppColors.successGreen,
+        ),
+      );
+      Navigator.pop(context, true);
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error al aprobar: $e'),
-            backgroundColor: AppColors.errorRed,
-          ),
-        );
-      }
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error al aprobar: $e'),
+          backgroundColor: AppColors.errorRed,
+        ),
+      );
     }
   }
 
@@ -602,29 +601,25 @@ class _ManagerLeaveDetailViewState
     if (comment == null || comment.trim().isEmpty) return;
 
     try {
-      await controller.reject(
-        requestId: widget.request.id,
-        comment: comment,
-      );
+      await controller.reject(requestId: widget.request.id, comment: comment);
 
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Solicitud rechazada'),
-            backgroundColor: AppColors.warningOrange,
-          ),
-        );
-        Navigator.pop(context, true); // Retornar true para indicar cambio
-      }
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Solicitud rechazada'),
+          backgroundColor: AppColors.warningOrange,
+        ),
+      );
+      Navigator.pop(context, true);
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error al rechazar: $e'),
-            backgroundColor: AppColors.errorRed,
-          ),
-        );
-      }
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error al rechazar: $e'),
+          backgroundColor: AppColors.errorRed,
+        ),
+      );
     }
   }
 
@@ -690,7 +685,7 @@ class _ManagerLeaveDetailViewState
       'Septiembre',
       'Octubre',
       'Noviembre',
-      'Diciembre'
+      'Diciembre',
     ];
     return '${date.day} de ${months[date.month - 1]}, ${date.year}';
   }
@@ -708,10 +703,7 @@ class _DetailRow extends StatelessWidget {
   final String label;
   final Widget value;
 
-  const _DetailRow({
-    required this.label,
-    required this.value,
-  });
+  const _DetailRow({required this.label, required this.value});
 
   @override
   Widget build(BuildContext context) {
@@ -729,10 +721,7 @@ class _DetailRow extends StatelessWidget {
         ),
         const SizedBox(width: 8),
         Expanded(
-          child: Align(
-            alignment: Alignment.centerRight,
-            child: value,
-          ),
+          child: Align(alignment: Alignment.centerRight, child: value),
         ),
       ],
     );

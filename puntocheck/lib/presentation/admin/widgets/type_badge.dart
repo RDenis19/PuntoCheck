@@ -76,28 +76,28 @@ class TypeBadge extends StatelessWidget {
   _TypeConfig _getConfig(String? type) {
     switch (type?.toLowerCase()) {
       case 'entrada':
-        return _TypeConfig(
+        return const _TypeConfig(
           label: 'ENTRADA',
           icon: Icons.login_rounded,
-          color: const Color(0xFF2E7D32), // Green 800
+          color: Color(0xFF2E7D32), // Green 800
         );
       case 'salida':
-        return _TypeConfig(
+        return const _TypeConfig(
           label: 'SALIDA',
           icon: Icons.logout_rounded,
-          color: const Color(0xFF1565C0), // Blue 800
+          color: Color(0xFF1565C0), // Blue 800
         );
       case 'inicio_break':
-        return _TypeConfig(
+        return const _TypeConfig(
           label: 'INICIO BREAK',
           icon: Icons.coffee_rounded,
-          color: const Color(0xFFEF6C00), // Orange 800
+          color: Color(0xFFEF6C00), // Orange 800
         );
       case 'fin_break':
-        return _TypeConfig(
+        return const _TypeConfig(
           label: 'FIN BREAK',
           icon: Icons.work_rounded,
-          color: const Color(0xFF6A1B9A), // Purple 800
+          color: Color(0xFF6A1B9A), // Purple 800
         );
       default:
         return _TypeConfig(

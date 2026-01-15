@@ -331,7 +331,7 @@ class _OrgAdminAttendanceViewState
   }
 
   _AttendanceStats _calculateStats(List<RegistrosAsistencia> records) {
-    int total = records.length;
+    final int total = records.length;
     int valid = 0;
     int outsideGeofence = 0;
     int errors = 0;
@@ -426,7 +426,7 @@ class _DateSelector extends StatelessWidget {
                 ),
                 Text(
                   _formatLongDate(selectedDate),
-                  style: TextStyle(
+                  style: const TextStyle(
                     color: AppColors.neutral600,
                     fontSize: 13,
                   ),

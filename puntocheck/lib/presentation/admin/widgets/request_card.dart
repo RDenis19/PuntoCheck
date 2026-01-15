@@ -119,7 +119,7 @@ class _RequestCardState extends State<RequestCard> {
                           const SizedBox(height: 4),
                           Text(
                             _formatDate(widget.request.creadoEn ?? DateTime.now()),
-                            style: TextStyle(
+                            style: const TextStyle(
                               fontSize: 13,
                               color: AppColors.neutral500,
                               fontWeight: FontWeight.w500,
@@ -161,8 +161,8 @@ class _RequestCardState extends State<RequestCard> {
                         child: Row(
                           children: [
                             _buildDateColumn('Desde', widget.request.fechaInicio),
-                            Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 16),
+                            const Padding(
+                              padding: EdgeInsets.symmetric(horizontal: 16),
                               child: Icon(
                                 Icons.arrow_forward_rounded,
                                 size: 18,
@@ -228,7 +228,7 @@ class _RequestCardState extends State<RequestCard> {
                     ),
                     child: Row(
                       children: [
-                        Icon(
+                        const Icon(
                           Icons.chat_bubble_outline_rounded,
                           size: 16,
                           color: AppColors.neutral500,
@@ -264,7 +264,7 @@ class _RequestCardState extends State<RequestCard> {
       children: [
         Text(
           label,
-          style: TextStyle(
+          style: const TextStyle(
             fontSize: 12,
             color: AppColors.neutral500,
             fontWeight: FontWeight.w600,

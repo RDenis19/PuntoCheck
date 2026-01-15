@@ -130,7 +130,7 @@ class AdminAttendanceRecordDetailSheet extends StatelessWidget {
                     ),
                     if (mock == true) ...[
                       const SizedBox(height: 10),
-                      _Pill(
+                      const _Pill(
                         label: 'Posible Mock GPS',
                         icon: Icons.location_off_outlined,
                         color: AppColors.warningOrange,

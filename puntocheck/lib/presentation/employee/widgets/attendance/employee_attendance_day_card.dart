@@ -219,8 +219,8 @@ class _RecordRow extends StatelessWidget {
     final geo = record.estaDentroGeocerca;
     final geoWidget = switch (geo) {
       true => const Icon(Icons.verified, color: AppColors.successGreen, size: 16),
-      false => _Pill(label: 'Fuera', color: AppColors.errorRed),
-      _ => _Pill(label: '—', color: AppColors.neutral500),
+      false => const _Pill(label: 'Fuera', color: AppColors.errorRed),
+      _ => const _Pill(label: '—', color: AppColors.neutral500),
     };
 
     return InkWell(

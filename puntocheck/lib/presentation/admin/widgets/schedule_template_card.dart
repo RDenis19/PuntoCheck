@@ -25,7 +25,7 @@ class ScheduleTemplateCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 12),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: AppColors.neutral200, width: 1.5),
+        side: const BorderSide(color: AppColors.neutral200, width: 1.5),
       ),
       child: InkWell(
         onTap: onTap,
@@ -55,12 +55,12 @@ class ScheduleTemplateCard extends StatelessWidget {
                         vertical: 4,
                       ),
                       decoration: BoxDecoration(
-                        color: Color(0xFF1A237E).withValues(alpha: 0.12),
+                        color: const Color(0xFF1A237E).withValues(alpha: 0.12),
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: Row(
+                      child: const Row(
                         mainAxisSize: MainAxisSize.min,
-                        children: const [
+                        children: [
                           Icon(
                             Icons.nights_stay_rounded,
                             size: 14,
@@ -133,7 +133,7 @@ class ScheduleTemplateCard extends StatelessWidget {
               // Footer: Tolerancia + empleados
               Row(
                 children: [
-                  Icon(
+                  const Icon(
                     Icons.timer_rounded,
                     size: 16,
                     color: AppColors.neutral600,
@@ -148,7 +148,7 @@ class ScheduleTemplateCard extends StatelessWidget {
                   ),
                   const Spacer(),
                   if (assignedEmployees != null) ...[
-                    Icon(
+                    const Icon(
                       Icons.people_outline_rounded,
                       size: 16,
                       color: AppColors.neutral600,
@@ -174,7 +174,7 @@ class ScheduleTemplateCard extends StatelessWidget {
 
   String _formatTime(String? time) {
     // time viene como "HH:mm:ss", retornar "HH:mm"
-    if (time == null || time.isEmpty) return "--";
+    if (time == null || time.isEmpty) return '--';
     if (time.length >= 5) {
       return time.substring(0, 5);
     }
@@ -225,7 +225,7 @@ class _TimeChip extends StatelessWidget {
               ),
               Text(
                 label,
-                style: TextStyle(fontSize: 10, color: AppColors.neutral600),
+                style: const TextStyle(fontSize: 10, color: AppColors.neutral600),
               ),
             ],
           ),

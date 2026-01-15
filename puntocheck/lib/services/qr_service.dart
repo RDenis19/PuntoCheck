@@ -71,8 +71,6 @@ class QrService {
       if (response == null) return null;
       return QrCodigosTemporales.fromJson(response);
     } catch (e) {
-      // Manejo silencioso o log
-      print('Error consultando QR activo: $e');
       return null;
     }
   }

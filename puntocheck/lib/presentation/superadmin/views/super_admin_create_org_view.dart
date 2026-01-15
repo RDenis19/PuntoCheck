@@ -64,8 +64,9 @@ class _SuperAdminCreateOrgViewState
                 : _logoCtrl.text.trim(),
           );
 
+      if (!context.mounted) return;
+
       final state = ref.read(organizationCreationControllerProvider);
-      if (!mounted) return;
       if (state.hasError) {
         showAppSnack(context, 'Error: ${state.error}', isError: true);
       } else {
@@ -188,7 +189,7 @@ class _SuperAdminCreateOrgViewState
                           backgroundColor: AppColors.neutral100,
                           color: AppColors.primaryRed,
                         ),
-                        error: (e, _) => Text(
+                        error: (e, _) => const Text(
                           'Error cargando planes',
                           style: TextStyle(
                             color: AppColors.errorRed,

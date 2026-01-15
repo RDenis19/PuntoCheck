@@ -141,10 +141,10 @@ class _AuditorAlertDetailSheetState extends State<AuditorAlertDetailSheet> {
               ),
               const SizedBox(height: 12),
               InputDecorator(
-                decoration: InputDecoration(
+                decoration: const InputDecoration(
                   labelText: 'Estado',
-                  prefixIcon: const Icon(Icons.flag_rounded),
-                  border: const OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.flag_rounded),
+                  border: OutlineInputBorder(),
                   filled: true,
                   fillColor: AppColors.neutral100,
                 ),
@@ -191,7 +191,7 @@ class _AuditorAlertDetailSheetState extends State<AuditorAlertDetailSheet> {
                     children: [
                        Row(
                          children: [
-                           Icon(Icons.info_rounded, size: 16, color: AppColors.neutral600),
+                           const Icon(Icons.info_rounded, size: 16, color: AppColors.neutral600),
                            const SizedBox(width: 6),
                            Text(
                              'Información del suceso',
