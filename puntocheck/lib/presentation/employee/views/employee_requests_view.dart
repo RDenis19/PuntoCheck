@@ -12,6 +12,7 @@ import 'package:puntocheck/presentation/shared/widgets/empty_state.dart';
 import 'package:puntocheck/providers/employee_providers.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:puntocheck/utils/theme/app_colors.dart';
+import 'package:puntocheck/presentation/shared/widgets/app_snackbar.dart';
 
 class EmployeeRequestsView extends ConsumerWidget {
   const EmployeeRequestsView({super.key});
@@ -111,11 +112,15 @@ class _RequestCard extends StatelessWidget {
     final status = request.estado ?? EstadoAprobacion.pendiente;
     final statusChip = _StatusChip(status: status);
     final dateFmt = DateFormat('dd/MM/yyyy');
-    final range = '${dateFmt.format(request.fechaInicio)} → ${dateFmt.format(request.fechaFin)}';
+    final range =
+        '${dateFmt.format(request.fechaInicio)} → ${dateFmt.format(request.fechaFin)}';
 
-    final hasDoc = request.documentoSoporteUrl != null &&
+    final hasDoc =
+        request.documentoSoporteUrl != null &&
         request.documentoSoporteUrl!.trim().isNotEmpty;
-    final hasResolution = (request.comentarioResolucion ?? '').trim().isNotEmpty;
+    final hasResolution = (request.comentarioResolucion ?? '')
+        .trim()
+        .isNotEmpty;
     final approver = (request.aprobadoPorId ?? '').trim();
 
     return InkWell(
@@ -154,10 +159,7 @@ class _RequestCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 8),
-            Text(
-              range,
-              style: const TextStyle(color: AppColors.neutral700),
-            ),
+            Text(range, style: const TextStyle(color: AppColors.neutral700)),
             const SizedBox(height: 10),
             Wrap(
               spacing: 10,
@@ -188,7 +190,10 @@ class _RequestCard extends StatelessWidget {
                 request.comentarioResolucion!.trim(),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(color: AppColors.neutral600, fontSize: 12),
+                style: const TextStyle(
+                  color: AppColors.neutral600,
+                  fontSize: 12,
+                ),
               ),
             ],
           ],
@@ -257,18 +262,29 @@ class _RequestDetailSheet extends StatelessWidget {
               const SizedBox(height: 12),
               _DetailRow(
                 label: 'Fechas',
-                value: '${dateFmt.format(request.fechaInicio)} → ${dateFmt.format(request.fechaFin)}',
+                value:
+                    '${dateFmt.format(request.fechaInicio)} → ${dateFmt.format(request.fechaFin)}',
               ),
-              _DetailRow(label: 'Días totales', value: request.diasTotales.toString()),
+              _DetailRow(
+                label: 'Días totales',
+                value: request.diasTotales.toString(),
+              ),
               _DetailRow(
                 label: 'Motivo',
                 value: (request.motivoDetalle ?? '').trim().isEmpty
                     ? '—'
                     : request.motivoDetalle!.trim(),
               ),
-              if (request.aprobadoPorId != null) _DetailRow(label: 'Aprobado por', value: request.aprobadoPorId!),
+              if (request.aprobadoPorId != null)
+                _DetailRow(
+                  label: 'Aprobado por',
+                  value: request.aprobadoPorId!,
+                ),
               if ((request.comentarioResolucion ?? '').trim().isNotEmpty)
-                _DetailRow(label: 'Comentario', value: request.comentarioResolucion!.trim()),
+                _DetailRow(
+                  label: 'Comentario',
+                  value: request.comentarioResolucion!.trim(),
+                ),
               if (doc.isNotEmpty) ...[
                 const SizedBox(height: 10),
                 const _DetailRow(label: 'Documento', value: 'Adjunto'),
@@ -553,10 +569,12 @@ class _CreatePermissionSheet extends ConsumerStatefulWidget {
   const _CreatePermissionSheet();
 
   @override
-  ConsumerState<_CreatePermissionSheet> createState() => _CreatePermissionSheetState();
+  ConsumerState<_CreatePermissionSheet> createState() =>
+      _CreatePermissionSheetState();
 }
 
-class _CreatePermissionSheetState extends ConsumerState<_CreatePermissionSheet> {
+class _CreatePermissionSheetState
+    extends ConsumerState<_CreatePermissionSheet> {
   final _formKey = GlobalKey<FormState>();
 
   TipoPermiso? _tipo;
@@ -667,7 +685,9 @@ class _CreatePermissionSheetState extends ConsumerState<_CreatePermissionSheet> 
                     onPressed: isLoading ? null : _pickFile,
                     icon: const Icon(Icons.attach_file_rounded),
                     label: Text(
-                      _documento != null ? 'Documento adjunto' : 'Adjuntar documento (PDF/JPG/PNG)',
+                      _documento != null
+                          ? 'Documento adjunto'
+                          : 'Adjuntar documento (PDF/JPG/PNG)',
                     ),
                   ),
                   if (_documento != null) ...[
@@ -684,7 +704,9 @@ class _CreatePermissionSheetState extends ConsumerState<_CreatePermissionSheet> 
                         ),
                         IconButton(
                           tooltip: 'Quitar',
-                          onPressed: isLoading ? null : () => setState(() => _documento = null),
+                          onPressed: isLoading
+                              ? null
+                              : () => setState(() => _documento = null),
                           icon: const Icon(Icons.close_rounded),
                         ),
                       ],
@@ -721,14 +743,20 @@ class _CreatePermissionSheetState extends ConsumerState<_CreatePermissionSheet> 
 
   int? _daysInclusive() {
     if (_fechaInicio == null || _fechaFin == null) return null;
-    final start = DateTime(_fechaInicio!.year, _fechaInicio!.month, _fechaInicio!.day);
+    final start = DateTime(
+      _fechaInicio!.year,
+      _fechaInicio!.month,
+      _fechaInicio!.day,
+    );
     final end = DateTime(_fechaFin!.year, _fechaFin!.month, _fechaFin!.day);
     if (end.isBefore(start)) return null;
     return end.difference(start).inDays + 1;
   }
 
   Future<void> _pickDate(BuildContext context, bool isStart) async {
-    final initial = isStart ? (_fechaInicio ?? DateTime.now()) : (_fechaFin ?? _fechaInicio ?? DateTime.now());
+    final initial = isStart
+        ? (_fechaInicio ?? DateTime.now())
+        : (_fechaFin ?? _fechaInicio ?? DateTime.now());
     final first = DateTime.now().subtract(const Duration(days: 365));
     final picked = await showDatePicker(
       context: context,
@@ -770,14 +798,14 @@ class _CreatePermissionSheetState extends ConsumerState<_CreatePermissionSheet> 
     if (!_formKey.currentState!.validate()) return;
     if (_tipo == null) return;
     if (_fechaInicio == null || _fechaFin == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Selecciona fechas de inicio y fin')),
-      );
+      showAppSnack(context, 'Selecciona fechas de inicio y fin', isError: true);
       return;
     }
 
     try {
-      await ref.read(employeePermissionControllerProvider.notifier).createRequest(
+      await ref
+          .read(employeePermissionControllerProvider.notifier)
+          .createRequest(
             tipo: _tipo!,
             fechaInicio: _fechaInicio!,
             fechaFin: _fechaFin!,
@@ -792,20 +820,10 @@ class _CreatePermissionSheetState extends ConsumerState<_CreatePermissionSheet> 
 
       if (!mounted) return;
       Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Solicitud enviada'),
-          backgroundColor: AppColors.successGreen,
-        ),
-      );
+      showAppSnack(context, 'Solicitud enviada');
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error: $e'),
-          backgroundColor: AppColors.errorRed,
-        ),
-      );
+      showAppSnack(context, e.toString(), isError: true);
     }
   }
 }
@@ -830,10 +848,15 @@ class _DateField extends StatelessWidget {
         decoration: InputDecoration(
           labelText: label,
           border: const OutlineInputBorder(),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 12,
+            vertical: 14,
+          ),
         ),
         child: Text(
-          value != null ? DateFormat('dd/MM/yyyy').format(value!) : 'Seleccionar',
+          value != null
+              ? DateFormat('dd/MM/yyyy').format(value!)
+              : 'Seleccionar',
           style: const TextStyle(color: AppColors.neutral700),
         ),
       ),
@@ -905,7 +928,11 @@ class _StatusChip extends StatelessWidget {
 }
 
 class _MetaPill extends StatelessWidget {
-  const _MetaPill({required this.icon, required this.label, required this.value});
+  const _MetaPill({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
 
   final IconData icon;
   final String label;
