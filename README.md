@@ -44,4 +44,3 @@ El desarrollo de **PuntoCheck** se organiza en 9 Sprints bajo la metodología Sc
 
 🔗 [Ver planificación detallada de Sprints en la Wiki](https://github.com/RDenis19/PuntoCheck/wiki/Planificaci%C3%B3n)
 
-
