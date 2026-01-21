@@ -86,10 +86,9 @@ final managerTeamAllProvider = FutureProvider.family<List<Perfiles>, String?>((
   ref,
   searchQuery,
 ) async {
-  return ref.read(managerServiceProvider).getMyTeam(
-        searchQuery: searchQuery,
-        includeDeleted: true,
-      );
+  return ref
+      .read(managerServiceProvider)
+      .getMyTeam(searchQuery: searchQuery, includeDeleted: true);
 });
 
 /// Provider para obtener un empleado específico del equipo.
@@ -163,66 +162,71 @@ class ManagerHomeSummary {
 
 /// Provider que calcula estadísticas del equipo para el dashboard.
 /// Provider que calcula estadísticas del equipo para el dashboard (Actualizado automáticamente).
-final managerHomeSummaryProvider = StreamProvider.autoDispose<ManagerHomeSummary>((ref) async* {
-  // Función auxiliar para obtener datos
-  Future<ManagerHomeSummary> fetchData() async {
-    try {
-      final team = await ref.read(managerServiceProvider).getMyTeam();
-      final teamTotal = team.length;
+final managerHomeSummaryProvider =
+    StreamProvider.autoDispose<ManagerHomeSummary>((ref) async* {
+      // Función auxiliar para obtener datos
+      Future<ManagerHomeSummary> fetchData() async {
+        try {
+          final team = await ref.read(managerServiceProvider).getMyTeam();
+          final teamTotal = team.length;
 
-      final now = DateTime.now();
-      final startOfDay = DateTime(now.year, now.month, now.day);
-      final attendanceToday = await ref
-          .read(managerServiceProvider)
-          .getTeamAttendance(startDate: startOfDay, endDate: now, limit: 200);
+          final now = DateTime.now();
+          final startOfDay = DateTime(now.year, now.month, now.day);
+          final attendanceToday = await ref
+              .read(managerServiceProvider)
+              .getTeamAttendance(
+                startDate: startOfDay,
+                endDate: now,
+                limit: 200,
+              );
 
-      final presentEmployeeIds = attendanceToday
-          .where((r) => r.tipoRegistro == 'entrada')
-          .map((r) => r.perfilId)
-          .toSet();
-      final teamPresent = presentEmployeeIds.length;
+          final presentEmployeeIds = attendanceToday
+              .where((r) => r.tipoRegistro == 'entrada')
+              .map((r) => r.perfilId)
+              .toSet();
+          final teamPresent = presentEmployeeIds.length;
 
-      final teamLate = 0; // Logíca pendiente de tardanzas
+          final teamLate = 0; // Logíca pendiente de tardanzas
 
-      final pendingPermissionsList = await ref
-          .read(managerServiceProvider)
-          .getTeamPermissions(pendingOnly: true);
-      final pendingPermissions = pendingPermissionsList.length;
+          final pendingPermissionsList = await ref
+              .read(managerServiceProvider)
+              .getTeamPermissions(pendingOnly: true);
+          final pendingPermissions = pendingPermissionsList.length;
 
-      final overtimeHoursWeek = 0; // Lógica pendiente
+          final overtimeHoursWeek = 0; // Lógica pendiente
 
-      return ManagerHomeSummary(
-        teamTotal: teamTotal,
-        teamPresent: teamPresent,
-        teamLate: teamLate,
-        pendingPermissions: pendingPermissions,
-        overtimeHoursWeek: overtimeHoursWeek,
-        recentPermissions: pendingPermissionsList.take(3).toList(),
-      );
-    } catch (e) {
-       // Retornar vacío en error para no romper stream
-       return ManagerHomeSummary(
-          teamTotal: 0, 
-          teamPresent: 0, 
-          teamLate: 0, 
-          pendingPermissions: 0, 
-          overtimeHoursWeek: 0, 
-          recentPermissions: []
-       );
-    }
-  }
+          return ManagerHomeSummary(
+            teamTotal: teamTotal,
+            teamPresent: teamPresent,
+            teamLate: teamLate,
+            pendingPermissions: pendingPermissions,
+            overtimeHoursWeek: overtimeHoursWeek,
+            recentPermissions: pendingPermissionsList.take(3).toList(),
+          );
+        } catch (e) {
+          // Retornar vacío en error para no romper stream
+          return ManagerHomeSummary(
+            teamTotal: 0,
+            teamPresent: 0,
+            teamLate: 0,
+            pendingPermissions: 0,
+            overtimeHoursWeek: 0,
+            recentPermissions: [],
+          );
+        }
+      }
 
-  // Emitir primer valor inmediatamente
-  yield await fetchData();
+      // Emitir primer valor inmediatamente
+      yield await fetchData();
 
-  // Loop para actualizar cada 15 segundos
-  final timer = Stream.periodic(const Duration(seconds: 15), (i) => i);
-  await for (final _ in timer) {
-    // Verificar si el provider fue dispuesto para detener
-    // (StreamProvider.autoDispose lo maneja cancelando la subscripción)
-    yield await fetchData();
-  }
-});
+      // Loop para actualizar cada 15 segundos
+      final timer = Stream.periodic(const Duration(seconds: 15), (i) => i);
+      await for (final _ in timer) {
+        // Verificar si el provider fue dispuesto para detener
+        // (StreamProvider.autoDispose lo maneja cancelando la subscripción)
+        yield await fetchData();
+      }
+    });
 
 // ============================================================================
 // ASISTENCIA DEL EQUIPO
@@ -379,7 +383,9 @@ final managerNotificationsProvider = FutureProvider<List<Map<String, dynamic>>>(
   },
 );
 
-final managerUnreadNotificationsCountProvider = FutureProvider<int>((ref) async {
+final managerUnreadNotificationsCountProvider = FutureProvider<int>((
+  ref,
+) async {
   final list = await ref.watch(managerNotificationsProvider.future);
   return list.where((n) => n['leido'] != true).length;
 });
@@ -490,6 +496,13 @@ class ManagerScheduleController extends AsyncNotifier<void> {
             startDate: startDate,
             endDate: endDate,
           ),
+    );
+  }
+
+  Future<void> deleteSchedule(String assignmentId) async {
+    state = const AsyncValue.loading();
+    state = await AsyncValue.guard(
+      () => ref.read(managerServiceProvider).deleteSchedule(assignmentId),
     );
   }
 }

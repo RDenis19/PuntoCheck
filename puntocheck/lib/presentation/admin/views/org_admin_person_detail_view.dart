@@ -48,18 +48,15 @@ class _OrgAdminPersonDetailViewState
 
     try {
       final staff = ref.read(staffServiceProvider);
-      await staff.updateProfile(
-        widget.userId,
-        {'activo': !(perfil.activo ?? true)},
-      );
+      await staff.updateProfile(widget.userId, {
+        'activo': !(perfil.activo ?? true),
+      });
       ref.invalidate(orgAdminPersonProvider(widget.userId));
       ref.invalidate(orgAdminStaffProvider);
       if (!mounted) return;
       showAppSnackBar(
         context,
-        perfil.activo == true
-            ? 'Empleado desactivado'
-            : 'Empleado activado',
+        perfil.activo == true ? 'Empleado desactivado' : 'Empleado activado',
       );
     } catch (e) {
       if (!mounted) return;
@@ -96,8 +93,9 @@ class _OrgAdminPersonDetailViewState
   @override
   Widget build(BuildContext context) {
     final perfilAsync = ref.watch(orgAdminPersonProvider(widget.userId));
-    final attendanceAsync =
-        ref.watch(orgAdminPersonAttendanceProvider(widget.userId));
+    final attendanceAsync = ref.watch(
+      orgAdminPersonAttendanceProvider(widget.userId),
+    );
     final currentUserAsync = ref.watch(profileProvider);
 
     return Scaffold(
@@ -110,83 +108,88 @@ class _OrgAdminPersonDetailViewState
         iconTheme: const IconThemeData(color: AppColors.primaryRed),
         actions: [
           perfilAsync.whenOrNull(
-            data: (perfil) {
-              final currentUserId = currentUserAsync.value?.id;
-              final isOwnProfile = currentUserId == widget.userId;
+                data: (perfil) {
+                  final currentUserId = currentUserAsync.value?.id;
+                  final isOwnProfile = currentUserId == widget.userId;
 
-              return PopupMenuButton<String>(
-                icon: const Icon(Icons.more_vert_rounded),
-                onSelected: (value) {
-                  if (isOwnProfile &&
-                      (value == 'delete' || value == 'toggle_active')) {
-                    showAppSnackBar(
-                      context,
-                      'No puedes ${value == 'delete' ? 'eliminar' : 'desactivar'} tu propio perfil',
-                      success: false,
-                    );
-                    return;
-                  }
+                  return PopupMenuButton<String>(
+                    icon: const Icon(Icons.more_vert_rounded),
+                    onSelected: (value) {
+                      if (isOwnProfile &&
+                          (value == 'delete' || value == 'toggle_active')) {
+                        showAppSnackBar(
+                          context,
+                          'No puedes ${value == 'delete' ? 'eliminar' : 'desactivar'} tu propio perfil',
+                          success: false,
+                        );
+                        return;
+                      }
 
-                  switch (value) {
-                    case 'edit':
-                      _handleEdit(perfil);
-                      break;
-                    case 'toggle_active':
-                      _handleToggleActive(perfil);
-                      break;
-                    case 'delete':
-                      _handleDelete(perfil);
-                      break;
-                  }
+                      switch (value) {
+                        case 'edit':
+                          _handleEdit(perfil);
+                          break;
+                        case 'toggle_active':
+                          _handleToggleActive(perfil);
+                          break;
+                        case 'delete':
+                          _handleDelete(perfil);
+                          break;
+                      }
+                    },
+                    itemBuilder: (context) => [
+                      const PopupMenuItem(
+                        value: 'edit',
+                        child: Row(
+                          children: [
+                            Icon(Icons.edit_rounded, size: 20),
+                            SizedBox(width: 12),
+                            Text('Editar'),
+                          ],
+                        ),
+                      ),
+                      if (!isOwnProfile)
+                        PopupMenuItem(
+                          value: 'toggle_active',
+                          child: Row(
+                            children: [
+                              Icon(
+                                perfil.activo == true
+                                    ? Icons.block_rounded
+                                    : Icons.check_circle_rounded,
+                                size: 20,
+                              ),
+                              const SizedBox(width: 12),
+                              Text(
+                                perfil.activo == true
+                                    ? 'Desactivar'
+                                    : 'Activar',
+                              ),
+                            ],
+                          ),
+                        ),
+                      if (!isOwnProfile)
+                        const PopupMenuItem(
+                          value: 'delete',
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.delete_rounded,
+                                size: 20,
+                                color: Colors.red,
+                              ),
+                              SizedBox(width: 12),
+                              Text(
+                                'Eliminar',
+                                style: TextStyle(color: Colors.red),
+                              ),
+                            ],
+                          ),
+                        ),
+                    ],
+                  );
                 },
-                itemBuilder: (context) => [
-                  const PopupMenuItem(
-                    value: 'edit',
-                    child: Row(
-                      children: [
-                        Icon(Icons.edit_rounded, size: 20),
-                        SizedBox(width: 12),
-                        Text('Editar'),
-                      ],
-                    ),
-                  ),
-                  if (!isOwnProfile)
-                    PopupMenuItem(
-                      value: 'toggle_active',
-                      child: Row(
-                        children: [
-                          Icon(
-                            perfil.activo == true
-                                ? Icons.block_rounded
-                                : Icons.check_circle_rounded,
-                            size: 20,
-                          ),
-                          const SizedBox(width: 12),
-                          Text(
-                            perfil.activo == true ? 'Desactivar' : 'Activar',
-                          ),
-                        ],
-                      ),
-                    ),
-                  if (!isOwnProfile)
-                    const PopupMenuItem(
-                      value: 'delete',
-                      child: Row(
-                        children: [
-                          Icon(Icons.delete_rounded,
-                              size: 20, color: Colors.red),
-                          SizedBox(width: 12),
-                          Text(
-                            'Eliminar',
-                            style: TextStyle(color: Colors.red),
-                          ),
-                        ],
-                      ),
-                    ),
-                ],
-              );
-            },
-          ) ??
+              ) ??
               const SizedBox.shrink(),
         ],
       ),
@@ -201,10 +204,8 @@ class _OrgAdminPersonDetailViewState
           ]);
         },
         child: perfilAsync.when(
-          data: (perfil) => _DetailContent(
-            perfil: perfil,
-            attendanceAsync: attendanceAsync,
-          ),
+          data: (perfil) =>
+              _DetailContent(perfil: perfil, attendanceAsync: attendanceAsync),
           loading: () => const Center(child: CircularProgressIndicator()),
           error: (e, _) => _ErrorView(message: 'Error cargando empleado: $e'),
         ),
@@ -220,10 +221,7 @@ class _DetailContent extends StatelessWidget {
   final Perfiles perfil;
   final AsyncValue<List<RegistrosAsistencia>> attendanceAsync;
 
-  const _DetailContent({
-    required this.perfil,
-    required this.attendanceAsync,
-  });
+  const _DetailContent({required this.perfil, required this.attendanceAsync});
 
   @override
   Widget build(BuildContext context) {
@@ -249,9 +247,10 @@ class _HeaderSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final initials = '${perfil.nombres.isNotEmpty ? perfil.nombres[0] : ''}'
-            '${perfil.apellidos.isNotEmpty ? perfil.apellidos[0] : ''}'
-        .toUpperCase();
+    final initials =
+        '${perfil.nombres.isNotEmpty ? perfil.nombres[0] : ''}'
+                '${perfil.apellidos.isNotEmpty ? perfil.apellidos[0] : ''}'
+            .toUpperCase();
     final active = perfil.activo != false;
 
     return Container(
@@ -286,7 +285,8 @@ class _HeaderSection extends StatelessWidget {
             child: CircleAvatar(
               radius: 42,
               backgroundColor: Colors.white,
-              child: perfil.fotoPerfilUrl != null &&
+              child:
+                  perfil.fotoPerfilUrl != null &&
                       perfil.fotoPerfilUrl!.isNotEmpty
                   ? ClipOval(
                       child: Image.network(
@@ -311,9 +311,9 @@ class _HeaderSection extends StatelessWidget {
           Text(
             perfil.nombreCompleto,
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                ),
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+            ),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 8),
@@ -381,32 +381,38 @@ class _PersonalInfoSection extends StatelessWidget {
           child: Text(
             'Información Personal',
             style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.neutral900,
-                ),
+              fontWeight: FontWeight.bold,
+              color: AppColors.neutral900,
+            ),
           ),
         ),
         _InfoCard(
           children: [
-            _InfoItem(
-              icon: Icons.email_rounded,
-              iconColor: AppColors.neutral600,
-              label: 'Correo electrónico',
-              value: (perfil.email ?? perfil.correo) ?? 'No registrado',
-            ),
-            const Divider(height: 24),
+            if ((perfil.email ?? perfil.correo)?.isNotEmpty == true) ...[
+              _InfoItem(
+                icon: Icons.email_rounded,
+                iconColor: AppColors.neutral600,
+                label: 'Correo electrónico',
+                value: (perfil.email ?? perfil.correo)!,
+              ),
+              const Divider(height: 24),
+            ],
             _InfoItem(
               icon: Icons.phone_rounded,
               iconColor: AppColors.neutral600,
               label: 'Teléfono',
-              value: perfil.telefono ?? 'No registrado',
+              value: (perfil.telefono?.isNotEmpty == true)
+                  ? perfil.telefono!
+                  : 'No registrado',
             ),
             const Divider(height: 24),
             _InfoItem(
               icon: Icons.badge_rounded,
               iconColor: AppColors.neutral600,
               label: 'Cédula',
-              value: perfil.cedula ?? 'No registrado',
+              value: (perfil.cedula?.isNotEmpty == true)
+                  ? perfil.cedula!
+                  : 'No registrado',
             ),
             const Divider(height: 24),
             _InfoItem(
@@ -454,29 +460,31 @@ class _AttendanceSection extends StatelessWidget {
               Text(
                 'Historial de Asistencia',
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.neutral900,
-                    ),
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.neutral900,
+                ),
               ),
               const Spacer(),
               attendanceAsync.whenOrNull(
-                data: (logs) => Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: AppColors.primaryRed.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    '${logs.length}',
-                    style: const TextStyle(
-                      color: AppColors.primaryRed,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 13,
+                    data: (logs) => Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.primaryRed.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        '${logs.length}',
+                        style: const TextStyle(
+                          color: AppColors.primaryRed,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                        ),
+                      ),
                     ),
-                  ),
-                ),
-              ) ??
+                  ) ??
                   const SizedBox.shrink(),
             ],
           ),
@@ -494,7 +502,8 @@ class _AttendanceSection extends StatelessWidget {
             padding: EdgeInsets.all(32),
             child: Center(child: CircularProgressIndicator()),
           ),
-          error: (e, _) => const _ErrorView(message: 'Error cargando asistencia'),
+          error: (e, _) =>
+              const _ErrorView(message: 'Error cargando asistencia'),
         ),
       ],
     );
@@ -567,17 +576,17 @@ class _InfoItem extends StatelessWidget {
               Text(
                 label,
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: AppColors.neutral600,
-                      fontWeight: FontWeight.w500,
-                    ),
+                  color: AppColors.neutral600,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
               const SizedBox(height: 4),
               Text(
                 value,
                 style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      color: AppColors.neutral900,
-                      fontWeight: FontWeight.w600,
-                    ),
+                  color: AppColors.neutral900,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ],
           ),
@@ -607,10 +616,7 @@ class _AttendanceCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: color.withValues(alpha: 0.2),
-          width: 1.5,
-        ),
+        border: Border.all(color: color.withValues(alpha: 0.2), width: 1.5),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.04),
@@ -637,16 +643,16 @@ class _AttendanceCard extends StatelessWidget {
                 Text(
                   _labelForType(tipo),
                   style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.neutral900,
-                      ),
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.neutral900,
+                  ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   formatter.format(log.fechaHoraMarcacion.toLocal()),
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: AppColors.neutral700,
-                      ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodySmall?.copyWith(color: AppColors.neutral700),
                 ),
               ],
             ),
@@ -748,17 +754,17 @@ class _EmptyAttendance extends StatelessWidget {
           Text(
             'Sin registros de asistencia',
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.neutral900,
-                ),
+              fontWeight: FontWeight.bold,
+              color: AppColors.neutral900,
+            ),
           ),
           const SizedBox(height: 8),
           Text(
             'Este empleado aún no ha registrado\nninguna marcación',
             textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: AppColors.neutral700,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(color: AppColors.neutral700),
           ),
         ],
       ),
@@ -790,17 +796,17 @@ class _ErrorView extends StatelessWidget {
             Text(
               'Error al cargar',
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.neutral900,
-                  ),
+                fontWeight: FontWeight.bold,
+                color: AppColors.neutral900,
+              ),
             ),
             const SizedBox(height: 8),
             Text(
               message,
               textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: AppColors.neutral700,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: AppColors.neutral700),
             ),
           ],
         ),

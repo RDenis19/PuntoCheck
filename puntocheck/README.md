@@ -406,6 +406,7 @@ puntocheck
 │     ├─ location_helper.dart
 │     ├─ result.dart
 │     ├─ safe_image_picker.dart
+│     ├─ secure_storage_helper.dart
 │     ├─ theme
 │     │  ├─ app_colors.dart
 │     │  ├─ app_theme.dart

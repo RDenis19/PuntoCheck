@@ -180,7 +180,7 @@ class _RequestCard extends StatelessWidget {
                   _MetaPill(
                     icon: Icons.person_rounded,
                     label: 'Decidió',
-                    value: _shortId(approver),
+                    value: request.aprobadoPorNombre ?? 'Admin',
                   ),
               ],
             ),
@@ -1027,8 +1027,6 @@ class _ErrorView extends StatelessWidget {
     );
   }
 }
-
-String _shortId(String id) => id.length > 8 ? id.substring(0, 8) : id;
 
 (Color, String) _statusStyle(EstadoAprobacion status) {
   switch (status) {

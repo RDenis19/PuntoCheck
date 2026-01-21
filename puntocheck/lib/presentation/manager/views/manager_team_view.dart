@@ -1,16 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:puntocheck/providers/manager_providers.dart';
-import 'package:puntocheck/presentation/manager/widgets/manager_team_member_card.dart';
+import 'package:puntocheck/presentation/manager/views/manager_person_detail_view.dart';
 import 'package:puntocheck/presentation/shared/widgets/empty_state.dart';
+import 'package:puntocheck/providers/manager_providers.dart';
 import 'package:puntocheck/utils/theme/app_colors.dart';
+import 'package:url_launcher/url_launcher.dart';
 
-/// Vista del equipo del manager (3.2).
-///
-/// Muestra la lista de empleados asignados al manager:
-/// - Filtrados por sucursales donde es encargado
-/// - Solo empleados (rol=employee) y no eliminados
-/// - Con búsqueda por nombre/apellido
+/// Vista del equipo del manager.
+/// Implementa CustomScrollView, Búsqueda Sticky y Acciones Rápidas.
 class ManagerTeamView extends ConsumerStatefulWidget {
   const ManagerTeamView({super.key});
 
@@ -46,276 +43,347 @@ class _ManagerTeamViewState extends ConsumerState<ManagerTeamView> {
     );
 
     return Scaffold(
-      body: SafeArea(
-        child: Column(
-          children: [
-            // Header
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.05),
-                    blurRadius: 4,
-                    offset: const Offset(0, 2),
+      backgroundColor: AppColors.secondaryWhite,
+      body: CustomScrollView(
+        slivers: [
+          // 1. Sliver App Bar con Búsqueda Sticky
+          SliverAppBar(
+            pinned: true,
+            floating: true,
+            backgroundColor: Colors.white,
+            surfaceTintColor: Colors.transparent,
+            expandedHeight: 120, // Altura para título y subtitle
+            centerTitle: false,
+            title: const Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Mi Equipo',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.neutral900,
                   ),
-                ],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: AppColors.primaryRed.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(12),
+                ),
+                Text(
+                  'Gestión de personal',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: AppColors.neutral600,
+                    fontWeight: FontWeight.normal,
+                  ),
+                ),
+              ],
+            ),
+            bottom: PreferredSize(
+              preferredSize: const Size.fromHeight(70),
+              child: Container(
+                color: Colors.white,
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: SizedBox(
+                            height: 48,
+                            child: TextField(
+                              controller: _searchController,
+                              onChanged: (_) => _onSearchChanged(),
+                              decoration: InputDecoration(
+                                hintText: 'Buscar empleado...',
+                                prefixIcon: const Icon(
+                                  Icons.search_rounded,
+                                  color: AppColors.neutral500,
+                                ),
+                                suffixIcon: _searchController.text.isNotEmpty
+                                    ? IconButton(
+                                        icon: const Icon(
+                                          Icons.clear_rounded,
+                                          size: 20,
+                                        ),
+                                        onPressed: () {
+                                          _searchController.clear();
+                                          _onSearchChanged();
+                                        },
+                                      )
+                                    : null,
+                                filled: true,
+                                fillColor: AppColors.neutral100,
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: BorderSide.none,
+                                ),
+                                contentPadding: EdgeInsets.zero,
+                              ),
+                            ),
+                          ),
                         ),
-                        child: const Icon(
-                          Icons.people_rounded,
-                          color: AppColors.primaryRed,
-                          size: 24,
+                        // Botón de filtro (Activos/Todos) - Simple Loop
+                        const SizedBox(width: 8),
+                        Container(
+                          height: 48,
+                          decoration: BoxDecoration(
+                            color: AppColors.neutral100,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: IconButton(
+                            onPressed: () {
+                              setState(
+                                () => _includeInactive = !_includeInactive,
+                              );
+                            },
+                            icon: Icon(
+                              _includeInactive
+                                  ? Icons.visibility_off_rounded
+                                  : Icons.visibility_rounded,
+                              color: _includeInactive
+                                  ? AppColors.neutral500
+                                  : AppColors.primaryRed,
+                            ),
+                            tooltip: _includeInactive
+                                ? 'Ocultar inactivos'
+                                : 'Mostrar inactivos',
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+
+          // 2. Lista de Empleados
+          teamAsync.when(
+            loading: () => const SliverFillRemaining(
+              child: Center(
+                child: CircularProgressIndicator(color: AppColors.primaryRed),
+              ),
+            ),
+            error: (e, _) => SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Text(
+                  'Error al cargar equipo: $e',
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ),
+            data: (team) {
+              if (team.isEmpty) {
+                return const SliverFillRemaining(
+                  child: Center(
+                    child: EmptyState(
+                      title: 'Sin empleados',
+                      message: 'No se encontraron resultados.',
+                      icon: Icons.people_outline_rounded,
+                    ),
+                  ),
+                );
+              }
+
+              return SliverPadding(
+                padding: const EdgeInsets.all(16),
+                sliver: SliverList(
+                  delegate: SliverChildBuilderDelegate((context, index) {
+                    final employee = team[index];
+                    // Lógica de "Working Now" (Simulada o real si tenemos el dato)
+                    // Si 'activo' es true, mostramos punto verde, si no gris.
+                    // Idealmente verificaríamos si tiene un turno activo AHORA.
+                    // Asumiremos 'activo' del perfil por ahora como "Status General".
+                    final isOnline = employee.activo == true;
+
+                    return _ManagerTeamMemberTile(
+                      employee: employee,
+                      isOnline: isOnline,
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                ManagerPersonDetailView(userId: employee.id),
+                          ),
+                        );
+                      },
+                    );
+                  }, childCount: team.length),
+                ),
+              );
+            },
+          ),
+
+          const SliverPadding(padding: EdgeInsets.only(bottom: 80)),
+        ],
+      ),
+    );
+  }
+}
+
+class _ManagerTeamMemberTile extends StatelessWidget {
+  final dynamic employee; // Tipo Perfiles
+  final bool isOnline;
+  final VoidCallback onTap;
+
+  const _ManagerTeamMemberTile({
+    required this.employee,
+    required this.isOnline,
+    required this.onTap,
+  });
+
+  Future<void> _makePhoneCall(String? phoneNumber) async {
+    if (phoneNumber == null || phoneNumber.isEmpty) return;
+    final Uri launchUri = Uri(scheme: 'tel', path: phoneNumber);
+    if (await canLaunchUrl(launchUri)) {
+      await launchUrl(launchUri);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final nombre = '${employee.nombres} ${employee.apellidos}';
+    final cargo = employee.cargo ?? 'Sin cargo';
+    final photoUrl = employee.fotoPerfilUrl;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: const [
+          BoxShadow(
+            color: Color.fromRGBO(0, 0, 0, 0.05),
+            blurRadius: 8,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(16),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(16),
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Row(
+              children: [
+                // Avatar con Status Dot
+                Stack(
+                  children: [
+                    CircleAvatar(
+                      radius: 24,
+                      backgroundColor: AppColors.neutral100,
+                      backgroundImage:
+                          (photoUrl != null && (photoUrl as String).isNotEmpty)
+                          ? NetworkImage(photoUrl)
+                          : null,
+                      child: (photoUrl == null || (photoUrl as String).isEmpty)
+                          ? Text(
+                              employee.nombres[0],
+                              style: const TextStyle(
+                                color: AppColors.neutral700,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            )
+                          : null,
+                    ),
+                    Positioned(
+                      bottom: 0,
+                      right: 0,
+                      child: Container(
+                        width: 14,
+                        height: 14,
+                        decoration: BoxDecoration(
+                          color: isOnline
+                              ? AppColors.successGreen
+                              : AppColors.neutral400,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white, width: 2),
                         ),
                       ),
-                      const SizedBox(width: 12),
-                      const Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Mi Equipo',
-                              style: TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.w800,
-                                color: AppColors.neutral900,
-                              ),
-                            ),
-                            SizedBox(height: 2),
-                            Text(
-                              'Empleados a tu cargo',
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: AppColors.neutral600,
-                              ),
-                            ),
-                          ],
+                    ),
+                  ],
+                ),
+                const SizedBox(width: 12),
+
+                // Info Central
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        nombre,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.neutral900,
                         ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        cargo,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: AppColors.neutral600,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ],
                   ),
-                  const SizedBox(height: 16),
-
-                   // Barra de búsqueda
-                   TextField(
-                     controller: _searchController,
-                     onChanged: (_) => _onSearchChanged(),
-                     decoration: InputDecoration(
-                       hintText: 'Buscar por nombre o apellido...',
-                       prefixIcon: const Icon(Icons.search_rounded, size: 20),
-                      suffixIcon: _searchController.text.isNotEmpty
-                          ? IconButton(
-                              icon: const Icon(Icons.clear_rounded, size: 20),
-                              onPressed: () {
-                                _searchController.clear();
-                                _onSearchChanged();
-                              },
-                            )
-                          : null,
-                      filled: true,
-                      fillColor: AppColors.neutral100,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide.none,
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 12,
-                      ),
-                    ),
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        ChoiceChip(
-                          label: const Text('Activos'),
-                          selected: !_includeInactive,
-                          onSelected: (_) =>
-                              setState(() => _includeInactive = false),
-                          selectedColor:
-                              AppColors.primaryRed.withValues(alpha: 0.12),
-                          labelStyle: TextStyle(
-                            fontWeight: FontWeight.w700,
-                            color: !_includeInactive
-                                ? AppColors.primaryRed
-                                : AppColors.neutral700,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        ChoiceChip(
-                          label: const Text('Todos'),
-                          selected: _includeInactive,
-                          onSelected: (_) =>
-                              setState(() => _includeInactive = true),
-                          selectedColor:
-                              AppColors.primaryRed.withValues(alpha: 0.12),
-                          labelStyle: TextStyle(
-                            fontWeight: FontWeight.w700,
-                            color: _includeInactive
-                                ? AppColors.primaryRed
-                                : AppColors.neutral700,
-                          ),
-                        ),
-                      ],
-                    ),
-                 ],
-               ),
-             ),
-
-            // Lista de empleados
-            Expanded(
-              child: teamAsync.when(
-                loading: () => const Center(
-                  child: CircularProgressIndicator(color: AppColors.primaryRed),
                 ),
-                error: (e, _) => Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(
-                          Icons.error_outline_rounded,
-                          size: 64,
-                          color: AppColors.errorRed,
-                        ),
-                        const SizedBox(height: 16),
-                        const Text(
-                          'Error al cargar el equipo',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.neutral900,
+
+                // Menú de Acciones Rápidas
+                PopupMenuButton<String>(
+                  onSelected: (value) {
+                    if (value == 'call') {
+                      _makePhoneCall(employee.telefono);
+                    } else if (value == 'detail') {
+                      onTap();
+                    }
+                  },
+                  itemBuilder: (context) => [
+                    const PopupMenuItem(
+                      value: 'call',
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.phone_rounded,
+                            size: 20,
+                            color: AppColors.neutral700,
                           ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          '$e',
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            fontSize: 14,
-                            color: AppColors.neutral600,
-                          ),
-                        ),
-                      ],
+                          SizedBox(width: 8),
+                          Text('Llamar'),
+                        ],
+                      ),
                     ),
+                    const PopupMenuItem(
+                      value: 'detail',
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.person_outline_rounded,
+                            size: 20,
+                            color: AppColors.neutral700,
+                          ),
+                          SizedBox(width: 8),
+                          Text('Ver perfil'),
+                        ],
+                      ),
+                    ),
+                  ],
+                  icon: const Icon(
+                    Icons.more_vert_rounded,
+                    color: AppColors.neutral400,
                   ),
                 ),
-                data: (team) {
-                  if (team.isEmpty) {
-                    return const EmptyState(
-                      title: 'Sin empleados',
-                      message:
-                          'No tienes empleados asignados a tu cargo.\nContacta al administrador.',
-                          icon: Icons.people_outline_rounded,
-                    );
-                  }
-
-                  return RefreshIndicator(
-                    onRefresh: () async {
-                      ref.invalidate(
-                        _includeInactive
-                            ? managerTeamAllProvider(_searchQuery)
-                            : managerTeamProvider(_searchQuery),
-                      );
-                    },
-                    color: AppColors.primaryRed,
-                    child: ListView.separated(
-                      padding: const EdgeInsets.all(16),
-                      itemCount: team.length + 1, // +1 para el header
-                      separatorBuilder: (_, __) => const SizedBox(height: 12),
-                      itemBuilder: (context, index) {
-                        if (index == 0) {
-                          // Header con contador
-                          return Padding(
-                            padding: const EdgeInsets.only(bottom: 4),
-                            child: Row(
-                              children: [
-                                Text(
-                                  '${team.length} ${team.length == 1 ? 'empleado' : 'empleados'}',
-                                  style: const TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w700,
-                                    color: AppColors.neutral700,
-                                  ),
-                                ),
-                                if (_searchQuery != null) ...[
-                                  const SizedBox(width: 8),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 8,
-                                      vertical: 2,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: AppColors.primaryRed.withValues(
-                                        alpha: 0.1,
-                                      ),
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    child: const Text(
-                                      'Filtrado',
-                                      style: TextStyle(
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.w600,
-                                        color: AppColors.primaryRed,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ],
-                            ),
-                          );
-                        }
-
-                        final employee = team[index - 1];
-
-                        // Obtener horario del empleado desde la lista de horarios (si ya fue cargada por el provider en otro lado o aquí)
-                        // Para evitar sobrecarga, podemos usar ref.watch(managerTeamSchedulesProvider(null)) si queremos eager loading
-                        // O simplemente dejarlo vacío si no es crítico.
-                        // Pero el usuario lo pidió. Vamos a intentar obtenerlo del provider de horarios.
-                        final schedulesAsync = ref.watch(
-                          managerTeamSchedulesProvider(null),
-                        ); // Cacheado
-                        final scheduleName = schedulesAsync.maybeWhen(
-                          data: (schedules) {
-                            final empSchedule = schedules.firstWhere(
-                              (s) => s['perfil_id'] == employee.id,
-                              orElse: () =>
-                                  <
-                                    String,
-                                    dynamic
-                                  >{}, // Retornar mapa vacío en lugar de null
-                            );
-                            if (empSchedule.isEmpty) return null;
-                            return empSchedule['plantillas_horarios']['nombre']
-                                as String?;
-                          },
-                          orElse: () => null,
-                        );
-
-                        return ManagerTeamMemberCard(
-                          employee: employee,
-                          scheduleName: scheduleName,
-                          // onTap removido - usar navegación default del card
-                        );
-                      },
-                    ),
-                  );
-                },
-              ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );

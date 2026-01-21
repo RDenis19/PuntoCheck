@@ -1,16 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 
 import 'package:puntocheck/presentation/manager/views/manager_approvals_view.dart';
 import 'package:puntocheck/presentation/manager/views/manager_branch_view.dart';
 import 'package:puntocheck/presentation/manager/views/manager_compliance_alerts_view.dart';
 import 'package:puntocheck/presentation/manager/views/manager_hours_bank_view.dart';
-import 'package:puntocheck/presentation/manager/views/manager_leave_detail_view.dart'; // Import Detail View
+import 'package:puntocheck/presentation/manager/views/manager_leave_detail_view.dart';
+import 'package:puntocheck/models/solicitudes_permisos.dart';
+import 'package:puntocheck/presentation/manager/views/manager_notifications_view.dart';
 import 'package:puntocheck/providers/manager_providers.dart';
 import 'package:puntocheck/utils/theme/app_colors.dart';
 
-/// Dashboard del Manager con estadísticas en tiempo real del equipo.
-/// Incluye botón flotante con menú de acciones rápidas.
+/// Dashboard del Manager "Command Center".
+/// Estilo moderno, KPIs visuales y acciones en BottomSheet.
 class ManagerDashboardView extends ConsumerStatefulWidget {
   const ManagerDashboardView({super.key});
 
@@ -20,277 +23,293 @@ class ManagerDashboardView extends ConsumerStatefulWidget {
 }
 
 class _ManagerDashboardViewState extends ConsumerState<ManagerDashboardView> {
-  bool _showActions = false;
+  void _showQuickActions(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => const _ActionsBottomSheet(),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     final summaryAsync = ref.watch(managerHomeSummaryProvider);
+    final profileAsync = ref.watch(managerProfileProvider);
+    final notificationsAsync = ref.watch(
+      managerUnreadNotificationsCountProvider,
+    );
 
-    // SafeArea rernoved to prevent double padding/gap, handled by Shell
-    return summaryAsync.when(
+    return Scaffold(
+      backgroundColor: AppColors.secondaryWhite,
+      body: summaryAsync.when(
         loading: () => const Center(
           child: CircularProgressIndicator(color: AppColors.primaryRed),
         ),
-        error: (e, _) => Center(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(
-                  Icons.error_outline_rounded,
-                  size: 64,
-                  color: AppColors.errorRed,
-                ),
-                const SizedBox(height: 16),
-                const Text(
-                  'Error cargando dashboard',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.neutral900,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  '$e',
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    color: AppColors.neutral600,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
+        error: (e, _) => Center(child: Text('Error: $e')),
         data: (summary) {
-          return Stack(
-            children: [
-              // Contenido principal
-              RefreshIndicator(
-                onRefresh: () async {
-                  ref.invalidate(managerHomeSummaryProvider);
-                },
-                color: AppColors.primaryRed,
-                child: ListView(
-                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-                  children: [
-                    // Título Resumen
-                    const Text(
-                      'RESUMEN',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.neutral500,
-                        letterSpacing: 0.5,
+          return CustomScrollView(
+            slivers: [
+              // 1. Sliver App Bar con Saludo y Fecha
+              SliverAppBar(
+                expandedHeight: 140,
+                pinned: true,
+                backgroundColor: Colors.white,
+                surfaceTintColor: Colors.transparent,
+                title: const Text(
+                  'Dashboard',
+                  style: TextStyle(
+                    color: AppColors.neutral900,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 18,
+                  ),
+                ),
+                centerTitle: false,
+                actions: [
+                  Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      IconButton(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const ManagerNotificationsView(),
+                            ),
+                          );
+                        },
+                        icon: const Icon(
+                          Icons.notifications_none_rounded,
+                          color: AppColors.neutral900,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 12),
+                      if ((notificationsAsync.valueOrNull ?? 0) > 0)
+                        Positioned(
+                          top: 10,
+                          right: 10,
+                          child: Container(
+                            width: 8,
+                            height: 8,
+                            decoration: const BoxDecoration(
+                              color: AppColors.primaryRed,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(width: 8),
+                ],
+                flexibleSpace: FlexibleSpaceBar(
+                  background: Stack(
+                    children: [
+                      Positioned(
+                        left: 20,
+                        bottom: 20,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              _getGreeting(),
+                              style: const TextStyle(
+                                fontSize: 14,
+                                color: AppColors.neutral600,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              profileAsync.valueOrNull?.nombres ?? 'Manager',
+                              style: const TextStyle(
+                                fontSize: 24,
+                                color: AppColors.neutral900,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              DateFormat(
+                                'EEEE d, MMMM',
+                                'es',
+                              ).format(DateTime.now()),
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: AppColors.neutral500.withValues(
+                                  alpha: 0.8,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
 
-                    // Fila 1: Presentes y Tardanzas (Tarjetas Rojas)
+              // 2. KPIs Section (Command Cards)
+              SliverPadding(
+                padding: const EdgeInsets.all(16),
+                sliver: SliverList(
+                  delegate: SliverChildListDelegate([
+                    const SizedBox(height: 8),
+                    // Fila Principal: Presentes y Tardanzas (Con gradiente suave)
                     Row(
                       children: [
                         Expanded(
-                          child: _RedStatCard(
-                            label: 'Presentes hoy',
+                          child: _GradientKpiCard(
+                            label: 'Presentes',
                             value: '${summary.teamPresent}',
                             icon: Icons.check_circle_outline_rounded,
+                            gradient: const LinearGradient(
+                              colors: [AppColors.primaryRed, Color(0xFFE53935)],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
                           ),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
-                          child: _RedStatCard(
+                          child: _GradientKpiCard(
                             label: 'Tardanzas',
                             value: '${summary.teamLate}',
                             icon: Icons.schedule_rounded,
+                            // Un tono naranja/ámbar para alerta sin ser error crítico
+                            gradient: const LinearGradient(
+                              colors: [Color(0xFFFB8C00), Color(0xFFF57C00)],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
                           ),
                         ),
                       ],
                     ),
                     const SizedBox(height: 12),
-
-                    // Fila 2: Permisos pendientes y Horas extra (Tarjetas Rojas)
+                    // Fila Secundaria: Pendientes y Horas Extra (Estilo más limpio)
                     Row(
                       children: [
                         Expanded(
-                          child: _RedStatCard(
-                            label: 'Pendientes',
+                          child: _CleanKpiCard(
+                            label: 'Solicitudes',
                             value: '${summary.pendingPermissions}',
-                            icon: Icons.mail_outline_rounded,
+                            icon: Icons.mark_email_unread_outlined,
+                            accentColor: AppColors.infoBlue,
                           ),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
-                          child: _RedStatCard(
-                            label: 'Horas extra',
+                          child: _CleanKpiCard(
+                            label: 'Horas Extra',
                             value: '${summary.overtimeHoursWeek}',
                             icon: Icons.trending_up_rounded,
+                            accentColor: AppColors.successGreen,
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 32),
 
-                    // Título Solicitudes Recientes
-                    if (summary.recentPermissions.isNotEmpty) ...[
-                      const Text(
-                        'SOLICITUDES RECIENTES',
-                         style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.neutral500,
-                          letterSpacing: 0.5,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      ...summary.recentPermissions.map((permission) {
-                        return _RecentRequestCard(
-                          request: permission,
-                          onTap: () async {
-                             // Navegar al detalle para aprobar/rechazar
-                              final changed = await Navigator.push<bool>(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => ManagerLeaveDetailView(
-                                    request: permission,
-                                  ),
-                                ),
-                              );
-                              // Si cambió algo (aprobó/rechazó), provider auto-refresh lo captará eventualemente
-                              // pero forzamos refresh inmediato por UX
-                              if (changed == true) {
-                                ref.invalidate(managerHomeSummaryProvider);
-                                ref.invalidate(managerTeamPermissionsProvider);
-                              }
-                          },
-                        );
-                      }),
-                      const SizedBox(height: 80),
-                    ] else ...[
-                      const Padding(
-                        padding: EdgeInsets.symmetric(vertical: 24),
-                        child: Center(
-                          child: Text(
-                            'No hay solicitudes recientes',
-                            style: TextStyle(color: AppColors.neutral500),
+                    // 3. Solicitudes Recientes (Inbox Style)
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Actividad Reciente',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.neutral900,
                           ),
                         ),
-                      ),
-                      const SizedBox(height: 80),
-                    ],
-                  ],
+                        TextButton(
+                          onPressed: () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => const ManagerApprovalsView(),
+                              ),
+                            );
+                          },
+                          child: const Text('Ver todas'),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                  ]),
                 ),
               ),
 
-              // Botón flotante con menú
-              Positioned(
-                bottom: 24,
-                right: 16,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    if (_showActions) ...[
-                      _QuickAction(
-                        icon: Icons.approval_rounded,
-                        label: 'Aprobar permisos',
-                        onTap: () {
-                          setState(() => _showActions = false);
-                          Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (_) => const ManagerApprovalsView(),
-                            ),
-                          );
-                        },
+              // Lista de Solicitudes
+              if (summary.recentPermissions.isEmpty)
+                const SliverToBoxAdapter(
+                  child: Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(32.0),
+                      child: Text(
+                        'Todo al día. No hay solicitudes nuevas.',
+                        style: TextStyle(color: AppColors.neutral500),
                       ),
-                      const SizedBox(height: 10),
-                      _QuickAction(
-                        icon: Icons.store_mall_directory_rounded,
-                        label: 'Mi sucursal',
-                        onTap: () {
-                          setState(() => _showActions = false);
-                          Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (_) => const ManagerBranchView(),
-                            ),
-                          );
-                        },
-                      ),
-                      const SizedBox(height: 10),
-                      _QuickAction(
-                        icon: Icons.access_time_rounded,
-                        label: 'Banco de horas',
-                        onTap: () {
-                          setState(() => _showActions = false);
-                          Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (_) => const ManagerHoursBankView(),
-                            ),
-                          );
-                        },
-                      ),
-                      const SizedBox(height: 10),
-                      _QuickAction(
-                        icon: Icons.shield_rounded,
-                        label: 'Alertas',
-                        onTap: () {
-                          setState(() => _showActions = false);
-                          Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (_) => const ManagerComplianceAlertsView(),
-                            ),
-                          );
-                        },
-                      ),
-                      const SizedBox(height: 10),
-                    ],
-                    FloatingActionButton(
-                      backgroundColor: AppColors.primaryRed,
-                      foregroundColor: Colors.white,
-                      onPressed: () =>
-                          setState(() => _showActions = !_showActions),
-                      child: Icon(_showActions ? Icons.close_rounded : Icons.add_rounded),
                     ),
-                  ],
+                  ),
+                )
+              else
+                SliverList(
+                  delegate: SliverChildBuilderDelegate((context, index) {
+                    final item = summary.recentPermissions[index];
+                    return _RecentRequestTile(request: item);
+                  }, childCount: summary.recentPermissions.length),
                 ),
-              ),
+
+              const SliverPadding(padding: EdgeInsets.only(bottom: 100)),
             ],
           );
         },
-      );
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => _showQuickActions(context),
+        backgroundColor: AppColors.primaryRed,
+        elevation: 4,
+        child: const Icon(Icons.grid_view_rounded, color: Colors.white),
+      ),
+    );
+  }
+
+  String _getGreeting() {
+    final hour = DateTime.now().hour;
+    if (hour < 12) return 'Buenos días,';
+    if (hour < 18) return 'Buenas tardes,';
+    return 'Buenas noches,';
   }
 }
 
-// ============================================================================
-// WIDGET LOCALS
-// ============================================================================
+// -----------------------------------------------------------------------------
+// WIDGETS
+// -----------------------------------------------------------------------------
 
-/// Tarjeta de estadística roja con ícono blanco y texto blanco, 
-/// estilo "block" uniforme.
-class _RedStatCard extends StatelessWidget {
+class _GradientKpiCard extends StatelessWidget {
   final String label;
   final String value;
   final IconData icon;
+  final Gradient gradient;
 
-  const _RedStatCard({
+  const _GradientKpiCard({
     required this.label,
     required this.value,
     required this.icon,
+    required this.gradient,
   });
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      // Altura fija para uniformidad ("del mismo porte")
-      height: 100, 
+      height: 100,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.primaryRed,
-        borderRadius: BorderRadius.circular(16),
+        gradient: gradient,
+        borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: AppColors.primaryRed.withValues(alpha: 0.3),
-            blurRadius: 8,
+            color: (gradient.colors.first).withValues(alpha: 0.3),
+            blurRadius: 10,
             offset: const Offset(0, 4),
           ),
         ],
@@ -299,10 +318,8 @@ class _RedStatCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          // Icono y Valor
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 value,
@@ -313,23 +330,16 @@ class _RedStatCard extends StatelessWidget {
                   height: 1.0,
                 ),
               ),
-              Icon(
-                icon,
-                color: Colors.white.withValues(alpha: 0.8),
-                size: 24,
-              ),
+              Icon(icon, color: Colors.white.withValues(alpha: 0.8), size: 22),
             ],
           ),
-          // Label
           Text(
             label,
             style: TextStyle(
               fontSize: 13,
-              fontWeight: FontWeight.w500,
+              fontWeight: FontWeight.w600,
               color: Colors.white.withValues(alpha: 0.9),
             ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
           ),
         ],
       ),
@@ -337,148 +347,262 @@ class _RedStatCard extends StatelessWidget {
   }
 }
 
-/// Tarjeta compacta para solicitudes recientes (solo Nombre, Fecha, Tipo)
-class _RecentRequestCard extends StatelessWidget {
-  final dynamic request;
-  final VoidCallback onTap;
+class _CleanKpiCard extends StatelessWidget {
+  final String label;
+  final String value;
+  final IconData icon;
+  final Color accentColor;
 
-  const _RecentRequestCard({required this.request, required this.onTap});
+  const _CleanKpiCard({
+    required this.label,
+    required this.value,
+    required this.icon,
+    required this.accentColor,
+  });
 
   @override
   Widget build(BuildContext context) {
-    // Helper para fecha "17 Dic"
-    String formatDate(DateTime d) {
-      const months = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
-      return '${d.day} ${months[d.month-1]}';
-    }
-
-    final nombre = request.solicitanteNombreCompleto;
-    final fecha = formatDate(request.creadoEn ?? DateTime.now());
-    final tipo = request.tipo.label;
-
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
+      height: 100,
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.primaryRed.withValues(alpha: 0.3)), // Borde rojo suave
-        boxShadow: [
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: const [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 8,
-            offset: const Offset(0, 4),
+            color: Color.fromRGBO(0, 0, 0, 0.05),
+            blurRadius: 10,
+            offset: Offset(0, 4),
           ),
         ],
       ),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              // Avatar simple
+              Text(
+                value,
+                style: const TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.neutral900,
+                  height: 1.0,
+                ),
+              ),
               Container(
-                width: 44,
-                height: 44,
+                padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: AppColors.neutral100,
-                  borderRadius: BorderRadius.circular(12),
+                  color: accentColor.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.person_rounded, color: AppColors.neutral400),
+                child: Icon(icon, color: accentColor, size: 18),
               ),
-              const SizedBox(width: 12),
-              
-              // Info: Nombre y Fecha
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                     Text(
-                        nombre,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w700,
-                          fontSize: 15,
-                          color: AppColors.neutral900,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                     ),
-                     const SizedBox(height: 4),
-                     Text(
-                       fecha,
-                       style: const TextStyle(
-                         fontSize: 13,
-                         color: AppColors.neutral500,
-                       ),
-                     ),
-                  ],
-                ),
-              ),
+            ],
+          ),
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: AppColors.neutral500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
 
-              // Chip de Tipo (destacado suave)
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  color: AppColors.primaryRed.withValues(alpha: 0.08),
-                  borderRadius: BorderRadius.circular(8),
+class _RecentRequestTile extends StatelessWidget {
+  final SolicitudesPermisos request;
+  const _RecentRequestTile({required this.request});
+
+  @override
+  Widget build(BuildContext context) {
+    // Usamos InkWell para efecto ripple
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: const [
+          BoxShadow(
+            color: Color.fromRGBO(0, 0, 0, 0.03),
+            blurRadius: 8,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      child: ListTile(
+        onTap: () async {
+          // Navegar al detalle
+          await Navigator.push<bool>(
+            context,
+            MaterialPageRoute(
+              builder: (context) => ManagerLeaveDetailView(request: request),
+            ),
+          );
+          // El refresh se maneja por riverpod provider invalidate si es necesario
+          // pero idealmente deberíamos invalidar al volver si cambió.
+          // Por simplicidad, confiamos en auto-disposables o refresh manual
+        },
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        leading: CircleAvatar(
+          backgroundColor: AppColors.neutral100,
+          child: Text(
+            (request.solicitanteNombreCompleto ?? '?').substring(0, 1),
+            style: const TextStyle(
+              color: AppColors.neutral700,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+        title: Text(
+          request.solicitanteNombreCompleto ?? 'Desconocido',
+          style: const TextStyle(
+            fontWeight: FontWeight.bold,
+            color: AppColors.neutral900,
+            fontSize: 15,
+          ),
+        ),
+        subtitle: Text(
+          '${request.tipo.label} • ${_formatDate(request.creadoEn)}',
+          style: const TextStyle(fontSize: 13, color: AppColors.neutral500),
+        ),
+        trailing: const Icon(
+          Icons.chevron_right_rounded,
+          color: AppColors.neutral400,
+        ),
+      ),
+    );
+  }
+
+  String _formatDate(DateTime? d) {
+    if (d == null) return '';
+    return DateFormat('dd MMM').format(d);
+  }
+}
+
+class _ActionsBottomSheet extends StatelessWidget {
+  const _ActionsBottomSheet();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Acciones Rápidas',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w800,
+              color: AppColors.neutral900,
+            ),
+          ),
+          const SizedBox(height: 24),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _ActionButton(
+                icon: Icons.approval_rounded,
+                label: 'Aprobar',
+                color: AppColors.primaryRed,
+                onTap: () => Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const ManagerApprovalsView(),
+                  ),
                 ),
-                child: Text(
-                  tipo,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.primaryRed,
+              ),
+              _ActionButton(
+                icon: Icons.store_mall_directory_rounded,
+                label: 'Sucursal',
+                color: AppColors.infoBlue,
+                onTap: () => Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (_) => const ManagerBranchView()),
+                ),
+              ),
+              _ActionButton(
+                icon: Icons.access_time_rounded,
+                label: 'Banco Hs',
+                color: Colors.orange,
+                onTap: () => Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const ManagerHoursBankView(),
+                  ),
+                ),
+              ),
+              _ActionButton(
+                icon: Icons.shield_rounded,
+                label: 'Alertas',
+                color: Colors.purple,
+                onTap: () => Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const ManagerComplianceAlertsView(),
                   ),
                 ),
               ),
             ],
           ),
-        ),
+          const SizedBox(height: 16),
+        ],
       ),
     );
   }
 }
 
-class _QuickAction extends StatelessWidget {
+class _ActionButton extends StatelessWidget {
   final IconData icon;
   final String label;
+  final Color color;
   final VoidCallback onTap;
 
-  const _QuickAction({
+  const _ActionButton({
     required this.icon,
     required this.label,
+    required this.color,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return InkWell(
       onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(14),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.06),
-              blurRadius: 12,
-              offset: const Offset(0, 6),
-            ),
-          ],
-          border: Border.all(color: AppColors.neutral200),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
+        width: 70,
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: Column(
           children: [
-            Icon(icon, color: AppColors.primaryRed, size: 20),
-            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, color: color, size: 24),
+            ),
+            const SizedBox(height: 8),
             Text(
               label,
+              textAlign: TextAlign.center,
               style: const TextStyle(
-                color: AppColors.neutral900,
-                fontWeight: FontWeight.w700,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: AppColors.neutral700,
               ),
             ),
           ],

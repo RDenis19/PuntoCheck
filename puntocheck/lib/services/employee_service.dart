@@ -111,16 +111,14 @@ class EmployeeService {
     try {
       final response = await supabase
           .from('asignaciones_horarios')
-          .select(
-            '''
+          .select('''
               id, perfil_id, organizacion_id, plantilla_id, fecha_inicio, fecha_fin,
               plantillas_horarios (
                 id, organizacion_id, nombre, dias_laborales, tolerancia_entrada_minutos,
                 es_rotativo, eliminado, creado_en,
                 turnos_jornada (id, plantilla_id, nombre_turno, hora_inicio, hora_fin, orden, es_dia_siguiente, creado_en)
               )
-            ''',
-          )
+            ''')
           .eq('perfil_id', userId)
           .eq('organizacion_id', orgId)
           .lte('fecha_inicio', todayStr)
@@ -154,16 +152,14 @@ class EmployeeService {
     try {
       final response = await supabase
           .from('asignaciones_horarios')
-          .select(
-            '''
+          .select('''
               id, perfil_id, organizacion_id, plantilla_id, fecha_inicio, fecha_fin,
               plantillas_horarios (
                 id, organizacion_id, nombre, dias_laborales, tolerancia_entrada_minutos,
                 es_rotativo, eliminado, creado_en,
                 turnos_jornada (id, plantilla_id, nombre_turno, hora_inicio, hora_fin, orden, es_dia_siguiente, creado_en)
               )
-            ''',
-          )
+            ''')
           .eq('perfil_id', userId)
           .eq('organizacion_id', orgId)
           .gt('fecha_inicio', baseStr)
@@ -220,7 +216,9 @@ class EmployeeService {
     try {
       var query = supabase
           .from('registros_asistencia')
-          .select('*, sucursales(nombre), turnos_jornada(nombre_turno,hora_inicio,hora_fin)')
+          .select(
+            '*, sucursales(nombre), turnos_jornada(nombre_turno,hora_inicio,hora_fin)',
+          )
           .eq('perfil_id', userId)
           .eq('organizacion_id', orgId)
           .eq('eliminado', false);
@@ -254,7 +252,10 @@ class EmployeeService {
     try {
       final response = await supabase
           .from('solicitudes_permisos')
-          .select()
+          .select('''
+            *,
+            aprobado_por:perfiles!aprobado_por_id(nombres, apellidos)
+          ''')
           .eq('solicitante_id', userId)
           .eq('organizacion_id', orgId)
           .order('creado_en', ascending: false);
@@ -269,7 +270,9 @@ class EmployeeService {
     }
   }
 
-  Future<List<BancoHorasCompensatorias>> getMyHoursBank({int limit = 200}) async {
+  Future<List<BancoHorasCompensatorias>> getMyHoursBank({
+    int limit = 200,
+  }) async {
     final userId = supabase.auth.currentUser?.id;
     if (userId == null) throw Exception('Usuario no autenticado');
     final orgId = await _requireOrgId();
@@ -284,9 +287,11 @@ class EmployeeService {
           .limit(limit);
 
       return (response as List)
-          .map((json) => BancoHorasCompensatorias.fromJson(
-                Map<String, dynamic>.from(json as Map),
-              ))
+          .map(
+            (json) => BancoHorasCompensatorias.fromJson(
+              Map<String, dynamic>.from(json as Map),
+            ),
+          )
           .toList();
     } on PostgrestException catch (e) {
       throw Exception('Error obteniendo banco de horas: ${e.message}');
@@ -295,7 +300,9 @@ class EmployeeService {
     }
   }
 
-  Future<List<AlertasCumplimiento>> getMyComplianceAlerts({int limit = 100}) async {
+  Future<List<AlertasCumplimiento>> getMyComplianceAlerts({
+    int limit = 100,
+  }) async {
     final userId = supabase.auth.currentUser?.id;
     if (userId == null) throw Exception('Usuario no autenticado');
     final orgId = await _requireOrgId();
@@ -310,9 +317,11 @@ class EmployeeService {
           .limit(limit);
 
       return (response as List)
-          .map((json) => AlertasCumplimiento.fromJson(
-                Map<String, dynamic>.from(json as Map),
-              ))
+          .map(
+            (json) => AlertasCumplimiento.fromJson(
+              Map<String, dynamic>.from(json as Map),
+            ),
+          )
           .toList();
     } on PostgrestException catch (e) {
       throw Exception('Error obteniendo alertas de cumplimiento: ${e.message}');
@@ -365,7 +374,9 @@ class EmployeeService {
     try {
       var query = supabase
           .from('qr_codigos')
-          .select('id, sucursal_id, organizacion_id, fecha_expiracion, es_valido')
+          .select(
+            'id, sucursal_id, organizacion_id, fecha_expiracion, es_valido',
+          )
           .eq('token_hash', hash)
           .eq('es_valido', true)
           .gt('fecha_expiracion', now);
@@ -438,7 +449,11 @@ class EmployeeService {
     if (userId == null) throw Exception('Usuario no autenticado');
     final orgId = await _requireOrgId();
 
-    final start = DateTime(fechaInicio.year, fechaInicio.month, fechaInicio.day);
+    final start = DateTime(
+      fechaInicio.year,
+      fechaInicio.month,
+      fechaInicio.day,
+    );
     final end = DateTime(fechaFin.year, fechaFin.month, fechaFin.day);
     if (end.isBefore(start)) {
       throw Exception('La fecha fin no puede ser anterior a la fecha inicio.');
@@ -561,7 +576,9 @@ class EmployeeService {
       'esta_dentro_geocerca': estaDentroGeocerca,
       'es_mock_location': esMockLocation,
       'evidencia_foto_url': evidenciaFotoUrl,
-      'origen': isQr ? OrigenMarcacion.qrFijo.value : OrigenMarcacion.gpsMovil.value,
+      'origen': isQr
+          ? OrigenMarcacion.qrFijo.value
+          : OrigenMarcacion.gpsMovil.value,
       'notas': notas,
       'turno_jornada_id': turnoJornadaId,
       'eliminado': false,

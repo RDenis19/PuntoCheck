@@ -59,12 +59,12 @@ class _AuditorAlertsViewState extends ConsumerState<AuditorAlertsView> {
 
     ref.listen(auditorAlertsControllerProvider, (_, next) {
       next.whenOrNull(
-        data: (_) => ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Alerta actualizada')),
-        ),
-        error: (e, _) => ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
-        ),
+        data: (_) => ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Alerta actualizada'))),
+        error: (e, _) => ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e'))),
       );
     });
 
@@ -81,7 +81,7 @@ class _AuditorAlertsViewState extends ConsumerState<AuditorAlertsView> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 // Spacer para balancear
-                const SizedBox(width: 96), 
+                const SizedBox(width: 96),
                 const Expanded(
                   child: Center(
                     child: Text(
@@ -135,7 +135,9 @@ class _AuditorAlertsViewState extends ConsumerState<AuditorAlertsView> {
                               _searchCtrl.clear();
                               ref
                                   .read(auditorAlertsFilterProvider.notifier)
-                                  .state = filter.copyWith(query: '');
+                                  .state = filter.copyWith(
+                                query: '',
+                              );
                             },
                             icon: const Icon(Icons.close_rounded),
                           ),
@@ -195,37 +197,119 @@ class _AuditorAlertsViewState extends ConsumerState<AuditorAlertsView> {
                   return null;
                 }
 
+                final sortedAlerts = List<AlertasCumplimiento>.from(alerts);
+                sortedAlerts.sort((a, b) {
+                  final da = a.fechaDeteccion ?? DateTime(2000);
+                  final db = b.fechaDeteccion ?? DateTime(2000);
+                  return db.compareTo(da); // Descending
+                });
+
+                // Grouping logic
+                final now = DateTime.now();
+                final today = DateTime(now.year, now.month, now.day);
+                final yesterday = today.subtract(const Duration(days: 1));
+
+                final todayAlerts = <AlertasCumplimiento>[];
+                final yesterdayAlerts = <AlertasCumplimiento>[];
+                final olderAlerts = <AlertasCumplimiento>[];
+
+                for (final a in sortedAlerts) {
+                  final d = a.fechaDeteccion;
+                  if (d == null) {
+                    olderAlerts.add(a);
+                    continue;
+                  }
+                  final date = DateTime(d.year, d.month, d.day);
+                  if (date.isAtSameMomentAs(today)) {
+                    todayAlerts.add(a);
+                  } else if (date.isAtSameMomentAs(yesterday)) {
+                    yesterdayAlerts.add(a);
+                  } else {
+                    olderAlerts.add(a);
+                  }
+                }
+
+                Widget buildSectionHeader(String title, IconData icon) {
+                  return Padding(
+                    padding: const EdgeInsets.only(top: 24, bottom: 8),
+                    child: Row(
+                      children: [
+                        Icon(icon, size: 16, color: AppColors.neutral500),
+                        const SizedBox(width: 8),
+                        Text(
+                          title.toUpperCase(),
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 0.5,
+                            color: AppColors.neutral500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+
                 return RefreshIndicator(
                   color: AppColors.primaryRed,
-                  onRefresh: () async => ref.refresh(auditorAlertsProvider.future),
+                  onRefresh: () async =>
+                      ref.refresh(auditorAlertsProvider.future),
                   child: ListView(
                     padding: const EdgeInsets.fromLTRB(16, 6, 16, 16),
                     children: [
                       // Resumen Rojo tipo Header
                       _SummaryHeader(summary: summary),
 
-                      const SizedBox(height: 16),
-                      const Text(
-                        'Listado de Alertas',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w900,
-                          fontSize: 18,
-                          color: AppColors.neutral900,
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      for (final a in alerts) ...[
-                        AuditorAlertCard(
-                          alert: a,
-                          branchName: branchNameFor(a.empleadoSucursalId),
-                          onTap: () => _openAlertDetail(
-                            context,
-                            a,
-                            branchNameFor(a.empleadoSucursalId),
+                      if (todayAlerts.isNotEmpty) ...[
+                        buildSectionHeader('Hoy', Icons.today_rounded),
+                        for (final a in todayAlerts) ...[
+                          AuditorAlertCard(
+                            alert: a,
+                            branchName: branchNameFor(a.empleadoSucursalId),
+                            isNew: true,
+                            onTap: () => _openAlertDetail(
+                              context,
+                              a,
+                              branchNameFor(a.empleadoSucursalId),
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 10),
+                          const SizedBox(height: 10),
+                        ],
                       ],
+
+                      if (yesterdayAlerts.isNotEmpty) ...[
+                        buildSectionHeader('Ayer', Icons.history_rounded),
+                        for (final a in yesterdayAlerts) ...[
+                          AuditorAlertCard(
+                            alert: a,
+                            branchName: branchNameFor(a.empleadoSucursalId),
+                            onTap: () => _openAlertDetail(
+                              context,
+                              a,
+                              branchNameFor(a.empleadoSucursalId),
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                        ],
+                      ],
+
+                      if (olderAlerts.isNotEmpty) ...[
+                        buildSectionHeader('Historial', Icons.archive_outlined),
+                        for (final a in olderAlerts) ...[
+                          AuditorAlertCard(
+                            alert: a,
+                            branchName: branchNameFor(a.empleadoSucursalId),
+                            onTap: () => _openAlertDetail(
+                              context,
+                              a,
+                              branchNameFor(a.empleadoSucursalId),
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                        ],
+                      ],
+
+                      const SizedBox(height: 24),
                     ],
                   ),
                 );
@@ -237,7 +321,10 @@ class _AuditorAlertsViewState extends ConsumerState<AuditorAlertsView> {
     );
   }
 
-  Future<void> _openFilters(BuildContext context, AsyncValue branchesAsync) async {
+  Future<void> _openFilters(
+    BuildContext context,
+    AsyncValue branchesAsync,
+  ) async {
     final branches = branchesAsync.valueOrNull ?? const [];
     final initial = ref.read(auditorAlertsFilterProvider);
 
@@ -245,12 +332,14 @@ class _AuditorAlertsViewState extends ConsumerState<AuditorAlertsView> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => AuditorAlertFiltersSheet(initial: initial, branches: branches),
+      builder: (_) =>
+          AuditorAlertFiltersSheet(initial: initial, branches: branches),
     );
 
     if (!mounted || next == null) return;
-    ref.read(auditorAlertsFilterProvider.notifier).state =
-        next.copyWith(query: initial.query);
+    ref.read(auditorAlertsFilterProvider.notifier).state = next.copyWith(
+      query: initial.query,
+    );
   }
 
   Future<void> _openAlertDetail(
@@ -281,20 +370,22 @@ class _AuditorAlertsViewState extends ConsumerState<AuditorAlertsView> {
                 final q = (alert.empleadoCedula ?? '').trim().isNotEmpty
                     ? alert.empleadoCedula!.trim()
                     : (alert.empleadoNombreCompleto ?? '').trim();
-                ref.read(auditorAttendanceFilterProvider.notifier).state =
-                    AuditorAttendanceFilter.initial().copyWith(
-                      query: q,
-                      branchId: alert.empleadoSucursalId,
-                    );
+                ref
+                    .read(auditorAttendanceFilterProvider.notifier)
+                    .state = AuditorAttendanceFilter.initial().copyWith(
+                  query: q,
+                  branchId: alert.empleadoSucursalId,
+                );
                 ref.read(auditorTabIndexProvider.notifier).state = 1;
                 Navigator.pop(context);
                 context.go(AppRoutes.auditorHome);
               },
-        onSave: ({required status, required justification}) => controller.resolve(
-          alertId: alert.id,
-          newStatus: status,
-          justification: justification,
-        ),
+        onSave: ({required status, required justification}) =>
+            controller.resolve(
+              alertId: alert.id,
+              newStatus: status,
+              justification: justification,
+            ),
       ),
     );
   }
@@ -327,7 +418,8 @@ class _ActiveFiltersBar extends StatelessWidget {
           label: 'Estado: ${AuditorAlertConstants.statusLabel(filter.status)}',
           icon: Icons.flag_rounded,
         ),
-      if (branchLabel != null) _Chip(label: branchLabel, icon: Icons.store_rounded),
+      if (branchLabel != null)
+        _Chip(label: branchLabel, icon: Icons.store_rounded),
       if (filter.severity != null)
         _Chip(label: filter.severity!.value, icon: Icons.priority_high_rounded),
       if ((filter.typeQuery ?? '').trim().isNotEmpty)
@@ -340,13 +432,7 @@ class _ActiveFiltersBar extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
       child: Row(
         children: [
-          Expanded(
-            child: Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: chips,
-            ),
-          ),
+          Expanded(child: Wrap(spacing: 8, runSpacing: 8, children: chips)),
           TextButton.icon(
             onPressed: onClear,
             icon: const Icon(Icons.clear_rounded),
@@ -397,29 +483,40 @@ class _AlertsSummary {
   final int pending;
   final int inReview;
   final int closed;
+  final int newToday;
 
   const _AlertsSummary({
     required this.total,
     required this.pending,
     required this.inReview,
     required this.closed,
+    required this.newToday,
   });
 
   factory _AlertsSummary.from(List<AlertasCumplimiento> alerts) {
     var pending = 0;
     var inReview = 0;
     var closed = 0;
+    var newToday = 0;
+
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+
     for (final a in alerts) {
-      switch ((a.estado ?? '').trim()) {
-        case 'pendiente':
-          pending += 1;
-          break;
-        case 'en_revision':
-          inReview += 1;
-          break;
-        case 'cerrada':
-          closed += 1;
-          break;
+      if ((a.estado ?? '').trim() == 'pendiente') {
+        pending += 1;
+      } else if ((a.estado ?? '').trim() == 'en_revision') {
+        inReview += 1;
+      } else if ((a.estado ?? '').trim() == 'cerrada') {
+        closed += 1;
+      }
+
+      if (a.fechaDeteccion != null) {
+        final d = a.fechaDeteccion!;
+        final date = DateTime(d.year, d.month, d.day);
+        if (date.isAtSameMomentAs(today)) {
+          newToday += 1;
+        }
       }
     }
     return _AlertsSummary(
@@ -427,6 +524,7 @@ class _AlertsSummary {
       pending: pending,
       inReview: inReview,
       closed: closed,
+      newToday: newToday,
     );
   }
 }
@@ -462,7 +560,7 @@ class _SummaryHeader extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _StatItem(label: 'Total Alertas', value: '${summary.total}'),
+              _StatItem(label: 'Nuevas Hoy', value: '${summary.newToday}'),
               Container(width: 1, height: 40, color: Colors.white24),
               _StatItem(label: 'Pendientes', value: '${summary.pending}'),
               Container(width: 1, height: 40, color: Colors.white24),
@@ -518,8 +616,9 @@ String? _tryExtractAttendanceRecordId(Map<String, dynamic>? json) {
 
   bool looksLikeUuid(String s) {
     final t = s.trim();
-    final uuid =
-        RegExp(r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$');
+    final uuid = RegExp(
+      r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$',
+    );
     return uuid.hasMatch(t);
   }
 

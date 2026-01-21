@@ -466,8 +466,10 @@ class ManagerService {
     if (orgId == null) throw Exception('El manager no tiene organización');
 
     final team = await getMyTeam(includeDeleted: false);
-    final allowedIds =
-        team.where((p) => p.activo != false).map((p) => p.id).toSet();
+    final allowedIds = team
+        .where((p) => p.activo != false)
+        .map((p) => p.id)
+        .toSet();
 
     final uniqueIds = employeeIds.toSet().where((id) => id.trim().isNotEmpty);
     if (uniqueIds.isEmpty) throw Exception('Selecciona al menos un empleado');
@@ -503,8 +505,12 @@ class ManagerService {
     const batchSize = 75;
     try {
       for (var i = 0; i < rows.length; i += batchSize) {
-        final end = (i + batchSize) > rows.length ? rows.length : (i + batchSize);
-        await supabase.from('asignaciones_horarios').insert(rows.sublist(i, end));
+        final end = (i + batchSize) > rows.length
+            ? rows.length
+            : (i + batchSize);
+        await supabase
+            .from('asignaciones_horarios')
+            .insert(rows.sublist(i, end));
       }
     } catch (e) {
       throw Exception('Error asignando horario masivo: $e');
@@ -552,6 +558,33 @@ class ManagerService {
           .eq('id', assignmentId);
     } catch (e) {
       throw Exception('Error actualizando horario: $e');
+    }
+  }
+
+  Future<void> deleteSchedule(String assignmentId) async {
+    try {
+      final assignment = await supabase
+          .from('asignaciones_horarios')
+          .select('perfil_id')
+          .eq('id', assignmentId)
+          .maybeSingle();
+
+      if (assignment == null) throw Exception('Asignación no encontrada');
+      // Opcional: Validar que pertenezca al equipo si es crítico,
+      // aunque RLS debería encargarse, mejor ser seguros.
+      final belongs = await isEmployeeInMyTeam(
+        assignment['perfil_id'] as String,
+      );
+      if (!belongs) {
+        throw Exception('No puedes eliminar asignaciones fuera de tu equipo');
+      }
+
+      await supabase
+          .from('asignaciones_horarios')
+          .delete()
+          .eq('id', assignmentId);
+    } catch (e) {
+      throw Exception('Error eliminando horario: $e');
     }
   }
 

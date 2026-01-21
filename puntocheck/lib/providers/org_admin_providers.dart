@@ -71,7 +71,14 @@ final orgAdminStaffProvider =
       final staff = await ref
           .read(staffServiceProvider)
           .getStaff(orgId, searchQuery: filter.search);
+
       return staff.where((perfil) {
+        // [FIX] Ensure strict organization isolation
+        if (perfil.organizacionId != orgId) return false;
+
+        // [OPTIONAL] Exclude self (Admin) from the list
+        if (perfil.id == supabase.auth.currentUser?.id) return false;
+
         final matchesRole = filter.role == null || perfil.rol == filter.role;
         final matchesActive =
             filter.active == null || perfil.activo == filter.active;

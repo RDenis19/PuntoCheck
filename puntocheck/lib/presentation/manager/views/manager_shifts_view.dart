@@ -1,12 +1,33 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:puntocheck/models/plantillas_horarios.dart';
-import 'package:puntocheck/models/turnos_jornada.dart';
+import 'package:intl/intl.dart';
+
 import 'package:puntocheck/presentation/shared/widgets/empty_state.dart';
 import 'package:puntocheck/providers/manager_providers.dart';
 import 'package:puntocheck/utils/theme/app_colors.dart';
-import 'package:intl/intl.dart';
 import '../widgets/manager_assign_schedule_sheet.dart';
+
+// Modelo local para agrupar asignaciones
+class _ScheduleGroup {
+  final String templateId;
+  final String templateName;
+  final DateTime startDate;
+  final DateTime? endDate;
+  final Map<String, dynamic> templateData; // Para sacar turnos
+  final List<Map<String, dynamic>> assignments; // Lista de perfiles asignados
+
+  _ScheduleGroup({
+    required this.templateId,
+    required this.templateName,
+    required this.startDate,
+    this.endDate,
+    required this.templateData,
+    required this.assignments,
+  });
+
+  String get key =>
+      '${templateId}_${startDate.toIso8601String()}_${endDate?.toIso8601String()}';
+}
 
 class ManagerShiftsView extends ConsumerStatefulWidget {
   const ManagerShiftsView({super.key});
@@ -17,18 +38,18 @@ class ManagerShiftsView extends ConsumerStatefulWidget {
 
 class _ManagerShiftsViewState extends ConsumerState<ManagerShiftsView>
     with SingleTickerProviderStateMixin {
-  String _searchQuery = '';
   late final TabController _tabController;
   int _tabIndex = 0;
+  String _searchQuery = '';
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
     _tabController.addListener(() {
-      if (_tabController.indexIsChanging) return;
-      if (!mounted) return;
-      setState(() => _tabIndex = _tabController.index);
+      if (!_tabController.indexIsChanging && mounted) {
+        setState(() => _tabIndex = _tabController.index);
+      }
     });
   }
 
@@ -38,59 +59,105 @@ class _ManagerShiftsViewState extends ConsumerState<ManagerShiftsView>
     super.dispose();
   }
 
+  // Lógica de agrupamiento
+  List<_ScheduleGroup> _groupSchedules(List<Map<String, dynamic>> rawList) {
+    final Map<String, _ScheduleGroup> groups = {};
+
+    for (var item in rawList) {
+      final tId = item['plantilla_id'] as String;
+      final tMap = item['plantillas_horarios'] as Map<String, dynamic>;
+      final tName = tMap['nombre'] as String;
+      final start = DateTime.parse(item['fecha_inicio']);
+      final endStr = item['fecha_fin'] as String?;
+      final end = endStr != null ? DateTime.parse(endStr) : null;
+
+      // Clave única
+      final key = '${tId}_${start.toIso8601String()}_$endStr';
+
+      if (!groups.containsKey(key)) {
+        groups[key] = _ScheduleGroup(
+          templateId: tId,
+          templateName: tName,
+          startDate: start,
+          endDate: end,
+          templateData: tMap,
+          assignments: [],
+        );
+      }
+      groups[key]!.assignments.add(item);
+    }
+
+    // Convertir a lista y ordenar por fecha inicio desc
+    final list = groups.values.toList();
+    list.sort(
+      (a, b) => b.startDate.compareTo(a.startDate),
+    ); // Más reciente arriba
+    return list;
+  }
+
   @override
   Widget build(BuildContext context) {
     final schedulesAsync = ref.watch(managerTeamSchedulesProvider(null));
     final templatesAsync = ref.watch(managerScheduleTemplatesProvider);
 
-    // Filtrar localmente
-    final filteredSchedules = schedulesAsync.valueOrNull?.where((s) {
-      if (_searchQuery.isEmpty) return true;
-      final profile = s['perfiles'] as Map<String, dynamic>;
-      final fullName = '${profile['nombres']} ${profile['apellidos']}'
-          .toLowerCase();
-      final templateName = (s['plantillas_horarios'] as Map?)?['nombre']
-          ?.toString()
-          .toLowerCase();
-      final query = _searchQuery.toLowerCase();
-      return fullName.contains(query) ||
-          (templateName?.contains(query) ?? false);
-    }).toList();
-
-    final filteredTemplates = templatesAsync.valueOrNull?.where((t) {
-      if (_searchQuery.isEmpty) return true;
-      return t.nombre.toLowerCase().contains(_searchQuery.toLowerCase());
-    }).toList();
-
     return Scaffold(
+      backgroundColor: AppColors.secondaryWhite,
       appBar: AppBar(
-        title: const Text('Horarios'),
+        title: const Text('Horarios y Turnos'),
+        centerTitle: false,
         backgroundColor: Colors.white,
         foregroundColor: AppColors.neutral900,
-        elevation: 0.5,
+        elevation: 0,
+        titleSpacing: 20,
+        titleTextStyle: const TextStyle(
+          fontSize: 20,
+          fontWeight: FontWeight.w800,
+          color: AppColors.neutral900,
+        ),
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(106),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              TabBar(
-                controller: _tabController,
-                labelColor: AppColors.primaryRed,
-                unselectedLabelColor: AppColors.neutral600,
-                indicatorColor: AppColors.primaryRed,
-                tabs: const [
-                  Tab(text: 'Asignaciones'),
-                  Tab(text: 'Plantillas'),
-                ],
+              Container(
+                margin: const EdgeInsets.symmetric(horizontal: 16),
+                decoration: BoxDecoration(
+                  color: AppColors.neutral100,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: TabBar(
+                  controller: _tabController,
+                  labelColor: AppColors.neutral900,
+                  unselectedLabelColor: AppColors.neutral500,
+                  indicator: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(10),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.1),
+                        blurRadius: 4,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  indicatorPadding: const EdgeInsets.all(4),
+                  indicatorSize: TabBarIndicatorSize.tab,
+                  dividerColor: Colors.transparent,
+                  labelStyle: const TextStyle(fontWeight: FontWeight.w700),
+                  tabs: const [
+                    Tab(text: 'Asignaciones'),
+                    Tab(text: 'Plantillas'),
+                  ],
+                ),
               ),
               Padding(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
                 child: TextField(
                   onChanged: (val) => setState(() => _searchQuery = val),
                   decoration: InputDecoration(
                     hintText: _tabIndex == 0
-                        ? 'Buscar por empleado o plantilla...'
-                        : 'Buscar por plantilla...',
+                        ? 'Buscar por plantilla...'
+                        : 'Buscar plantilla...',
                     prefixIcon: const Icon(
                       Icons.search_rounded,
                       color: AppColors.neutral500,
@@ -98,10 +165,14 @@ class _ManagerShiftsViewState extends ConsumerState<ManagerShiftsView>
                     contentPadding: const EdgeInsets.symmetric(horizontal: 16),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: AppColors.neutral300),
+                      borderSide: BorderSide.none,
                     ),
                     filled: true,
-                    fillColor: AppColors.neutral100,
+                    fillColor: Colors.white,
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: AppColors.neutral200),
+                    ),
                   ),
                 ),
               ),
@@ -112,378 +183,384 @@ class _ManagerShiftsViewState extends ConsumerState<ManagerShiftsView>
           IconButton(
             icon: const Icon(Icons.refresh_rounded),
             onPressed: () {
-              if (_tabIndex == 0) {
-                ref.invalidate(managerTeamSchedulesProvider(null));
-              } else {
-                ref.invalidate(managerScheduleTemplatesProvider);
+              ref.invalidate(managerTeamSchedulesProvider(null));
+              ref.invalidate(managerScheduleTemplatesProvider);
+            },
+          ),
+          const SizedBox(width: 8),
+        ],
+      ),
+      body: TabBarView(
+        controller: _tabController,
+        children: [
+          // TAB 1: ASIGNACIONES AGRUPADAS
+          schedulesAsync.when(
+            loading: () => const Center(
+              child: CircularProgressIndicator(color: AppColors.primaryRed),
+            ),
+            error: (e, _) => Center(child: Text('Error: $e')),
+            data: (rawList) {
+              // 1. Agrupar
+              final groups = _groupSchedules(rawList);
+
+              // 2. Filtrar grupos por nombre de plantilla (Búsqueda básica)
+              final filtered = groups.where((g) {
+                if (_searchQuery.isEmpty) return true;
+                return g.templateName.toLowerCase().contains(
+                  _searchQuery.toLowerCase(),
+                );
+              }).toList();
+
+              if (filtered.isEmpty) {
+                return const EmptyState(
+                  icon: Icons.calendar_today_rounded,
+                  title: 'Sin asignaciones',
+                  message: 'No hay horarios asignados.',
+                );
               }
+
+              return ListView.separated(
+                padding: const EdgeInsets.all(16),
+                itemCount: filtered.length,
+                separatorBuilder: (_, __) => const SizedBox(height: 12),
+                itemBuilder: (context, index) {
+                  final group = filtered[index];
+                  return _GroupedScheduleCard(
+                    group: group,
+                    onTap: () => _showGroupDetail(context, group),
+                  );
+                },
+              );
+            },
+          ),
+
+          // TAB 2: PLANTILLAS (Sin cambios mayores, solo visual)
+          templatesAsync.when(
+            loading: () => const Center(
+              child: CircularProgressIndicator(color: AppColors.primaryRed),
+            ),
+            error: (e, _) => Center(child: Text('Error: $e')),
+            data: (templates) {
+              final filtered = templates.where((t) {
+                if (_searchQuery.isEmpty) return true;
+                return t.nombre.toLowerCase().contains(
+                  _searchQuery.toLowerCase(),
+                );
+              }).toList();
+
+              if (filtered.isEmpty) {
+                return const EmptyState(
+                  icon: Icons.view_timeline_rounded,
+                  title: 'Sin plantillas',
+                  message: 'No se encontraron plantillas.',
+                );
+              }
+
+              return ListView.separated(
+                padding: const EdgeInsets.all(16),
+                itemCount: filtered.length,
+                separatorBuilder: (_, __) => const SizedBox(height: 12),
+                itemBuilder: (context, index) {
+                  return _TemplateCard(template: filtered[index]);
+                },
+              );
             },
           ),
         ],
       ),
-      body: SafeArea(
-        child: TabBarView(
-          controller: _tabController,
-          children: [
-            schedulesAsync.when(
-              loading: () => const Center(
-                child: CircularProgressIndicator(color: AppColors.primaryRed),
-              ),
-              error: (error, _) => Center(child: Text('Error: $error')),
-              data: (schedules) {
-                final displayList = filteredSchedules ?? schedules;
-
-                if (displayList.isEmpty) {
-                  return const EmptyState(
-                    icon: Icons.calendar_today_rounded,
-                    title: 'Sin resultados',
-                    message: 'No se encontraron asignaciones con ese criterio.',
-                  );
-                }
-
-                return ListView.separated(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: displayList.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 12),
-                  itemBuilder: (context, index) {
-                    final schedule = displayList[index];
-                    return InkWell(
-                      onTap: () =>
-                          _openAssignSheet(context, ref, schedule: schedule),
-                      borderRadius: BorderRadius.circular(12),
-                      child: _ScheduleCard(schedule: schedule),
-                    );
-                  },
-                );
-              },
-            ),
-            templatesAsync.when(
-              loading: () => const Center(
-                child: CircularProgressIndicator(color: AppColors.primaryRed),
-              ),
-              error: (error, _) => Center(child: Text('Error: $error')),
-              data: (templates) {
-                final displayList = filteredTemplates ?? templates;
-
-                if (displayList.isEmpty) {
-                  return const EmptyState(
-                    icon: Icons.view_timeline_rounded,
-                    title: 'Sin resultados',
-                    message: 'No se encontraron plantillas con ese criterio.',
-                  );
-                }
-
-                return ListView.separated(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: displayList.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 12),
-                  itemBuilder: (context, index) {
-                    final template = displayList[index];
-                    return _TemplateCard(template: template);
-                  },
-                );
-              },
-            ),
-          ],
-        ),
-      ),
       floatingActionButton: _tabIndex == 0
-          ? FloatingActionButton(
-              onPressed: () => _openAssignSheet(context, ref),
+          ? FloatingActionButton.extended(
+              onPressed: () {
+                showModalBottomSheet(
+                  context: context,
+                  isScrollControlled: true,
+                  backgroundColor: Colors.transparent,
+                  builder: (context) => ManagerAssignScheduleSheet(
+                    onAssigned: () =>
+                        ref.invalidate(managerTeamSchedulesProvider(null)),
+                  ),
+                );
+              },
               backgroundColor: AppColors.primaryRed,
-              child: const Icon(Icons.add_rounded, color: Colors.white),
+              icon: const Icon(Icons.add_rounded, color: Colors.white),
+              label: const Text(
+                'Asignar Masivo',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             )
           : null,
     );
   }
 
-  void _openAssignSheet(
-    BuildContext context,
-    WidgetRef ref, {
-    Map<String, dynamic>? schedule,
-  }) {
+  // Modal para ver miembros del grupo y eliminar individualmente
+  void _showGroupDetail(BuildContext context, _ScheduleGroup group) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => ManagerAssignScheduleSheet(
-        existingSchedule: schedule,
-        onAssigned: () {
-          ref.invalidate(managerTeamSchedulesProvider(null));
-        },
-      ),
+      builder: (context) => _GroupDetailSheet(group: group),
     );
   }
 }
 
-class _ScheduleCard extends StatelessWidget {
-  final Map<String, dynamic> schedule;
+// -----------------------------------------------------------------------------
+// WIDGETS
+// -----------------------------------------------------------------------------
 
-  const _ScheduleCard({required this.schedule});
+class _GroupedScheduleCard extends StatelessWidget {
+  final _ScheduleGroup group;
+  final VoidCallback onTap;
+
+  const _GroupedScheduleCard({required this.group, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    final profile = schedule['perfiles'] as Map<String, dynamic>;
-    final template = schedule['plantillas_horarios'] as Map<String, dynamic>;
-    final startDate = DateTime.parse(schedule['fecha_inicio']);
-    final endDateStr = schedule['fecha_fin'];
-    final endDate = endDateStr != null ? DateTime.parse(endDateStr) : null;
-
-    final isActive = endDate == null || endDate.isAfter(DateTime.now());
     final turnos =
-        (template['turnos_jornada'] as List?)?.cast<dynamic>() ?? const [];
-    final dias = (template['dias_laborales'] as List?)?.cast<dynamic>();
-    final tolerancia = template['tolerancia_entrada_minutos'] ?? 10;
+        (group.templateData['turnos_jornada'] as List?)?.cast<dynamic>() ??
+        const [];
+    // Convertir turnos a visual blocks
+    final parsedTurnos = turnos.map((t) {
+      final m = t as Map;
+      return _TimeBlock(
+        start: m['hora_inicio']?.toString() ?? '00:00:00',
+        end: m['hora_fin']?.toString() ?? '00:00:00',
+      );
+    }).toList();
 
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.neutral200),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              CircleAvatar(
-                backgroundColor: AppColors.primaryRed.withValues(alpha: 0.1),
-                child: Text(
-                  profile['nombres'][0],
-                  style: const TextStyle(
-                    color: AppColors.primaryRed,
-                    fontWeight: FontWeight.bold,
+    final count = group.assignments.length;
+    final startStr = DateFormat('d MMM').format(group.startDate);
+    final endStr = group.endDate != null
+        ? DateFormat('d MMM yyyy').format(group.endDate!)
+        : 'Indefinido';
+
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: const [
+            BoxShadow(
+              color: Color.fromRGBO(0, 0, 0, 0.05),
+              blurRadius: 10,
+              offset: Offset(0, 4),
+            ),
+          ],
+        ),
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            // Header: Título y Count
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        group.templateName,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w800,
+                          fontSize: 16,
+                          color: AppColors.neutral900,
+                        ),
+                      ),
+                      Text(
+                        '$startStr - $endStr',
+                        style: const TextStyle(
+                          color: AppColors.neutral500,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '${profile['nombres']} ${profile['apellidos']}',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryRed.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.people_rounded,
+                        size: 16,
+                        color: AppColors.primaryRed,
                       ),
-                    ),
-                    Text(
-                      template['nombre'],
-                      style: const TextStyle(
-                        color: AppColors.neutral600,
-                        fontSize: 14,
+                      const SizedBox(width: 4),
+                      Text(
+                        '$count',
+                        style: const TextStyle(
+                          color: AppColors.primaryRed,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: isActive
-                      ? AppColors.successGreen.withValues(alpha: 0.1)
-                      : AppColors.neutral300,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  isActive ? 'Activo' : 'Inactivo',
-                  style: TextStyle(
-                    color: isActive
-                        ? AppColors.successGreen
-                        : AppColors.neutral700,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 12,
+                    ],
                   ),
                 ),
+              ],
+            ),
+            const SizedBox(height: 16),
+
+            // Timeline
+            _VisualTimeline(blocks: parsedTurnos),
+
+            // Hint
+            const SizedBox(height: 12),
+            const Align(
+              alignment: Alignment.centerRight,
+              child: Text(
+                'Toca para ver empleados',
+                style: TextStyle(fontSize: 11, color: AppColors.neutral400),
               ),
-            ],
-          ),
-          const Divider(height: 24),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Expanded(
-                child: _InfoItem(
-                  icon: Icons.access_time_rounded,
-                  label: 'Turnos',
-                  value: _formatTurnosFromMap(turnos),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _InfoItem(
-                  icon: Icons.calendar_month_rounded,
-                  label: 'Vigencia',
-                  value: 'Desde: ${DateFormat('dd/MM/yyyy').format(startDate)}',
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Expanded(
-                child: _InfoItem(
-                  icon: Icons.view_week_rounded,
-                  label: 'Días',
-                  value: _formatDiasLaboralesFromMap(dias),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _InfoItem(
-                  icon: Icons.timer_rounded,
-                  label: 'Tol.',
-                  value: '${tolerancia}m',
-                ),
-              ),
-            ],
-          ),
-        ],
+            ),
+          ],
+        ),
       ),
     );
   }
-
-  static String _formatDiasLaboralesFromMap(List<dynamic>? dias) {
-    if (dias == null || dias.isEmpty) return '--';
-    const names = ['', 'Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab', 'Dom'];
-    final mapped = dias
-        .map((e) => int.tryParse(e.toString()))
-        .whereType<int>()
-        .where((d) => d >= 1 && d <= 7)
-        .map((d) => names[d])
-        .where((s) => s.isNotEmpty)
-        .toList();
-    return mapped.isEmpty ? '--' : mapped.join(', ');
-  }
-
-  static String _formatTurnosFromMap(List<dynamic> turnos) {
-    if (turnos.isEmpty) return '--';
-    final sorted = [...turnos]
-      ..sort((a, b) {
-        final ma = (a as Map?) ?? const {};
-        final mb = (b as Map?) ?? const {};
-        final oa = int.tryParse(ma['orden']?.toString() ?? '') ?? 0;
-        final ob = int.tryParse(mb['orden']?.toString() ?? '') ?? 0;
-        return oa.compareTo(ob);
-      });
-
-    return sorted
-        .map((t) {
-          final m = (t as Map?) ?? const {};
-          final start = _formatTime(m['hora_inicio']?.toString());
-          final end = _formatTime(m['hora_fin']?.toString());
-          final nextDay = (m['es_dia_siguiente'] == true) ? ' (+1)' : '';
-          return '$start-$end$nextDay';
-        })
-        .join(', ');
-  }
-
-  static String _formatTime(String? time) {
-    if (time == null || time.isEmpty) return '--';
-    return time.length >= 5 ? time.substring(0, 5) : time;
-  }
 }
 
-class _InfoItem extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final String value;
-
-  const _InfoItem({
-    required this.icon,
-    required this.label,
-    required this.value,
-  });
+class _GroupDetailSheet extends ConsumerWidget {
+  final _ScheduleGroup group;
+  const _GroupDetailSheet({required this.group});
 
   @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Icon(icon, size: 16, color: AppColors.neutral500),
-        const SizedBox(width: 6),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                label,
-                style: const TextStyle(
-                  fontSize: 12,
-                  color: AppColors.neutral500,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-              Text(
-                value,
-                style: const TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.neutral700,
-                ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Container(
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.of(context).size.height * 0.8,
+      ),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+      child: Column(
+        children: [
+          // Drag handle
+          Container(
+            width: 40,
+            height: 4,
+            margin: const EdgeInsets.only(bottom: 16),
+            decoration: BoxDecoration(
+              color: AppColors.neutral300,
+              borderRadius: BorderRadius.circular(2),
+            ),
           ),
-        ),
-      ],
+          Text(
+            group.templateName,
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          Text(
+            '${group.assignments.length} Empleados Asignados',
+            style: const TextStyle(color: AppColors.neutral500),
+          ),
+          const SizedBox(height: 16),
+          const Divider(height: 1),
+          Expanded(
+            child: ListView.separated(
+              itemCount: group.assignments.length,
+              separatorBuilder: (_, __) => const Divider(height: 1),
+              itemBuilder: (context, index) {
+                final item = group.assignments[index];
+                final profile = item['perfiles'] as Map<String, dynamic>;
+                final name = '${profile['nombres']} ${profile['apellidos']}';
+                final pid = item['id']; // Assignment ID
+
+                return ListTile(
+                  leading: CircleAvatar(
+                    backgroundColor: AppColors.neutral100,
+                    child: Text(
+                      profile['nombres'][0],
+                      style: const TextStyle(color: AppColors.neutral900),
+                    ),
+                  ),
+                  title: Text(
+                    name,
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                  trailing: IconButton(
+                    icon: const Icon(
+                      Icons.delete_outline_rounded,
+                      color: AppColors.errorRed,
+                    ),
+                    onPressed: () async {
+                      // Eliminar individual
+                      try {
+                        await ref
+                            .read(managerScheduleControllerProvider.notifier)
+                            .deleteSchedule(pid);
+
+                        if (!context.mounted) return;
+
+                        // Cerrar modal
+                        Navigator.pop(context);
+                        ref.invalidate(managerTeamSchedulesProvider(null));
+
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Turno eliminado')),
+                        );
+                      } catch (e) {
+                        if (!context.mounted) return;
+                        ScaffoldMessenger.of(
+                          context,
+                        ).showSnackBar(SnackBar(content: Text('Error: $e')));
+                      }
+                    },
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
 
 class _TemplateCard extends StatelessWidget {
-  final PlantillasHorarios template;
-
+  final dynamic template; // PlantillasHorarios object
   const _TemplateCard({required this.template});
 
   @override
   Widget build(BuildContext context) {
-    final dias = template.diasLaborales ?? const <int>[];
-    final turnos = [...template.turnos]
-      ..sort((a, b) {
-        final oa = a.orden ?? 0;
-        final ob = b.orden ?? 0;
-        return oa.compareTo(ob);
-      });
+    final turnosList = template.turnos as List;
+    final parsedTurnos = turnosList.map((t) {
+      return _TimeBlock(
+        start: t.horaInicio ?? '00:00:00',
+        end: t.horaFin ?? '00:00:00',
+      );
+    }).toList();
 
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(color: AppColors.neutral200),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
       ),
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Expanded(
-                child: Text(
-                  template.nombre,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                  ),
+              Text(
+                template.nombre,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 16,
+                  color: AppColors.neutral900,
                 ),
               ),
               if (template.esRotativo == true)
@@ -500,61 +577,128 @@ class _TemplateCard extends StatelessWidget {
                     'Rotativo',
                     style: TextStyle(
                       color: AppColors.infoBlue,
+                      fontSize: 11,
                       fontWeight: FontWeight.bold,
-                      fontSize: 12,
                     ),
                   ),
                 ),
             ],
           ),
-          const SizedBox(height: 10),
-          _InfoItem(
-            icon: Icons.view_week_rounded,
-            label: 'Días',
-            value: _formatDiasLaborales(dias),
-          ),
-          const SizedBox(height: 8),
-          _InfoItem(
-            icon: Icons.timer_rounded,
-            label: 'Tolerancia',
-            value: '${template.toleranciaEntradaMinutos ?? 10} min',
-          ),
-          const SizedBox(height: 8),
-          _InfoItem(
-            icon: Icons.access_time_rounded,
-            label: 'Turnos',
-            value: _formatTurnos(turnos),
-          ),
+          const SizedBox(height: 12),
+          _VisualTimeline(blocks: parsedTurnos, compact: true),
         ],
       ),
     );
   }
+}
 
-  static String _formatDiasLaborales(List<int> dias) {
-    if (dias.isEmpty) return '--';
-    const names = ['', 'Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab', 'Dom'];
-    final mapped = dias
-        .where((d) => d >= 1 && d <= 7)
-        .map((d) => names[d])
-        .where((s) => s.isNotEmpty)
-        .toList();
-    return mapped.isEmpty ? '--' : mapped.join(', ');
+// --- VISUAL TIMELINE REUSED ---
+class _TimeBlock {
+  final String start;
+  final String end;
+  _TimeBlock({required this.start, required this.end});
+  double get startHour => _parseHour(start);
+  double get endHour => _parseHour(end);
+  double _parseHour(String time) {
+    final parts = time.split(':');
+    final h = int.tryParse(parts[0]) ?? 0;
+    final m = int.tryParse(parts[1]) ?? 0;
+    return h + (m / 60.0);
+  }
+}
+
+class _VisualTimeline extends StatelessWidget {
+  final List<_TimeBlock> blocks;
+  final bool compact;
+  const _VisualTimeline({required this.blocks, this.compact = false});
+
+  @override
+  Widget build(BuildContext context) {
+    if (blocks.isEmpty) return const SizedBox.shrink();
+    double minH = 6.0;
+    double maxH = 22.0;
+
+    for (var b in blocks) {
+      if (b.startHour < minH) minH = b.startHour.floorToDouble();
+      if (b.endHour > maxH) maxH = b.endHour.ceilToDouble();
+    }
+    minH = (minH - 1).clamp(0, 24);
+    maxH = (maxH + 1).clamp(0, 24);
+    final totalHours = maxH - minH;
+    if (totalHours <= 0) return const SizedBox.shrink();
+
+    return Column(
+      children: [
+        Container(
+          height: compact ? 12 : 24,
+          width: double.infinity,
+          decoration: BoxDecoration(
+            color: AppColors.neutral100,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Stack(
+            children: [
+              ...blocks.map((b) {
+                final startRel = (b.startHour - minH).clamp(0, totalHours);
+                final duration = (b.endHour - b.startHour);
+                final leftPercent = startRel / totalHours;
+                final widthPercent = duration / totalHours;
+
+                return LayoutBuilder(
+                  builder: (context, constraints) {
+                    final width = constraints.maxWidth;
+                    return Positioned(
+                      left: width * leftPercent,
+                      width: width * widthPercent,
+                      top: compact ? 2 : 4,
+                      bottom: compact ? 2 : 4,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [AppColors.primaryRed, Color(0xFFE53935)],
+                            begin: Alignment.centerLeft,
+                            end: Alignment.centerRight,
+                          ),
+                          borderRadius: BorderRadius.circular(compact ? 4 : 6),
+                        ),
+                      ),
+                    );
+                  },
+                );
+              }),
+            ],
+          ),
+        ),
+        if (!compact)
+          Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  _formatHour(minH),
+                  style: const TextStyle(
+                    fontSize: 10,
+                    color: AppColors.neutral500,
+                  ),
+                ),
+                Text(
+                  _formatHour(maxH),
+                  style: const TextStyle(
+                    fontSize: 10,
+                    color: AppColors.neutral500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+      ],
+    );
   }
 
-  static String _formatTurnos(List<TurnosJornada> turnos) {
-    if (turnos.isEmpty) return '--';
-    return turnos
-        .map((t) {
-          final start = _formatTime(t.horaInicio);
-          final end = _formatTime(t.horaFin);
-          final nextDay = (t.esDiaSiguiente == true) ? ' (+1)' : '';
-          return '$start-$end$nextDay';
-        })
-        .join(', ');
-  }
-
-  static String _formatTime(String? time) {
-    if (time == null || time.isEmpty) return '--';
-    return time.length >= 5 ? time.substring(0, 5) : time;
+  String _formatHour(double h) {
+    final hour = h.floor();
+    final min = ((h - hour) * 60).round();
+    return '${hour.toString().padLeft(2, '0')}:${min.toString().padLeft(2, '0')}';
   }
 }
