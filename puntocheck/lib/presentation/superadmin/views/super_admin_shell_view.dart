@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:puntocheck/providers/app_providers.dart';
+import 'package:puntocheck/utils/theme/app_colors.dart';
 import 'package:puntocheck/presentation/superadmin/views/super_admin_home_view.dart';
 import 'package:puntocheck/presentation/superadmin/views/super_admin_organizations_view.dart';
 import 'package:puntocheck/presentation/superadmin/views/super_admin_notifications_view.dart';
 import 'package:puntocheck/presentation/superadmin/views/super_admin_plans_billing_view.dart';
 import 'package:puntocheck/presentation/superadmin/views/super_admin_support_view.dart';
-import 'package:puntocheck/presentation/superadmin/widgets/super_admin_header.dart';
+import 'package:puntocheck/presentation/shared/widgets/home_header.dart';
 import 'package:puntocheck/presentation/superadmin/widgets/super_admin_tab_navigation.dart';
 
 class SuperAdminShellView extends ConsumerStatefulWidget {
@@ -23,7 +24,6 @@ class _SuperAdminShellViewState extends ConsumerState<SuperAdminShellView> {
   @override
   Widget build(BuildContext context) {
     final profileAsync = ref.watch(profileProvider);
-    final theme = Theme.of(context);
 
     final pages = const [
       SuperAdminHomeView(),
@@ -49,12 +49,11 @@ class _SuperAdminShellViewState extends ConsumerState<SuperAdminShellView> {
     body = Column(
       children: [
         if (_currentIndex == 0) ...[
-          SuperAdminHeader(
+          HomeHeader(
             userName: userName,
-            roleLabel: 'Super Admin',
-            organizationName: null,
+            roleName: 'Super Admin',
+            organizationName: 'Panel Global',
           ),
-          const SizedBox(height: 8),
         ],
         Expanded(
           child: AnimatedSwitcher(
@@ -66,8 +65,8 @@ class _SuperAdminShellViewState extends ConsumerState<SuperAdminShellView> {
     );
 
     return Scaffold(
-      backgroundColor: theme.colorScheme.surface,
-      body: SafeArea(child: body),
+      backgroundColor: AppColors.scaffoldBackground,
+      body: body,
       bottomNavigationBar: SuperAdminTabNavigation(
         currentIndex: _currentIndex,
         onTap: (index) => setState(() => _currentIndex = index),

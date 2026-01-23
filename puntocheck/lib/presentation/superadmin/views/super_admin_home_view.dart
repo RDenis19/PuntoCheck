@@ -17,56 +17,52 @@ class SuperAdminHomeView extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final dashboardAsync = ref.watch(superAdminDashboardProvider);
 
-    return SafeArea(
-      child: dashboardAsync.when(
-        data: (data) {
-          final planNames = {
-            for (final plan in data.plans) plan.id: plan.nombre,
-          };
+    return dashboardAsync.when(
+      data: (data) {
+        final planNames = {for (final plan in data.plans) plan.id: plan.nombre};
 
-          return RefreshIndicator(
-            onRefresh: () => ref.refresh(superAdminDashboardProvider.future),
-            child: ListView(
-              padding: const EdgeInsets.fromLTRB(16, 20, 16, 16),
-              children: [
-                const _SectionTitle('Resumen general'),
-                const SizedBox(height: 12),
-                _BillingCard(monthlyRevenue: data.monthlyRevenue),
+        return RefreshIndicator(
+          onRefresh: () => ref.refresh(superAdminDashboardProvider.future),
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
+            children: [
+              const _SectionTitle('Resumen general'),
+              const SizedBox(height: 12),
+              _BillingCard(monthlyRevenue: data.monthlyRevenue),
 
-                const SizedBox(height: 20),
-                const _SectionTitle('Información de organizaciones'),
-                const SizedBox(height: 12),
-                _StatusGrid(
-                  total: data.totalOrganizations,
-                  active: data.activeOrganizations,
-                  trial: data.trialOrganizations,
+              const SizedBox(height: 20),
+              const _SectionTitle('Información de organizaciones'),
+              const SizedBox(height: 12),
+              _StatusGrid(
+                total: data.totalOrganizations,
+                active: data.activeOrganizations,
+                trial: data.trialOrganizations,
+              ),
+
+              const SizedBox(height: 24),
+              _RecentOrgsSection(
+                data: data,
+                planNames: planNames,
+                onTapOrg: (orgId) =>
+                    context.push('${AppRoutes.superAdminHome}/org/$orgId'),
+              ),
+
+              if (onOpenOrganizations != null) ...[
+                const SizedBox(height: 8),
+                TextButton.icon(
+                  onPressed: onOpenOrganizations,
+                  icon: const Icon(Icons.business_outlined),
+                  label: const Text('Ver todas las organizaciones'),
                 ),
-
-                const SizedBox(height: 24),
-                _RecentOrgsSection(
-                  data: data,
-                  planNames: planNames,
-                  onTapOrg: (orgId) =>
-                      context.push('${AppRoutes.superAdminHome}/org/$orgId'),
-                ),
-
-                if (onOpenOrganizations != null) ...[
-                  const SizedBox(height: 8),
-                  TextButton.icon(
-                    onPressed: onOpenOrganizations,
-                    icon: const Icon(Icons.business_outlined),
-                    label: const Text('Ver todas las organizaciones'),
-                  ),
-                ],
               ],
-            ),
-          );
-        },
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) => _ErrorState(
-          message: error.toString(),
-          onRetry: () => ref.refresh(superAdminDashboardProvider),
-        ),
+            ],
+          ),
+        );
+      },
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (error, _) => _ErrorState(
+        message: error.toString(),
+        onRetry: () => ref.refresh(superAdminDashboardProvider),
       ),
     );
   }

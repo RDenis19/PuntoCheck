@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:intl/intl.dart';
 import 'package:puntocheck/models/organizaciones.dart';
 import 'package:puntocheck/models/subscription_state.dart';
 import 'package:puntocheck/presentation/admin/widgets/admin_stat_card.dart';
@@ -9,6 +8,7 @@ import 'package:puntocheck/providers/app_providers.dart';
 import 'package:puntocheck/routes/app_router.dart';
 import 'package:puntocheck/utils/date_utils.dart' as date_utils;
 import 'package:puntocheck/utils/theme/app_colors.dart';
+import 'package:puntocheck/presentation/shared/widgets/home_header.dart';
 
 class OrgAdminHomeView extends ConsumerStatefulWidget {
   const OrgAdminHomeView({super.key});
@@ -131,183 +131,197 @@ class _OrgAdminHomeViewState extends ConsumerState<OrgAdminHomeView> {
     );
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF9FAFB), // Fondo gris muy suave
-      body: SafeArea(
-        child: summaryAsync.when(
-          data: (summary) {
-            return RefreshIndicator(
-              onRefresh: () async {
-                try {
-                  ref
-                    ..invalidate(orgAdminHomeSummaryProvider)
-                    ..invalidate(orgAdminAlertsProvider)
-                    ..invalidate(orgAdminPaymentsProvider);
-                  await ref.read(orgAdminHomeSummaryProvider.future);
-                } catch (e) {
-                  if (!context.mounted) return;
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('No se pudo refrescar: $e'),
-                      backgroundColor: AppColors.errorRed,
-                    ),
-                  );
-                }
-              },
-              child: ListView(
-                padding: const EdgeInsets.fromLTRB(20, 16, 20, 80),
-                children: [
-                  _DashboardHeader(
-                    userName: userName,
-                    organizationName: summary.organization.razonSocial,
-                  ),
-                  const SizedBox(height: 20),
-                  _SubscriptionBanner(org: summary.organization),
-                  const SizedBox(height: 10),
-
-                  // Layout personalizado de KPIs
-                  // Principal: Asistencias y Alertas
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+      backgroundColor: AppColors.scaffoldBackground,
+      body: summaryAsync.when(
+        data: (summary) {
+          return Column(
+            children: [
+              HomeHeader(
+                userName: userName,
+                organizationName: summary.organization.razonSocial,
+                roleName: 'Administrador',
+              ),
+              Expanded(
+                child: RefreshIndicator(
+                  onRefresh: () async {
+                    try {
+                      ref
+                        ..invalidate(orgAdminHomeSummaryProvider)
+                        ..invalidate(orgAdminAlertsProvider)
+                        ..invalidate(orgAdminPaymentsProvider);
+                      await ref.read(orgAdminHomeSummaryProvider.future);
+                    } catch (e) {
+                      if (!context.mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('No se pudo refrescar: $e'),
+                          backgroundColor: AppColors.errorRed,
+                        ),
+                      );
+                    }
+                  },
+                  child: ListView(
+                    padding: const EdgeInsets.fromLTRB(20, 10, 20, 80),
                     children: [
-                      Expanded(
-                        flex: 6,
-                        child: AdminStatCard(
-                          label: 'Asistencias hoy',
-                          value: '${summary.attendanceToday}',
-                          hint:
-                              '${summary.geofenceIssuesToday} incidencias de geocerca',
-                          icon: Icons.access_time_filled,
-                          color: AppColors.infoBlue,
-                          onTap: () => _goToTab(2),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        flex: 4,
-                        child: AdminStatCard(
-                          label: 'Alertas',
-                          value: '${summary.pendingAlerts}',
-                          icon: Icons.warning_amber_rounded,
-                          color: AppColors.errorRed,
-                          hint: 'Requiere atención',
-                          onTap: () => context.push(AppRoutes.orgAdminAlerts),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  // Secundarios: Colaboradores y Permisos
-                  Row(
-                    children: [
-                      Expanded(
-                        child: AdminStatCard(
-                          label: 'Equipo',
-                          value: '${summary.staffActive}/${summary.staffTotal}',
-                          hint: 'Activos',
-                          icon: Icons.groups,
-                          onTap: () => _goToTab(1),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: AdminStatCard(
-                          label: 'Permisos',
-                          value: '${summary.pendingPermissions}',
-                          hint: 'Pendientes',
-                          icon: Icons.assignment,
-                          color: AppColors.warningOrange,
-                          onTap: () => _goToTab(3),
-                        ),
-                      ),
-                    ],
-                  ),
+                      _SubscriptionBanner(org: summary.organization),
+                      const SizedBox(height: 10),
 
-                  const SizedBox(height: 24),
-
-                  // Tarjeta de Configuración
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [
-                          AppColors.primaryRed,
-                          AppColors.primaryRed.withValues(alpha: 0.85),
+                      // Layout personalizado de KPIs
+                      // Principal: Asistencias y Alertas
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            flex: 6,
+                            child: AdminStatCard(
+                              label: 'Asistencias hoy',
+                              value: '${summary.attendanceToday}',
+                              hint:
+                                  '${summary.geofenceIssuesToday} incidencias de geocerca',
+                              icon: Icons.access_time_filled,
+                              color: AppColors.infoBlue,
+                              onTap: () => _goToTab(2),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            flex: 4,
+                            child: AdminStatCard(
+                              label: 'Alertas',
+                              value: '${summary.pendingAlerts}',
+                              icon: Icons.warning_amber_rounded,
+                              color: AppColors.errorRed,
+                              hint: 'Requiere atención',
+                              onTap: () =>
+                                  context.push(AppRoutes.orgAdminAlerts),
+                            ),
+                          ),
                         ],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
                       ),
-                      borderRadius: BorderRadius.circular(20),
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppColors.primaryRed.withValues(alpha: 0.3),
-                          blurRadius: 12,
-                          offset: const Offset(0, 6),
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(8),
-                              decoration: BoxDecoration(
-                                color: Colors.white.withValues(alpha: 0.2),
-                                borderRadius: BorderRadius.circular(10),
+                      const SizedBox(height: 12),
+                      // Secundarios: Colaboradores y Permisos
+                      Row(
+                        children: [
+                          Expanded(
+                            child: AdminStatCard(
+                              label: 'Equipo',
+                              value:
+                                  '${summary.staffActive}/${summary.staffTotal}',
+                              hint: 'Activos',
+                              icon: Icons.groups,
+                              onTap: () => _goToTab(1),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: AdminStatCard(
+                              label: 'Permisos',
+                              value: '${summary.pendingPermissions}',
+                              hint: 'Pendientes',
+                              icon: Icons.assignment,
+                              color: AppColors.warningOrange,
+                              onTap: () => _goToTab(3),
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 24),
+
+                      // Tarjeta de Configuración
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              AppColors.primaryRed,
+                              AppColors.primaryRed.withValues(alpha: 0.85),
+                            ],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          borderRadius: BorderRadius.circular(20),
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppColors.primaryRed.withValues(
+                                alpha: 0.3,
                               ),
-                              child: const Icon(
-                                Icons.tune_rounded,
-                                color: Colors.white,
-                                size: 20,
+                              blurRadius: 12,
+                              offset: const Offset(0, 6),
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withValues(alpha: 0.2),
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: const Icon(
+                                    Icons.tune_rounded,
+                                    color: Colors.white,
+                                    size: 20,
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                const Text(
+                                  'Configuración Global',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                            const Text(
+                              'Gestiona las reglas de asistencia, horas extras y tolerancias de tu organización.',
+                              style: TextStyle(
+                                color: Colors.white70,
+                                height: 1.4,
                               ),
                             ),
-                            const SizedBox(width: 12),
-                            const Text(
-                              'Configuración Global',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
+                            const SizedBox(height: 16),
+                            SizedBox(
+                              width: double.infinity,
+                              child: ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.white,
+                                  foregroundColor: AppColors.primaryRed,
+                                  elevation: 0,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 12,
+                                  ),
+                                ),
+                                onPressed: () =>
+                                    context.push(AppRoutes.orgAdminLegalConfig),
+                                child: const Text('Ajustar Parámetros'),
                               ),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 12),
-                        const Text(
-                          'Gestiona las reglas de asistencia, horas extras y tolerancias de tu organización.',
-                          style: TextStyle(color: Colors.white70, height: 1.4),
-                        ),
-                        const SizedBox(height: 16),
-                        SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.white,
-                              foregroundColor: AppColors.primaryRed,
-                              elevation: 0,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              padding: const EdgeInsets.symmetric(vertical: 12),
-                            ),
-                            onPressed: () =>
-                                context.push(AppRoutes.orgAdminLegalConfig),
-                            child: const Text('Ajustar Parámetros'),
-                          ),
-                        ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
-            );
-          },
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (e, _) => _ErrorText('$e'),
-        ),
+            ],
+          );
+        },
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (e, _) => _ErrorText('$e'),
       ),
+
       floatingActionButton: FloatingActionButton(
         backgroundColor: AppColors.primaryRed,
         foregroundColor: Colors.white,
@@ -331,67 +345,6 @@ class _OrgAdminHomeViewState extends ConsumerState<OrgAdminHomeView> {
     if (route != null) {
       context.push(route);
     }
-  }
-}
-
-class _DashboardHeader extends StatelessWidget {
-  final String userName;
-  final String organizationName;
-
-  const _DashboardHeader({
-    required this.userName,
-    required this.organizationName,
-  });
-
-  String get _greeting {
-    final hour = DateTime.now().hour;
-    if (hour < 12) return 'Buenos días';
-    if (hour < 19) return 'Buenas tardes';
-    return 'Buenas noches';
-  }
-
-  String get _date {
-    final now = DateTime.now();
-    return DateFormat('EEEE, d MMMM', 'es').format(now);
-    // Asegúrate de inicializar locale data si es necesario,
-    // o usa 'en_US' si no tienes 'es' cargado, aunque normalmente flutter_localizations lo maneja.
-    // Fallback simple:
-    // return '${now.day}/${now.month}/${now.year}';
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    // Para simplificar formato fecha en español sin configurar locale manual:
-    // Vamos a usar una lista simple o depender de Intl si está configurado en main.
-    // Asumiremos formato básico si falla.
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          _date.toUpperCase(),
-          style: TextStyle(
-            color: AppColors.neutral700.withValues(alpha: 0.6),
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
-            letterSpacing: 1.0,
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          '$_greeting, $userName',
-          style: const TextStyle(
-            color: AppColors.neutral900,
-            fontSize: 24,
-            fontWeight: FontWeight.w800,
-          ),
-        ),
-        Text(
-          organizationName,
-          style: const TextStyle(color: AppColors.neutral700, fontSize: 16),
-        ),
-      ],
-    );
   }
 }
 

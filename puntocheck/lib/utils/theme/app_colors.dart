@@ -6,6 +6,7 @@ class AppColors {
   static const Color primaryRed = Color(0xFFE0262F);
   static const Color primaryRedDark = Color(0xFFC01F28);
   static const Color secondaryWhite = Color(0xFFFFFFFF);
+  static const Color scaffoldBackground = Color(0xFFF4F6F8);
 
   // Neutros para backgrounds y bordes.
   static const Color neutral100 = Color(0xFFF7F8FA);

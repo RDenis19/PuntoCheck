@@ -40,7 +40,7 @@ class AuditorDashboardView extends ConsumerWidget {
 
     // Removed SafeArea to fix gap under header
     return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
       children: [
         Row(
           children: [
@@ -81,7 +81,8 @@ class AuditorDashboardView extends ConsumerWidget {
               title: 'No se pudo cargar',
               message: '$e',
               icon: Icons.error_outline_rounded,
-              onAction: () => ref.invalidate(auditorDashboardRecentFindingsProvider),
+              onAction: () =>
+                  ref.invalidate(auditorDashboardRecentFindingsProvider),
               actionLabel: 'Reintentar',
             ),
             data: (alerts) {
@@ -142,7 +143,8 @@ class AuditorDashboardView extends ConsumerWidget {
               if (logs.isEmpty) {
                 return const EmptyState(
                   title: 'Sin eventos',
-                  message: 'Aquí verás acciones sensibles con trazabilidad completa.',
+                  message:
+                      'Aquí verás acciones sensibles con trazabilidad completa.',
                   icon: Icons.history_rounded,
                 );
               }
@@ -152,14 +154,16 @@ class AuditorDashboardView extends ConsumerWidget {
                   for (final l in logs) ...[
                     AuditorAuditLogCard(
                       log: l,
-                      onTap: () => context.push('${AppRoutes.auditorHome}/auditoria'),
+                      onTap: () =>
+                          context.push('${AppRoutes.auditorHome}/auditoria'),
                     ),
                     const SizedBox(height: 10),
                   ],
                   SizedBox(
                     width: double.infinity,
                     child: OutlinedButton.icon(
-                      onPressed: () => context.push('${AppRoutes.auditorHome}/auditoria'),
+                      onPressed: () =>
+                          context.push('${AppRoutes.auditorHome}/auditoria'),
                       icon: const Icon(Icons.open_in_new_rounded),
                       label: const Text('Ver todo'),
                     ),
@@ -202,20 +206,22 @@ class AuditorDashboardView extends ConsumerWidget {
                 final q = (alert.empleadoCedula ?? '').trim().isNotEmpty
                     ? alert.empleadoCedula!.trim()
                     : (alert.empleadoNombreCompleto ?? '').trim();
-                ref.read(auditorAttendanceFilterProvider.notifier).state =
-                    AuditorAttendanceFilter.initial().copyWith(
-                      query: q,
-                      branchId: alert.empleadoSucursalId,
-                    );
+                ref
+                    .read(auditorAttendanceFilterProvider.notifier)
+                    .state = AuditorAttendanceFilter.initial().copyWith(
+                  query: q,
+                  branchId: alert.empleadoSucursalId,
+                );
                 ref.read(auditorTabIndexProvider.notifier).state = 1;
                 Navigator.pop(context);
                 context.go(AppRoutes.auditorHome);
               },
-        onSave: ({required status, required justification}) => controller.resolve(
-          alertId: alert.id,
-          newStatus: status,
-          justification: justification,
-        ),
+        onSave: ({required status, required justification}) =>
+            controller.resolve(
+              alertId: alert.id,
+              newStatus: status,
+              justification: justification,
+            ),
       ),
     );
 
@@ -307,11 +313,7 @@ class _RedStatCard extends StatelessWidget {
                   height: 1.0,
                 ),
               ),
-              Icon(
-                icon,
-                color: Colors.white.withValues(alpha: 0.8),
-                size: 24,
-              ),
+              Icon(icon, color: Colors.white.withValues(alpha: 0.8), size: 24),
             ],
           ),
           // Label
@@ -330,4 +332,3 @@ class _RedStatCard extends StatelessWidget {
     );
   }
 }
-

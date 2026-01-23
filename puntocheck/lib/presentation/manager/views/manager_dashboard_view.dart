@@ -10,6 +10,7 @@ import 'package:puntocheck/presentation/manager/views/manager_leave_detail_view.
 import 'package:puntocheck/models/solicitudes_permisos.dart';
 import 'package:puntocheck/presentation/manager/views/manager_notifications_view.dart';
 import 'package:puntocheck/providers/manager_providers.dart';
+import 'package:puntocheck/presentation/shared/widgets/home_header.dart';
 import 'package:puntocheck/utils/theme/app_colors.dart';
 
 /// Dashboard del Manager "Command Center".
@@ -38,228 +39,163 @@ class _ManagerDashboardViewState extends ConsumerState<ManagerDashboardView> {
     final notificationsAsync = ref.watch(
       managerUnreadNotificationsCountProvider,
     );
+    final branchesAsync = ref.watch(managerBranchesProvider);
 
     return Scaffold(
-      backgroundColor: AppColors.secondaryWhite,
+      backgroundColor: AppColors.scaffoldBackground,
       body: summaryAsync.when(
         loading: () => const Center(
           child: CircularProgressIndicator(color: AppColors.primaryRed),
         ),
         error: (e, _) => Center(child: Text('Error: $e')),
         data: (summary) {
-          return CustomScrollView(
-            slivers: [
-              // 1. Sliver App Bar con Saludo y Fecha
-              SliverAppBar(
-                expandedHeight: 140,
-                pinned: true,
-                backgroundColor: Colors.white,
-                surfaceTintColor: Colors.transparent,
-                title: const Text(
-                  'Dashboard',
-                  style: TextStyle(
-                    color: AppColors.neutral900,
-                    fontWeight: FontWeight.w800,
-                    fontSize: 18,
-                  ),
-                ),
-                centerTitle: false,
-                actions: [
-                  Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      IconButton(
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const ManagerNotificationsView(),
-                            ),
-                          );
-                        },
-                        icon: const Icon(
-                          Icons.notifications_none_rounded,
-                          color: AppColors.neutral900,
-                        ),
-                      ),
-                      if ((notificationsAsync.valueOrNull ?? 0) > 0)
-                        Positioned(
-                          top: 10,
-                          right: 10,
-                          child: Container(
-                            width: 8,
-                            height: 8,
-                            decoration: const BoxDecoration(
-                              color: AppColors.primaryRed,
-                              shape: BoxShape.circle,
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-                  const SizedBox(width: 8),
-                ],
-                flexibleSpace: FlexibleSpaceBar(
-                  background: Stack(
-                    children: [
-                      Positioned(
-                        left: 20,
-                        bottom: 20,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              _getGreeting(),
-                              style: const TextStyle(
-                                fontSize: 14,
-                                color: AppColors.neutral600,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              profileAsync.valueOrNull?.nombres ?? 'Manager',
-                              style: const TextStyle(
-                                fontSize: 24,
-                                color: AppColors.neutral900,
-                                fontWeight: FontWeight.w800,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              DateFormat(
-                                'EEEE d, MMMM',
-                                'es',
-                              ).format(DateTime.now()),
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: AppColors.neutral500.withValues(
-                                  alpha: 0.8,
+          final branchName = branchesAsync.maybeWhen(
+            data: (list) =>
+                list.isNotEmpty ? list.first.nombre : 'Sin sucursal',
+            orElse: () => '',
+          );
+
+          return Column(
+            children: [
+              HomeHeader(
+                userName: profileAsync.valueOrNull?.nombres ?? 'Manager',
+                roleName: 'Manager',
+                organizationName: branchName,
+                notificationCount: notificationsAsync.valueOrNull ?? 0,
+                onNotificationTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const ManagerNotificationsView(),
+                    ),
+                  );
+                },
+              ),
+              Expanded(
+                child: CustomScrollView(
+                  slivers: [
+                    // 2. KPIs Section (Command Cards)
+                    SliverPadding(
+                      padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
+                      sliver: SliverList(
+                        delegate: SliverChildListDelegate([
+                          // Fila Principal: Presentes y Tardanzas (Con gradiente suave)
+                          Row(
+                            children: [
+                              Expanded(
+                                child: _GradientKpiCard(
+                                  label: 'Presentes',
+                                  value: '${summary.teamPresent}',
+                                  icon: Icons.check_circle_outline_rounded,
+                                  gradient: const LinearGradient(
+                                    colors: [
+                                      AppColors.primaryRed,
+                                      Color(0xFFE53935),
+                                    ],
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                  ),
                                 ),
                               ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-
-              // 2. KPIs Section (Command Cards)
-              SliverPadding(
-                padding: const EdgeInsets.all(16),
-                sliver: SliverList(
-                  delegate: SliverChildListDelegate([
-                    const SizedBox(height: 8),
-                    // Fila Principal: Presentes y Tardanzas (Con gradiente suave)
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _GradientKpiCard(
-                            label: 'Presentes',
-                            value: '${summary.teamPresent}',
-                            icon: Icons.check_circle_outline_rounded,
-                            gradient: const LinearGradient(
-                              colors: [AppColors.primaryRed, Color(0xFFE53935)],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _GradientKpiCard(
-                            label: 'Tardanzas',
-                            value: '${summary.teamLate}',
-                            icon: Icons.schedule_rounded,
-                            // Un tono naranja/ámbar para alerta sin ser error crítico
-                            gradient: const LinearGradient(
-                              colors: [Color(0xFFFB8C00), Color(0xFFF57C00)],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    // Fila Secundaria: Pendientes y Horas Extra (Estilo más limpio)
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _CleanKpiCard(
-                            label: 'Solicitudes',
-                            value: '${summary.pendingPermissions}',
-                            icon: Icons.mark_email_unread_outlined,
-                            accentColor: AppColors.infoBlue,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _CleanKpiCard(
-                            label: 'Horas Extra',
-                            value: '${summary.overtimeHoursWeek}',
-                            icon: Icons.trending_up_rounded,
-                            accentColor: AppColors.successGreen,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 32),
-
-                    // 3. Solicitudes Recientes (Inbox Style)
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
-                          'Actividad Reciente',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w800,
-                            color: AppColors.neutral900,
-                          ),
-                        ),
-                        TextButton(
-                          onPressed: () {
-                            Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (_) => const ManagerApprovalsView(),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: _GradientKpiCard(
+                                  label: 'Tardanzas',
+                                  value: '${summary.teamLate}',
+                                  icon: Icons.schedule_rounded,
+                                  // Un tono naranja/ámbar para alerta sin ser error crítico
+                                  gradient: const LinearGradient(
+                                    colors: [
+                                      Color(0xFFFB8C00),
+                                      Color(0xFFF57C00),
+                                    ],
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                  ),
+                                ),
                               ),
-                            );
-                          },
-                          child: const Text('Ver todas'),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                  ]),
-                ),
-              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          // Fila Secundaria: Pendientes y Horas Extra (Estilo más limpio)
+                          Row(
+                            children: [
+                              Expanded(
+                                child: _CleanKpiCard(
+                                  label: 'Solicitudes',
+                                  value: '${summary.pendingPermissions}',
+                                  icon: Icons.mark_email_unread_outlined,
+                                  accentColor: AppColors.infoBlue,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: _CleanKpiCard(
+                                  label: 'Horas Extra',
+                                  value: '${summary.overtimeHoursWeek}',
+                                  icon: Icons.trending_up_rounded,
+                                  accentColor: AppColors.successGreen,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 32),
 
-              // Lista de Solicitudes
-              if (summary.recentPermissions.isEmpty)
-                const SliverToBoxAdapter(
-                  child: Center(
-                    child: Padding(
-                      padding: EdgeInsets.all(32.0),
-                      child: Text(
-                        'Todo al día. No hay solicitudes nuevas.',
-                        style: TextStyle(color: AppColors.neutral500),
+                          // 3. Solicitudes Recientes (Inbox Style)
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text(
+                                'Actividad Reciente',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w800,
+                                  color: AppColors.neutral900,
+                                ),
+                              ),
+                              TextButton(
+                                onPressed: () {
+                                  Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                      builder: (_) =>
+                                          const ManagerApprovalsView(),
+                                    ),
+                                  );
+                                },
+                                child: const Text('Ver todas'),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                        ]),
                       ),
                     ),
-                  ),
-                )
-              else
-                SliverList(
-                  delegate: SliverChildBuilderDelegate((context, index) {
-                    final item = summary.recentPermissions[index];
-                    return _RecentRequestTile(request: item);
-                  }, childCount: summary.recentPermissions.length),
-                ),
 
-              const SliverPadding(padding: EdgeInsets.only(bottom: 100)),
+                    // Lista de Solicitudes
+                    if (summary.recentPermissions.isEmpty)
+                      const SliverToBoxAdapter(
+                        child: Center(
+                          child: Padding(
+                            padding: EdgeInsets.all(32.0),
+                            child: Text(
+                              'Todo al día. No hay solicitudes nuevas.',
+                              style: TextStyle(color: AppColors.neutral500),
+                            ),
+                          ),
+                        ),
+                      )
+                    else
+                      SliverList(
+                        delegate: SliverChildBuilderDelegate((context, index) {
+                          final item = summary.recentPermissions[index];
+                          return _RecentRequestTile(request: item);
+                        }, childCount: summary.recentPermissions.length),
+                      ),
+
+                    const SliverPadding(padding: EdgeInsets.only(bottom: 100)),
+                  ],
+                ),
+              ),
             ],
           );
         },
@@ -273,12 +209,7 @@ class _ManagerDashboardViewState extends ConsumerState<ManagerDashboardView> {
     );
   }
 
-  String _getGreeting() {
-    final hour = DateTime.now().hour;
-    if (hour < 12) return 'Buenos días,';
-    if (hour < 18) return 'Buenas tardes,';
-    return 'Buenas noches,';
-  }
+  // Removed _getGreeting as it is handled by HomeHeader
 }
 
 // -----------------------------------------------------------------------------

@@ -4,7 +4,8 @@ import 'package:intl/intl.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:puntocheck/models/employee_schedule.dart';
 import 'package:puntocheck/models/registros_asistencia.dart';
-import 'package:puntocheck/presentation/employee/widgets/employee_header.dart';
+import 'package:puntocheck/presentation/employee/views/employee_notifications_view.dart';
+import 'package:puntocheck/presentation/shared/widgets/home_header.dart';
 import 'package:puntocheck/presentation/employee/views/employee_mark_attendance_view.dart';
 import 'package:puntocheck/presentation/employee/views/employee_hours_bank_view.dart';
 import 'package:puntocheck/presentation/employee/views/employee_schedule_view.dart';
@@ -31,10 +32,41 @@ class _EmployeeHomeViewState extends ConsumerState<EmployeeHomeView> {
   Widget build(BuildContext context) {
     final scheduleAsync = ref.watch(employeeScheduleProvider);
     final EmployeeSchedule? schedule = scheduleAsync.valueOrNull;
-    final RegistrosAsistencia? lastAttendance =
-        ref.watch(lastAttendanceProvider).valueOrNull;
+    final RegistrosAsistencia? lastAttendance = ref
+        .watch(lastAttendanceProvider)
+        .valueOrNull;
     final historyAsync = ref.watch(employeeAttendanceHistoryProvider);
     final history = historyAsync.valueOrNull ?? const <RegistrosAsistencia>[];
+
+    // Header Data
+    final profileAsync = ref.watch(employeeProfileProvider);
+    final branchesAsync = ref.watch(employeeBranchesProvider);
+    final notificationsAsync = ref.watch(employeeNotificationsProvider);
+
+    final profile = profileAsync.valueOrNull;
+
+    // Logic for Branch Name
+    String? displayOrgName;
+    if (profile != null) {
+      final branches = branchesAsync.valueOrNull ?? const [];
+      final assignedId = (profile.sucursalId ?? '').trim();
+      final assigned = assignedId.isEmpty
+          ? null
+          : branches.where((b) => b.id == assignedId).toList();
+
+      final branchName = assigned?.isNotEmpty == true
+          ? assigned!.first.nombre
+          : (branches.length == 1 ? branches.first.nombre : null);
+
+      if (branchName != null) {
+        displayOrgName = 'Sucursal: $branchName';
+      } else if (profile.sucursalId != null && profile.sucursalId!.isNotEmpty) {
+        displayOrgName =
+            'Sucursal asignada: ${profile.sucursalId!.substring(0, 8)}...';
+      } else {
+        displayOrgName = 'Sucursal: Sin asignar';
+      }
+    }
 
     // Fecha actual formateada
     final now = DateTime.now();
@@ -42,13 +74,13 @@ class _EmployeeHomeViewState extends ConsumerState<EmployeeHomeView> {
     final formattedDate = dateString[0].toUpperCase() + dateString.substring(1);
 
     final todaySummary = _computeTodaySummary(history, now);
-    final workedText =
-        todaySummary != null ? _fmtDuration(todaySummary.workedNet) : '0h 0m';
+    final workedText = todaySummary != null
+        ? _fmtDuration(todaySummary.workedNet)
+        : '0h 0m';
     final status = _computeStatus(lastAttendance, now);
 
     return Scaffold(
-      backgroundColor:
-          const Color(0xFFF4F6F8), // Gris suave muy profesional (Google/Facebook style)
+      backgroundColor: AppColors.scaffoldBackground,
       floatingActionButton: FloatingActionButton(
         heroTag: 'employee_home_actions_fab',
         backgroundColor: AppColors.primaryRed,
@@ -59,7 +91,23 @@ class _EmployeeHomeViewState extends ConsumerState<EmployeeHomeView> {
       body: Column(
         children: [
           // Header Reutilizable
-          const EmployeeHeader(),
+          HomeHeader(
+            userName: profile?.nombres ?? 'Empleado',
+            roleName: profile?.cargo ?? 'Operario',
+            organizationName: displayOrgName,
+            notificationCount:
+                notificationsAsync.valueOrNull
+                    ?.where((n) => n['leido'] != true)
+                    .length ??
+                0,
+            onNotificationTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => const EmployeeNotificationsView(),
+                ),
+              );
+            },
+          ),
 
           // Contenido desplazable
           Expanded(
@@ -71,13 +119,18 @@ class _EmployeeHomeViewState extends ConsumerState<EmployeeHomeView> {
                   ..invalidate(lastAttendanceProvider)
                   ..invalidate(employeeAttendanceHistoryProvider)
                   ..invalidate(employeeNotificationsProvider);
-                final schedule = await ref.refresh(employeeScheduleProvider.future);
+                final schedule = await ref.refresh(
+                  employeeScheduleProvider.future,
+                );
                 if (schedule == null) {
                   ref.invalidate(employeeNextScheduleProvider);
                 }
               },
               child: ListView(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 24,
+                ),
                 children: [
                   Text(
                     formattedDate,
@@ -142,8 +195,12 @@ class _EmployeeHomeViewState extends ConsumerState<EmployeeHomeView> {
     final bool isEntry =
         lastRecord == null || lastRecord.tipoRegistro == 'salida';
     final String actionLabel = isEntry ? 'Marcar Entrada' : 'Marcar Salida';
-    final IconData actionIcon = isEntry ? Icons.login_rounded : Icons.logout_rounded;
-    final Color actionColor = isEntry ? AppColors.successGreen : AppColors.primaryRed;
+    final IconData actionIcon = isEntry
+        ? Icons.login_rounded
+        : Icons.logout_rounded;
+    final Color actionColor = isEntry
+        ? AppColors.successGreen
+        : AppColors.primaryRed;
 
     return Container(
       padding: const EdgeInsets.all(24),
@@ -160,50 +217,46 @@ class _EmployeeHomeViewState extends ConsumerState<EmployeeHomeView> {
       ),
       child: Column(
         children: [
-           // Icono circular grande animado (simulado)
-           GestureDetector(
-             onTap: () {
-               // Navegar a la vista de marcación
-               Navigator.of(context).push(
-                 MaterialPageRoute(
-                   builder: (_) => EmployeeMarkAttendanceView(
-                     actionType: isEntry ? 'entrada' : 'salida',
-                   ),
-                 ),
-               );
-             },
-             child: Container(
-               width: 100,
-               height: 100,
-               decoration: BoxDecoration(
-                 color: actionColor.withValues(alpha: 0.1),
-                 shape: BoxShape.circle,
-                 border: Border.all(color: actionColor.withValues(alpha: 0.2), width: 8),
-               ),
-	               child: Icon(
-	                 actionIcon,
-	                 size: 48,
-	                 color: actionColor,
-	               ),
-             ),
-           ),
-           const SizedBox(height: 20),
-           Text(
-             actionLabel,
-             style: const TextStyle(
-               fontSize: 20,
-               fontWeight: FontWeight.bold,
-               color: AppColors.neutral900,
-             ),
-           ),
-           const SizedBox(height: 4),
-           Text(
-             isEntry ? 'Comienza tu jornada' : 'Finaliza tu jornada',
-             style: const TextStyle(
-               fontSize: 14,
-               color: AppColors.neutral500,
-             ),
-           ),
+          // Icono circular grande animado (simulado)
+          GestureDetector(
+            onTap: () {
+              // Navegar a la vista de marcación
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => EmployeeMarkAttendanceView(
+                    actionType: isEntry ? 'entrada' : 'salida',
+                  ),
+                ),
+              );
+            },
+            child: Container(
+              width: 100,
+              height: 100,
+              decoration: BoxDecoration(
+                color: actionColor.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: actionColor.withValues(alpha: 0.2),
+                  width: 8,
+                ),
+              ),
+              child: Icon(actionIcon, size: 48, color: actionColor),
+            ),
+          ),
+          const SizedBox(height: 20),
+          Text(
+            actionLabel,
+            style: const TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: AppColors.neutral900,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            isEntry ? 'Comienza tu jornada' : 'Finaliza tu jornada',
+            style: const TextStyle(fontSize: 14, color: AppColors.neutral500),
+          ),
         ],
       ),
     );
@@ -267,7 +320,10 @@ class _EmployeeHomeViewState extends ConsumerState<EmployeeHomeView> {
               color: Colors.blue.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: const Icon(Icons.schedule_rounded, color: AppColors.infoBlue),
+            child: const Icon(
+              Icons.schedule_rounded,
+              color: AppColors.infoBlue,
+            ),
           ),
           const SizedBox(width: 16),
           Expanded(
@@ -294,8 +350,10 @@ class _EmployeeHomeViewState extends ConsumerState<EmployeeHomeView> {
                   const SizedBox(height: 6),
                   Text(
                     'Tolerancia de entrada: $tolerance min',
-                    style:
-                        const TextStyle(fontSize: 12, color: AppColors.neutral600),
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: AppColors.neutral600,
+                    ),
                   ),
                 ],
               ],
@@ -306,17 +364,19 @@ class _EmployeeHomeViewState extends ConsumerState<EmployeeHomeView> {
     );
   }
 
-  Widget _buildSummaryItem({required IconData icon, required Color color, required String value, required String label}) {
+  Widget _buildSummaryItem({
+    required IconData icon,
+    required Color color,
+    required String value,
+    required String label,
+  }) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.02),
-            blurRadius: 8,
-          ),
+          BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 8),
         ],
       ),
       child: Column(
@@ -352,10 +412,12 @@ class _EmployeeHomeViewState extends ConsumerState<EmployeeHomeView> {
     if (history.isEmpty) return null;
     final today = DateTime(now.year, now.month, now.day);
     final todayRecords = history
-        .where((r) =>
-            r.fechaHoraMarcacion.year == today.year &&
-            r.fechaHoraMarcacion.month == today.month &&
-            r.fechaHoraMarcacion.day == today.day)
+        .where(
+          (r) =>
+              r.fechaHoraMarcacion.year == today.year &&
+              r.fechaHoraMarcacion.month == today.month &&
+              r.fechaHoraMarcacion.day == today.day,
+        )
         .toList();
     if (todayRecords.isEmpty) return null;
     return AttendanceSummaryHelper.groupByDay(todayRecords).firstOrNull;
@@ -370,7 +432,8 @@ class _EmployeeHomeViewState extends ConsumerState<EmployeeHomeView> {
       );
     }
 
-    final isToday = last.fechaHoraMarcacion.year == now.year &&
+    final isToday =
+        last.fechaHoraMarcacion.year == now.year &&
         last.fechaHoraMarcacion.month == now.month &&
         last.fechaHoraMarcacion.day == now.day;
     if (!isToday) {
@@ -453,7 +516,9 @@ class _EmployeeHomeViewState extends ConsumerState<EmployeeHomeView> {
                     onTap: () {
                       Navigator.pop(context);
                       Navigator.of(context).push(
-                        MaterialPageRoute(builder: (_) => const EmployeeScheduleView()),
+                        MaterialPageRoute(
+                          builder: (_) => const EmployeeScheduleView(),
+                        ),
                       );
                     },
                   ),
@@ -465,7 +530,9 @@ class _EmployeeHomeViewState extends ConsumerState<EmployeeHomeView> {
                     onTap: () {
                       Navigator.pop(context);
                       Navigator.of(context).push(
-                        MaterialPageRoute(builder: (_) => const EmployeeHoursBankView()),
+                        MaterialPageRoute(
+                          builder: (_) => const EmployeeHoursBankView(),
+                        ),
                       );
                     },
                   ),
@@ -483,7 +550,11 @@ class _HomeStatus {
   final String label;
   final IconData icon;
   final Color color;
-  const _HomeStatus({required this.label, required this.icon, required this.color});
+  const _HomeStatus({
+    required this.label,
+    required this.icon,
+    required this.color,
+  });
 }
 
 extension _FirstOrNullExt<T> on Iterable<T> {
@@ -545,12 +616,18 @@ class _ActionTile extends StatelessWidget {
                   const SizedBox(height: 2),
                   Text(
                     subtitle,
-                    style: const TextStyle(color: AppColors.neutral600, fontSize: 12),
+                    style: const TextStyle(
+                      color: AppColors.neutral600,
+                      fontSize: 12,
+                    ),
                   ),
                 ],
               ),
             ),
-            const Icon(Icons.chevron_right_rounded, color: AppColors.neutral400),
+            const Icon(
+              Icons.chevron_right_rounded,
+              color: AppColors.neutral400,
+            ),
           ],
         ),
       ),
